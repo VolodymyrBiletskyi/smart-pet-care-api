@@ -3,8 +3,8 @@
 ## Clone the repository
 
 ```bash
-git clone https://github.com/VolodymyrBiletskyi/online-shop-backend.git
-cd online-shop-backend
+git clone  https://github.com/VolodymyrBiletskyi/smart-pet-care-api.git
+cd smart-pet-care-api
 ```
 
 ---
@@ -23,21 +23,6 @@ Before launch, make sure your configuration contains:
 
 - PostgreSQL connection string
 - JWT settings
-
-For example, in `appsettings.Development.json` or through environment variables:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=AppDb;Username=postgres;Password=your_password"
-  },
-  "JwtOptions": {
-    "SecretKey": "your_long_secret_key_here",
-    "Issuer": "OnlineShop",
-    "Audience": "OnlineShopUsers"
-  }
-}
-```
 
 ### 3. Apply migrations
 
@@ -61,21 +46,6 @@ Before launch, make sure your configuration contains:
 
 - PostgreSQL connection string
 - JWT settings
-
-For example, in `appsettings.Development.json` or through environment variables:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=AppDb;Username=postgres;Password=your_password"
-  },
-  "JwtOptions": {
-    "SecretKey": "your_long_secret_key_here",
-    "Issuer": "OnlineShop",
-    "Audience": "OnlineShopUsers"
-  }
-}
-```
 
 
 ### 4. Run the application
@@ -109,7 +79,7 @@ Make sure you are in the root folder, where these files are located:
 - `Dockerfile`
 - `docker-compose.yml`
 - `.env`
-- `OnlineShopBackend.sln`
+- `smart-pet-care-api.sln`
 
 ### 2. Prepare the `.env` file
 
@@ -121,8 +91,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_db_password
 
 JWT_SECRET=your_long_secret_key_here
-JWT_ISSUER=OnlineShop
-JWT_AUDIENCE=OnlineShopUsers
+JWT_ISSUER=PetCare
+JWT_AUDIENCE=PetCareUsers
 ```
 
 ### 3. Start containers
@@ -221,7 +191,7 @@ Make sure you are in the root folder, where these files are located:
 - `Dockerfile`
 - `docker-compose.yml`
 - `.env`
-- `OnlineShopBackend.sln`
+- `smart-pet-care-api.sln`
 
 ### 2. Prepare the `.env` file
 
@@ -233,8 +203,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_db_password
 
 JWT_SECRET=your_long_secret_key_here
-JWT_ISSUER=OnlineShop
-JWT_AUDIENCE=OnlineShopUsers
+JWT_ISSUER=PetCare
+JWT_AUDIENCE=PetCareUsers
 ```
 
 ### 3. Start containers
