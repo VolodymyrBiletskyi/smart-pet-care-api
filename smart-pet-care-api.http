@@ -1,0 +1,6 @@
+@smart_pet_care_api_HostAddress = http://localhost:5241
+
+GET {{smart_pet_care_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,30 @@
+# IDE
+.vscode/
+.vs/
+.idea/
+
+# Build artifacts
+bin/
+obj/
+TestResults/
+*.cache/
+*.user
+*.rsuser
+
+# Logs
+logs/
+*.log
+
+# Publish profiles 
+**/Properties/PublishProfiles/
+**/*.csproj.user
+
+# Local configs 
+# **/appsettings.Development.json
+# **/appsettings.Local.json
+**/*.secrets.json
+.env
+
+api/Data/DbSeeder.cs
+
+.fake
