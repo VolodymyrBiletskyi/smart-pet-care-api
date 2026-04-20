@@ -1,0 +1,20 @@
+First stage:
+User, // done
+Auth(?),oAuth // done
+Files //done
+Pet and all connected//done?
+Reminders(separate Reminder and reminderRuns)//done?
+Upcoming PetEvents //done?
+AI sessions(Health, questions,other questions) // done?
+DailyActivity // done?
+Wellness score
+Notes for daily activity (in future modify) //done?
+Feeding logs(first stage) approximately calories,type of food etc.. // done
+
+
+
+Ask about calendar or upcoming PetEvents
+Ask about health assessment on the start
+
+Further dev
+Expand score system
