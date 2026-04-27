@@ -22,7 +22,7 @@ namespace smart_pet_care_api.Migrations
                     FirstName = table.Column<string>(type: "text", nullable: true),
                     LastName = table.Column<string>(type: "text", nullable: true),
                     PhoneNumber = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
@@ -39,7 +39,7 @@ namespace smart_pet_care_api.Migrations
                     Provider = table.Column<int>(type: "integer", nullable: false),
                     ProviderUserId = table.Column<string>(type: "text", nullable: false),
                     ProviderEmail = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
@@ -61,16 +61,17 @@ namespace smart_pet_care_api.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     Species = table.Column<string>(type: "text", nullable: false),
                     Breed = table.Column<string>(type: "text", nullable: true),
-                    BirthDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    BirthDate = table.Column<DateTime>(type: "date", nullable: true),
                     Sex = table.Column<int>(type: "integer", nullable: false),
                     WeightKg = table.Column<decimal>(type: "numeric", nullable: true),
                     BehavioralNotes = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Pets", x => x.Id);
+                    table.CheckConstraint("CK_Pets_WeightKg_Positive", "\"WeightKg\" IS NULL OR \"WeightKg\" > 0");
                     table.ForeignKey(
                         name: "FK_Pets_Users_UserId",
                         column: x => x.UserId,
@@ -87,7 +88,7 @@ namespace smart_pet_care_api.Migrations
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     TokenHash = table.Column<string>(type: "text", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ReplacedByTokenHash = table.Column<string>(type: "text", nullable: true)
                 },
@@ -114,11 +115,12 @@ namespace smart_pet_care_api.Migrations
                     SleepHours = table.Column<decimal>(type: "numeric", nullable: true),
                     Source = table.Column<int>(type: "integer", nullable: false),
                     RawPayload = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ActivityDailies", x => x.Id);
+                    table.CheckConstraint("CK_ActivityDailies_NonNegative", "(\"Steps\" IS NULL OR \"Steps\" >= 0) AND (\"ActiveMinutes\" IS NULL OR \"ActiveMinutes\" >= 0) AND (\"SleepHours\" IS NULL OR \"SleepHours\" >= 0)");
                     table.ForeignKey(
                         name: "FK_ActivityDailies_Pets_PetId",
                         column: x => x.PetId,
@@ -133,12 +135,12 @@ namespace smart_pet_care_api.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PetId = table.Column<Guid>(type: "uuid", nullable: true),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PetId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -169,12 +171,13 @@ namespace smart_pet_care_api.Migrations
                     PortionUnit = table.Column<int>(type: "integer", nullable: true),
                     ApproxCalories = table.Column<int>(type: "integer", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FeedingLogs", x => x.Id);
+                    table.CheckConstraint("CK_FeedingLogs_NonNegative", "(\"PortionAmount\" IS NULL OR \"PortionAmount\" >= 0) AND (\"ApproxCalories\" IS NULL OR \"ApproxCalories\" >= 0)");
                     table.ForeignKey(
                         name: "FK_FeedingLogs_Pets_PetId",
                         column: x => x.PetId,
@@ -194,7 +197,7 @@ namespace smart_pet_care_api.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     Allergen = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
@@ -224,12 +227,13 @@ namespace smart_pet_care_api.Migrations
                     IsSystemGenerated = table.Column<bool>(type: "boolean", nullable: false),
                     SourceType = table.Column<int>(type: "integer", nullable: false),
                     SourceId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PetEvents", x => x.Id);
+                    table.CheckConstraint("CK_PetEvents_DateRange", "\"EndAt\" IS NULL OR \"EndAt\" >= \"ScheduledAt\"");
                     table.ForeignKey(
                         name: "FK_PetEvents_Pets_PetId",
                         column: x => x.PetId,
@@ -252,12 +256,13 @@ namespace smart_pet_care_api.Migrations
                     ContentType = table.Column<string>(type: "text", nullable: false),
                     Size = table.Column<long>(type: "bigint", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PetFiles", x => x.Id);
+                    table.CheckConstraint("CK_PetFiles_Size_NonNegative", "\"Size\" >= 0");
                     table.ForeignKey(
                         name: "FK_PetFiles_Pets_PetId",
                         column: x => x.PetId,
@@ -269,7 +274,7 @@ namespace smart_pet_care_api.Migrations
                         column: x => x.UploadedByUserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -285,12 +290,14 @@ namespace smart_pet_care_api.Migrations
                     Interval = table.Column<int>(type: "integer", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PetMedications", x => x.Id);
+                    table.CheckConstraint("CK_PetMedications_DateRange", "\"EndDate\" IS NULL OR \"EndDate\" >= \"StartDate\"");
+                    table.CheckConstraint("CK_PetMedications_Interval_Positive", "\"Interval\" > 0");
                     table.ForeignKey(
                         name: "FK_PetMedications_Pets_PetId",
                         column: x => x.PetId,
@@ -317,12 +324,14 @@ namespace smart_pet_care_api.Migrations
                     IsSystemGenerated = table.Column<bool>(type: "boolean", nullable: false),
                     SourceType = table.Column<int>(type: "integer", nullable: false),
                     SourceId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reminders", x => x.Id);
+                    table.CheckConstraint("CK_Reminders_DateRange", "\"EndAt\" IS NULL OR \"EndAt\" >= \"StartAt\"");
+                    table.CheckConstraint("CK_Reminders_Interval_Positive", "\"Interval\" > 0");
                     table.ForeignKey(
                         name: "FK_Reminders_Pets_PetId",
                         column: x => x.PetId,
@@ -339,8 +348,8 @@ namespace smart_pet_care_api.Migrations
                     SessionId = table.Column<Guid>(type: "uuid", nullable: false),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
-                    Metadata = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    Metadata = table.Column<string>(type: "jsonb", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
@@ -359,7 +368,7 @@ namespace smart_pet_care_api.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     PetMedicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    TimeOfDay = table.Column<TimeSpan>(type: "interval", nullable: false)
+                    TimeOfDay = table.Column<TimeSpan>(type: "time", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -383,13 +392,14 @@ namespace smart_pet_care_api.Migrations
                     CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     Channel = table.Column<string>(type: "text", nullable: true),
-                    DeliveryMeta = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DeliveryMeta = table.Column<string>(type: "jsonb", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ReminderRun", x => x.Id);
+                    table.CheckConstraint("CK_ReminderRun_TimingOrder", "(\"SentAt\" IS NULL OR \"SentAt\" >= \"ScheduledFor\") AND (\"CompletedAt\" IS NULL OR \"SentAt\" IS NULL OR \"CompletedAt\" >= \"SentAt\")");
                     table.ForeignKey(
                         name: "FK_ReminderRun_Reminders_ReminderId",
                         column: x => x.ReminderId,
@@ -399,14 +409,21 @@ namespace smart_pet_care_api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ActivityDailies_PetId",
+                name: "IX_ActivityDailies_PetId_ActivityDate",
                 table: "ActivityDailies",
-                column: "PetId");
+                columns: new[] { "PetId", "ActivityDate" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AiMessages_SessionId",
+                name: "IX_ActivityDailies_PetId_ActivityDate_Source",
+                table: "ActivityDailies",
+                columns: new[] { "PetId", "ActivityDate", "Source" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AiMessages_SessionId_CreatedAt",
                 table: "AiMessages",
-                column: "SessionId");
+                columns: new[] { "SessionId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AiSessions_PetId",
@@ -419,14 +436,27 @@ namespace smart_pet_care_api.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AiSessions_UserId_CreatedAt",
+                table: "AiSessions",
+                columns: new[] { "UserId", "CreatedAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExternalLogins_Provider_ProviderUserId",
+                table: "ExternalLogins",
+                columns: new[] { "Provider", "ProviderUserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ExternalLogins_UserId",
                 table: "ExternalLogins",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FeedingLogs_PetId",
+                name: "IX_FeedingLogs_PetId_FedAt",
                 table: "FeedingLogs",
-                column: "PetId");
+                columns: new[] { "PetId", "FedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_PetConditions_PetId",
@@ -434,14 +464,36 @@ namespace smart_pet_care_api.Migrations
                 column: "PetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PetEvents_PetId",
+                name: "IX_PetConditions_PetId_IsActive",
+                table: "PetConditions",
+                columns: new[] { "PetId", "IsActive" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PetEvents_PetId_ScheduledAt",
                 table: "PetEvents",
-                column: "PetId");
+                columns: new[] { "PetId", "ScheduledAt" },
+                descending: new[] { false, true });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PetEvents_PetId_Status",
+                table: "PetEvents",
+                columns: new[] { "PetId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PetEvents_SourceType_SourceId",
+                table: "PetEvents",
+                columns: new[] { "SourceType", "SourceId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_PetFiles_PetId",
                 table: "PetFiles",
                 column: "PetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PetFiles_StorageKey",
+                table: "PetFiles",
+                column: "StorageKey",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PetFiles_UploadedByUserId",
@@ -454,14 +506,36 @@ namespace smart_pet_care_api.Migrations
                 column: "PetId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PetMedications_PetId_StartDate",
+                table: "PetMedications",
+                columns: new[] { "PetId", "StartDate" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PetMedicationScheduleTimes_PetMedicationId",
                 table: "PetMedicationScheduleTimes",
                 column: "PetMedicationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PetMedicationScheduleTimes_PetMedicationId_TimeOfDay",
+                table: "PetMedicationScheduleTimes",
+                columns: new[] { "PetMedicationId", "TimeOfDay" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Pets_UserId",
                 table: "Pets",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshTokens_ExpiresAt",
+                table: "RefreshTokens",
+                column: "ExpiresAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RefreshTokens_TokenHash",
+                table: "RefreshTokens",
+                column: "TokenHash",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
@@ -474,9 +548,30 @@ namespace smart_pet_care_api.Migrations
                 column: "ReminderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reminders_PetId",
+                name: "IX_ReminderRun_Status_ScheduledFor",
+                table: "ReminderRun",
+                columns: new[] { "Status", "ScheduledFor" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reminders_PetId_NextTriggerAt",
                 table: "Reminders",
-                column: "PetId");
+                columns: new[] { "PetId", "NextTriggerAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reminders_SourceType_SourceId",
+                table: "Reminders",
+                columns: new[] { "SourceType", "SourceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reminders_Status_NextTriggerAt",
+                table: "Reminders",
+                columns: new[] { "Status", "NextTriggerAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
         }
 
         /// <inheritdoc />

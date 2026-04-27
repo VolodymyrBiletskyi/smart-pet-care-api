@@ -11,7 +11,6 @@ namespace smart_pet_care_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid UserId { get; set; }
-        public User User { get; set; } = null!;
 
         public string Name { get; set; } = null!;
         public string Species { get; set; } = null!;

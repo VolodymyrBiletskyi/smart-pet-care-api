@@ -7,10 +7,8 @@ namespace smart_pet_care_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid PetId { get; set; }
-        public Pet Pet { get; set; } = null!;
 
         public Guid UploadedByUserId { get; set; }
-        public User UploadedByUser { get; set; } = null!;
 
         public string StorageKey { get; set; } = null!;
 

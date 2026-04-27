@@ -8,7 +8,6 @@ namespace smart_pet_care_api.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid PetId { get; set; }
-        public Pet Pet { get; set; } = null!;
 
         public bool IsActive { get; set; } = true;
         public ConditionType Type { get; set; }
