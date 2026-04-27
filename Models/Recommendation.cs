@@ -10,9 +10,7 @@ namespace smart_pet_care_api.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid PetId { get; set; }
-        public Pet Pet { get; set; } = null!;
         public Guid RuleId { get; set; }
-        public Rule Rule { get; set; } = null!;
 
         public string? Severity { get; set; }
         public string Message { get; set; } = null!;

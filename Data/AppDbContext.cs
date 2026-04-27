@@ -26,6 +26,9 @@ namespace smart_pet_care_api.Data
         public DbSet<AiMessage> AiMessages { get; set; }
         public DbSet<ActivityDaily> ActivityDailies { get; set; }
 
-
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        }
     }
 }

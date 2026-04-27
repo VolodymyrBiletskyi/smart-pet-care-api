@@ -8,7 +8,6 @@ namespace smart_pet_care_api.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public Guid ReminderId { get; set; }
-        public Reminder Reminder { get; set; } = null!;
 
         public DateTime ScheduledFor { get; set; }
         public DateTime? SentAt { get; set; }
