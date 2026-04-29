@@ -1,38 +1,13 @@
-# Smart Pet Care A — Setup Guide
+# 🏗️ Backend Project README
 
-## Clone the repository
+## 🚀 Getting Started
+
+### 1. Clone repository
 
 ```bash
 git clone  https://github.com/VolodymyrBiletskyi/smart-pet-care-api.git
 cd smart-pet-care-api
 ```
-
----
-
-## Run locally
-
-### 1. Restore dependencies
-
-```bash
-dotnet restore
-```
-
-### 2. Configure environment
-
-Before launch, make sure your configuration contains:
-
-- PostgreSQL connection string
-- JWT settings
-
-### 3. Apply migrations
-
-```bash
-dotnet ef database update
-```
-
----
-
-## Run locally
 
 ### 2. Restore dependencies
 
@@ -40,230 +15,95 @@ dotnet ef database update
 dotnet restore
 ```
 
-### 3. Configure environment
+### 3. Configure database
 
-Before launch, make sure your configuration contains:
+Edit appsettings.json:
 
-- PostgreSQL connection string
-- JWT settings
-
-
-### 4. Run the application
-
-```bash
-dotnet watch run
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Host=localhost;Port=5432;Database=app_db;Username=postgres;Password=yourpassword"
+}
 ```
 
-The API should be available at:
-
-```text
-http://localhost:<YOURPORT>
-```
-
-### Swagger
-
-After startup, open Swagger in the browser:
-
-```text
-http://localhost:<YOURPORT>/swagger
-```
-
----
-
-## Run with Docker Compose
-
-### 1. Go to the project root
-
-Make sure you are in the root folder, where these files are located:
-
-- `Dockerfile`
-- `docker-compose.yml`
-- `.env`
-- `smart-pet-care-api.sln`
-
-### 2. Prepare the `.env` file
-
-Example:
-
-```env
-POSTGRES_DB=AppDb
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_db_password
-
-JWT_SECRET=your_long_secret_key_here
-JWT_ISSUER=PetCare
-JWT_AUDIENCE=PetCareUsers
-```
-
-### 3. Start containers
-
-```bash
-docker compose up --build
-```
-
-To run in background:
-
-```bash
-docker compose up --build -d
-```
-
-### 4. Open Swagger
-
-After the containers start, Swagger should be available at:
-
-```text
-http://localhost:8080/swagger
-```
-
----
-
-## Stop Docker containers
-
-```bash
-docker compose down
-```
-
-This stops and removes containers, but keeps PostgreSQL data if a Docker volume is used.
-
-To remove containers **and** database data:
-
-```bash
-docker compose down -v
-```
-
----
-
-## Useful commands
-
-### View logs
-
-```bash
-docker compose logs -f
-```
-
-### View only API logs
-
-```bash
-docker compose logs -f api
-```
-
-### Rebuild from scratch
-
-```bash
-docker compose down
-docker compose up --build --force-recreate
-```
-
----:
+### 4. Apply migrations
 
 ```bash
 dotnet ef database update
 ```
 
-### 4. Run the application
+### 5. Run the project
 
 ```bash
 dotnet run
 ```
 
-The API should be available at:
+---
 
-```text
-http://localhost:<YOURPORT>
+## 🧠 Architecture Overview
+
+Project uses **modular Clean Architecture (lightweight)**.
+
+Structure is based on **features (modules)**.
+
+---
+
+## 🧱 Flow
+
+HTTP → Controller → UseCase → Service → Repository → DB
+
+---
+
+## 📦 Structure
+
 ```
-
-### Swagger
-
-After startup, open Swagger in the browser:
-
-```text
-http://localhost:<YOURPORT>/swagger
+Modules/
+  User/
+    API/
+      UserController.cs
+    Application/
+      CreateUserUseCase.cs
+    Domain/
+      UserService.cs
+    Infrastructure/
+      UserRepository.cs
+    DTOs/
+      CreateUserDto.cs
 ```
 
 ---
 
-## Run with Docker Compose
+## 🔍 Layers
 
-### 1. Go to the project root
-
-Make sure you are in the root folder, where these files are located:
-
-- `Dockerfile`
-- `docker-compose.yml`
-- `.env`
-- `smart-pet-care-api.sln`
-
-### 2. Prepare the `.env` file
-
-Example:
-
-```env
-POSTGRES_DB=AppDb
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_db_password
-
-JWT_SECRET=your_long_secret_key_here
-JWT_ISSUER=PetCare
-JWT_AUDIENCE=PetCareUsers
-```
-
-### 3. Start containers
-
-```bash
-docker compose up --build
-```
-
-To run in background:
-
-```bash
-docker compose up --build -d
-```
-
-### 4. Open Swagger
-
-After the containers start, Swagger should be available at:
-
-```text
-http://localhost:8080/swagger
-```
+API → Controllers (no logic)  
+Application → UseCases (orchestration)  
+Domain → Services (business logic)  
+Infrastructure → Repositories (DB)  
+DTOs → data transfer objects
 
 ---
 
-## Stop Docker containers
+## ⚙️ Example Flow
 
-```bash
-docker compose down
-```
-
-This stops and removes containers, but keeps PostgreSQL data if a Docker volume is used.
-
-To remove containers **and** database data:
-
-```bash
-docker compose down -v
-```
+POST /users  
+→ Controller  
+→ UseCase  
+→ Service  
+→ Repository → DB
 
 ---
 
-## Useful commands
+## ❗ Rules
 
-### View logs
-
-```bash
-docker compose logs -f
-```
-
-### View only API logs
-
-```bash
-docker compose logs -f api
-```
-
-### Rebuild from scratch
-
-```bash
-docker compose down
-docker compose up --build --force-recreate
-```
+- Thin controllers
+- Services = single responsibility
+- UseCases = workflows
+- Repositories = DB only
+- Avoid service chains
 
 ---
+
+## 🚫 Anti-patterns
+
+- God services
+- Mixed logic (DB + business)
+- Flat structure
