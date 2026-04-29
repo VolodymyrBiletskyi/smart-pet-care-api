@@ -60,11 +60,11 @@ Modules/
   User/
     API/
       UserController.cs
-    Application/
-      CreateUserUseCase.cs
     Domain/
+      IUserService
       UserService.cs
-    Infrastructure/
+    Repository/
+      IUserRepository.cs
       UserRepository.cs
     DTOs/
       CreateUserDto.cs
@@ -107,3 +107,5 @@ POST /users
 - God services
 - Mixed logic (DB + business)
 - Flat structure
+  f
+  ffr
