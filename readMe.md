@@ -49,7 +49,7 @@ Structure is based on **features (modules)**.
 
 ## 🧱 Flow
 
-HTTP → Controller → UseCase → Service → Repository → DB
+HTTP → Controller → Service → Repository → DB
 
 ---
 
@@ -75,7 +75,6 @@ Modules/
 ## 🔍 Layers
 
 API → Controllers (no logic)  
-Application → UseCases (orchestration)  
 Domain → Services (business logic)  
 Infrastructure → Repositories (DB)  
 DTOs → data transfer objects
@@ -86,7 +85,6 @@ DTOs → data transfer objects
 
 POST /users  
 → Controller  
-→ UseCase  
 → Service  
 → Repository → DB
 
@@ -96,7 +94,6 @@ POST /users
 
 - Thin controllers
 - Services = single responsibility
-- UseCases = workflows
 - Repositories = DB only
 - Avoid service chains
 
@@ -107,5 +104,3 @@ POST /users
 - God services
 - Mixed logic (DB + business)
 - Flat structure
-  f
-  ffr
