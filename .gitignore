@@ -20,8 +20,8 @@ logs/
 **/*.csproj.user
 
 # Local configs 
-# **/appsettings.Development.json
-# **/appsettings.Local.json
+appsettings.json
+appsettings.*.json
 **/*.secrets.json
 .env
 

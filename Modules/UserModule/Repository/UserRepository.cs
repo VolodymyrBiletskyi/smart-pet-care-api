@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Models;
-using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
-using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
+using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.UserModule.Repository
 {
@@ -38,9 +33,10 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
             return _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
         }
 
-        public Task AddAsync(User entity)
+        public async Task<User> AddAsync(User entity)
         {
-            return _dbContext.AddAsync(entity).AsTask();
+            await _dbContext.Users.AddAsync(entity);
+            return entity;
         }
 
         public async Task<int> SaveChangesAsync()
@@ -57,6 +53,22 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
 
             _dbContext.Users.Remove(userModel);
 
+        }
+
+        public async Task<bool> ExistsAsync(Guid userId)
+        {
+            return await _dbContext.Users.AnyAsync(u => u.Id == userId);
+        }
+        public async Task<ExternalLogin?> GetExternalLoginAsync(AuthProvider provider, string providerUserId)
+        {
+            return await _dbContext.ExternalLogins
+                .FirstOrDefaultAsync(x => x.Provider == provider && x.ProviderUserId == providerUserId);
+        }
+
+        public async Task AddExternalLoginAsync(ExternalLogin login)
+        {
+            _dbContext.ExternalLogins.Add(login);
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

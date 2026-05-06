@@ -12,7 +12,7 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260427132119_initialMigration")]
+    [Migration("20260506154852_initialMigration")]
     partial class initialMigration
     {
         /// <inheritdoc />
@@ -698,7 +698,6 @@ namespace smart_pet_care_api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")

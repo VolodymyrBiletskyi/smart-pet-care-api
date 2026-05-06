@@ -11,7 +11,7 @@ namespace smart_pet_care_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public string Email { get; set; } = null!;
-        public string PasswordHash { get; set; } = null!;
+        public string? PasswordHash { get; set; }
         public string? DisplayName { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
