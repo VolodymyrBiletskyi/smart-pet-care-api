@@ -17,9 +17,16 @@ namespace smart_pet_care_api.Extensions
                         Version = "v1"
                     };
 
+                    var env = context.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+
                     document.Servers = new List<OpenApiServer>
                     {
-                        new OpenApiServer {Url = "https://smart-pet-care.duckdns.org"}
+                        new OpenApiServer
+                        {
+                            Url = env.IsProduction()
+                                ? "https://smart-pet-care.duckdns.org"
+                                : "http://localhost:8080"
+                        }
                     };
 
                     document.Components ??= new OpenApiComponents();
@@ -44,7 +51,6 @@ namespace smart_pet_care_api.Extensions
 
         public static IApplicationBuilder UseScalarConfig(this WebApplication app)
         {
-
             app.MapOpenApi();
             app.MapScalarApiReference(options =>
             {
