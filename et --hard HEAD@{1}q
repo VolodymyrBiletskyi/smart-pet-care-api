@@ -1,0 +1,51 @@
+[33maef882c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/https[m[33m)[m HEAD@{0}: commit (amend): Merge branch 'feature/https' of https://github.com/VolodymyrBiletskyi/smart-pet-care-api into feature/https
+[33mb2cb14a[m[33m ([m[1;31morigin/feature/https[m[33m)[m HEAD@{1}: commit (amend): Merge branch 'feature/https' of https://github.com/VolodymyrBiletskyi/smart-pet-care-api into feature/https
+[33m992699b[m HEAD@{2}: pull origin feature/https: Merge made by the 'ort' strategy.
+[33mc0d8fd8[m HEAD@{3}: reset: moving to HEAD
+[33mc0d8fd8[m HEAD@{4}: commit: fixes for https
+[33mb767331[m HEAD@{5}: commit: fixes for https
+[33mc6cf899[m HEAD@{6}: commit: fixes for https
+[33m77a9084[m HEAD@{7}: commit: https
+[33m9b2e7b0[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{8}: checkout: moving from main to feature/https
+[33m9b2e7b0[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{9}: pull origin main: Fast-forward
+[33me9ac598[m HEAD@{10}: checkout: moving from feature/auth to main
+[33m7a33b20[m[33m ([m[1;31morigin/feature/auth[m[33m, [m[1;32mfeature/auth[m[33m)[m HEAD@{11}: commit: docker established
+[33me9ac598[m HEAD@{12}: pull origin main: Fast-forward
+[33m8c151b5[m HEAD@{13}: checkout: moving from main to feature/auth
+[33me9ac598[m HEAD@{14}: pull origin main: Fast-forward
+[33md714df6[m HEAD@{15}: checkout: moving from feature/auth to main
+[33m8c151b5[m HEAD@{16}: commit: establsihed auth and OAuth
+[33md714df6[m HEAD@{17}: reset: moving to HEAD~1
+[33mc7dbddb[m HEAD@{18}: commit: establsihed auth and OAuth
+[33md714df6[m HEAD@{19}: reset: moving to HEAD~1
+[33m1e73f8d[m HEAD@{20}: reset: moving to HEAD~1
+[33m3122383[m HEAD@{21}: commit: establsihed auth and OAuth
+[33m1e73f8d[m HEAD@{22}: commit: establsihed auth and OAuth
+[33md714df6[m HEAD@{23}: checkout: moving from main to feature/auth
+[33md714df6[m HEAD@{24}: pull origin main: Fast-forward
+[33mcf07632[m HEAD@{25}: checkout: moving from feature/user-module/init to main
+[33m5d8a388[m[33m ([m[1;31morigin/feature/user-module/init[m[33m, [m[1;32mfeature/user-module/init[m[33m)[m HEAD@{26}: commit: create user
+[33mcf07632[m HEAD@{27}: checkout: moving from main to feature/user-module/init
+[33mcf07632[m HEAD@{28}: commit (merge): Merge branch 'main' of https://github.com/VolodymyrBiletskyi/smart-pet-care-api
+[33m1db1361[m[33m ([m[1;32mb[m[33m)[m HEAD@{29}: checkout: moving from feature/userModule/init to main
+[33m1db1361[m[33m ([m[1;32mb[m[33m)[m HEAD@{30}: checkout: moving from main to feature/userModule/init
+[33m1db1361[m[33m ([m[1;32mb[m[33m)[m HEAD@{31}: reset: moving to HEAD
+[33m1db1361[m[33m ([m[1;32mb[m[33m)[m HEAD@{32}: commit: rr
+[33m054a5e3[m HEAD@{33}: checkout: moving from feature/user-module/init to main
+[33m4c4015c[m HEAD@{34}: reset: moving to HEAD
+[33m4c4015c[m HEAD@{35}: checkout: moving from feature/user-module/init to feature/user-module/init
+[33m4c4015c[m HEAD@{36}: reset: moving to HEAD
+[33m4c4015c[m HEAD@{37}: commit: readme changed
+[33m296f22a[m HEAD@{38}: checkout: moving from main to feature/user-module/init
+[33m054a5e3[m HEAD@{39}: commit: readme changed
+[33m296f22a[m HEAD@{40}: checkout: moving from feature/user-module/init to main
+[33m296f22a[m HEAD@{41}: checkout: moving from main to feature/user-module/init
+[33m296f22a[m HEAD@{42}: pull origin main: Fast-forward
+[33mc2042fd[m[33m ([m[1;32mr[m[33m)[m HEAD@{43}: checkout: moving from main to main
+[33mc2042fd[m[33m ([m[1;32mr[m[33m)[m HEAD@{44}: checkout: moving from feature/database-configurations to main
+[33mcce7ab9[m[33m ([m[1;31morigin/feature/database-configurations[m[33m, [m[1;32mfeature/database-configurations[m[33m)[m HEAD@{45}: reset: moving to HEAD
+[33mcce7ab9[m[33m ([m[1;31morigin/feature/database-configurations[m[33m, [m[1;32mfeature/database-configurations[m[33m)[m HEAD@{46}: commit: established configurations
+[33mc2042fd[m[33m ([m[1;32mr[m[33m)[m HEAD@{47}: checkout: moving from main to feature/database-configurations
+[33mc2042fd[m[33m ([m[1;32mr[m[33m)[m HEAD@{48}: pull origin main --allow-unrelated-histories: Merge made by the 'ort' strategy.
+[33m89453e1[m HEAD@{49}: commit (amend): initial commit
+[33m2150d75[m HEAD@{50}: commit (initial): initial commit

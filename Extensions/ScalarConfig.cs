@@ -17,6 +17,11 @@ namespace smart_pet_care_api.Extensions
                         Version = "v1"
                     };
 
+                    document.Servers = new List<OpenApiServer>
+                    {
+                        new OpenApiServer {Url = "https://smart-pet-care.duckdns.org"}
+                    };
+
                     document.Components ??= new OpenApiComponents();
 
                     if (document.Components.SecuritySchemes == null)
