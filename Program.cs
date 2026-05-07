@@ -37,6 +37,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         db.Database.CanConnect();
+        db.Database.Migrate();
         Console.WriteLine("✅ Database connected");
     }
     catch (Exception ex)

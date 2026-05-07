@@ -39,19 +39,17 @@ namespace smart_pet_care_api.Extensions
 
         public static IApplicationBuilder UseScalarConfig(this WebApplication app)
         {
-            if (app.Environment.IsDevelopment())
+
+            app.MapOpenApi();
+            app.MapScalarApiReference(options =>
             {
-                app.MapOpenApi();
-                app.MapScalarApiReference(options =>
+                options.Title = "Smart Pet Care API";
+                options.Theme = ScalarTheme.DeepSpace;
+                options.Authentication = new ScalarAuthenticationOptions
                 {
-                    options.Title = "Smart Pet Care API";
-                    options.Theme = ScalarTheme.DeepSpace;
-                    options.Authentication = new ScalarAuthenticationOptions
-                    {
-                        PreferredSecurityScheme = "Bearer"
-                    };
-                });
-            }
+                    PreferredSecurityScheme = "Bearer"
+                };
+            });
 
             return app;
         }
