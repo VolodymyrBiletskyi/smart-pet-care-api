@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\manga\\\\Documents\\\\JunkProjects2\\\\smart-pet-care-api\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(git checkout *)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\manga\\\\Documents\\\\JunkProjects2\\\\smart-pet-care-api\\\\Modules\\\\NotificationModule\")",
+      "Bash(Remove-Item -Force \"C:\\\\Users\\\\manga\\\\Documents\\\\JunkProjects2\\\\smart-pet-care-api\\\\Models\\\\DeviceToken.cs\")",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)"
+    ]
+  }
+}
