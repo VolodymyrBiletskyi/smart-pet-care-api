@@ -4,8 +4,8 @@ using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
-using smart_pet_care_api.Modules.UserModule.Domain;
-using smart_pet_care_api.Modules.UserModule.Repository;
+using smart_pet_care_api.Modules.ReminderModule;
+using smart_pet_care_api.Modules.UserModule;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,18 +14,16 @@ var cs = builder.Configuration.GetConnectionString("DbConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(cs));
 
-// Scalar
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-// DI
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddUserModule();
 builder.Services.AddAuthModule(builder.Configuration);
+builder.Services.AddReminderModule();
 builder.Services.AddScalarConfig();
 
-// Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
 
@@ -35,7 +33,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 app.UseScalarConfig();
-// DB check
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -52,7 +50,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Console output
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     Console.WriteLine("\n🚀 API started!");
@@ -66,13 +63,10 @@ app.Lifetime.ApplicationStarted.Register(() =>
 });
 
 app.UseHttpsRedirection();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

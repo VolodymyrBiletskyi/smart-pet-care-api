@@ -20,6 +20,7 @@ namespace smart_pet_care_api.Data
         public DbSet<PetMedication> PetMedications { get; set; }
         public DbSet<PetMedicationScheduleTime> PetMedicationScheduleTimes { get; set; }
         public DbSet<Reminder> Reminders { get; set; }
+        public DbSet<ReminderRun> ReminderRuns { get; set; }
         public DbSet<PetEvent> PetEvents { get; set; }
         public DbSet<FeedingLog> FeedingLogs { get; set; }
         public DbSet<AiSession> AiSessions { get; set; }
@@ -29,6 +30,9 @@ namespace smart_pet_care_api.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+            // Keep the table name EF discovered via navigation property in the initial migration
+            modelBuilder.Entity<ReminderRun>().ToTable("ReminderRun");
         }
     }
 }

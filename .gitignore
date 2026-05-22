@@ -19,11 +19,12 @@ logs/
 **/Properties/PublishProfiles/
 **/*.csproj.user
 
-# Local configs 
+# Local configs
 appsettings.json
 appsettings.*.json
 **/*.secrets.json
 .env
+settings.local.json
 
 api/Data/DbSeeder.cs
 
