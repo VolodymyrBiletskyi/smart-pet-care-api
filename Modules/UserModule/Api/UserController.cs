@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.UserModule.Domain;
 using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
+using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
 
 namespace smart_pet_care_api.Modules.UserModule.Api
 {
@@ -16,6 +17,7 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(List<UserResponseDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
             var users = await _userService.GetAllAsync();
@@ -23,6 +25,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id)
         {
             try
@@ -38,6 +42,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create(CreateUserDto dto)
         {
             try
@@ -56,6 +62,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpPatch("{id}")]
+        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Update(Guid id, PatchUserDto patchDto)
         {
             try
@@ -74,6 +82,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
