@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Requests;
+using smart_pet_care_api.Modules.AuthModule.DTOs.Responses;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.AuthModule.OAuth;
 
@@ -21,6 +22,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("login")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
@@ -39,7 +42,10 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             }
         }
 
+        [Authorize]
         [HttpPost("refresh")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Refresh()
         {
             try
@@ -84,6 +90,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpGet("oauth/google/callback")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GoogleCallback([FromQuery(Name = "code")] string? authCode)
         {
 
@@ -100,6 +107,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("oauth/google/mobile")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GoogleMobileLogin([FromBody] GoogleMobileRequest request)
         {
             try
