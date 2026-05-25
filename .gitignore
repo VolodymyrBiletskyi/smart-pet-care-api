@@ -26,6 +26,8 @@ appsettings.*.json
 .env
 settings.local.json
 
+nginx/.htpasswd
+
 api/Data/DbSeeder.cs
 
 .fake
