@@ -41,26 +41,6 @@ namespace smart_pet_care_api.Modules.UserModule.Api
             }
         }
 
-        [HttpPost]
-        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Create(CreateUserDto dto)
-        {
-            try
-            {
-                var createdUser = await _userService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = createdUser.Id }, createdUser);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
         [HttpPatch("{id}")]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
