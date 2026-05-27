@@ -24,6 +24,29 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             _googleOAuth = googleOAuth;
         }
 
+        public async Task<AuthTokenPair> RegisterAsync(RegisterRequest request)
+        {
+            var email = request.Email.Trim().ToLowerInvariant();
+
+            if (await _userRepo.GetByEmailAsync(email) is not null)
+                throw new InvalidOperationException("Email is already taken");
+
+            var passwordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.Password);
+
+            var user = await _userRepo.AddAsync(new User
+            {
+                Email = email,
+                PasswordHash = passwordHash,
+                TermsAccepted = true,
+                TermsAcceptedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _userRepo.SaveChangesAsync();
+
+            return await IssueTokensAsync(user);
+        }
+
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)
         {
             var user = await _userRepo.GetByEmailAsync(request.Email)

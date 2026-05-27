@@ -14,6 +14,7 @@ namespace smart_pet_care_api.Modules.UserModule.DTOs.Responses
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? PhoneNumber { get; set; }
+        public bool TermsAccepted { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

@@ -13,22 +13,6 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
             _userRepo = userRepo;
         }
 
-        public async Task<UserResponseDto> CreateAsync(CreateUserDto dto)
-        {
-            var email = dto.Email.Trim().ToLowerInvariant();
-
-            if (await _userRepo.GetByEmailAsync(email) is not null)
-                throw new InvalidOperationException("Email is already taken");
-
-            var passwordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(dto.Password);
-
-            var entity = UserMapper.ToEntity(dto, passwordHash);
-
-            await _userRepo.AddAsync(entity);
-            await _userRepo.SaveChangesAsync();
-            return UserMapper.ToDto(entity);
-        }
-
         public async Task<bool> DeleteAsync(Guid id)
         {
             var user = await _userRepo.GetByIdAsync(id);

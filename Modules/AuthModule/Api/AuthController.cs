@@ -21,6 +21,27 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             _googleOAuth = googleOAuth;
         }
 
+        [HttpPost("register")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            try
+            {
+                var result = await _authService.RegisterAsync(request);
+                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
+                return StatusCode(StatusCodes.Status201Created, result.Auth);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while registering" });
+            }
+        }
+
         [HttpPost("login")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

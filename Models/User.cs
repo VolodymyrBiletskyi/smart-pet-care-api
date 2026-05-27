@@ -17,6 +17,9 @@ namespace smart_pet_care_api.Models
         public string? LastName { get; set; }
         public string? PhoneNumber { get; set; }
 
+        public bool TermsAccepted { get; set; } = false;
+        public DateTime? TermsAcceptedAt { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

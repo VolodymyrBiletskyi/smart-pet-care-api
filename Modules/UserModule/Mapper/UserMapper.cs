@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
 using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
@@ -20,19 +16,9 @@ namespace smart_pet_care_api.Modules.UserModule.Mapper
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber,
+                TermsAccepted = user.TermsAccepted,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
-            };
-        }
-
-        public static User ToEntity(CreateUserDto dto, string passwordHash)
-        {
-            return new User
-            {
-                Id = Guid.NewGuid(),
-                PasswordHash = passwordHash,
-                Email = dto.Email,
-                CreatedAt = DateTime.UtcNow
             };
         }
 
