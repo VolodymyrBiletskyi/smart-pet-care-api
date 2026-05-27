@@ -138,19 +138,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
                 return await IssueTokensAsync(existingUser!);
             }
 
-            // 2. check if user exists with same email
             var user = await _userRepo.GetByEmailAsync(userInfo.Email);
             if (user is null)
             {
-                // 3. create new user
+
                 user = await _userRepo.AddAsync(new User
                 {
                     Email = userInfo.Email,
-                    PasswordHash = null
+                    PasswordHash = null,
+                    TermsAccepted = true,
+                    TermsAcceptedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow
                 });
             }
 
-            // 4. link external login to user
             await _userRepo.AddExternalLoginAsync(new ExternalLogin
             {
                 UserId = user.Id,
