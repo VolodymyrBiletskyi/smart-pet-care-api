@@ -9,10 +9,10 @@ namespace smart_pet_care_api.Models
 
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
-        public ReminderType Type { get; set; }
+        public ReminderType Type { get; set; } = ReminderType.Feeding;
         public ReminderStatus Status { get; set; } = ReminderStatus.Active;
 
-        public DayOfWeek[] Days { get; set; } = [];
+        public DaysOfWeek[] Days { get; set; } = [];
         public TimeSpan TimeOfDay { get; set; }
         public bool IsRepeatable { get; set; }
 

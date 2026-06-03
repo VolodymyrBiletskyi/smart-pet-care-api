@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static smart_pet_care_api.Models.Enums;
-using static smart_pet_care_api.Models.Reminder;
 
 namespace smart_pet_care_api.Models
 {

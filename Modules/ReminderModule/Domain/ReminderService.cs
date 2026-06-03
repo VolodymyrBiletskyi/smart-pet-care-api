@@ -49,8 +49,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            var time = dto.Time.ToUniversalTime();
-            var firstTrigger = ComputeNextTrigger(dto.Days, time.TimeOfDay, time)
+            var firstTrigger = ComputeNextTrigger(dto.Days, dto.Time.ToTimeSpan(), DateTime.UtcNow)
                 ?? throw new InvalidOperationException("Could not compute a valid trigger time");
 
             var reminder = ReminderMapper.ToEntity(dto, firstTrigger);
@@ -72,7 +71,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.Days != null || dto.Time.HasValue)
             {
                 var days = dto.Days ?? reminder.Days;
-                var time = dto.Time.HasValue ? dto.Time.Value.ToUniversalTime().TimeOfDay : reminder.TimeOfDay;
+                var time = dto.Time.HasValue ? dto.Time.Value.ToTimeSpan() : reminder.TimeOfDay;
 
                 if (days.Length == 0)
                     throw new InvalidOperationException("At least one day must be specified");
@@ -117,7 +116,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             return run.ToDto();
         }
 
-        internal static DateTime? ComputeNextTrigger(DayOfWeek[] days, TimeSpan time, DateTime after)
+        internal static DateTime? ComputeNextTrigger(DaysOfWeek[] days, TimeSpan time, DateTime after)
         {
             if (days.Length == 0) return null;
 
@@ -128,7 +127,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 .First();
         }
 
-        private static DateTime NextOccurrence(DayOfWeek day, TimeSpan time, DateTime after)
+        private static DateTime NextOccurrence(DaysOfWeek day, TimeSpan time, DateTime after)
         {
             var daysUntil = ((int)day - (int)after.DayOfWeek + 7) % 7;
             if (daysUntil == 0 && after.TimeOfDay > time)
