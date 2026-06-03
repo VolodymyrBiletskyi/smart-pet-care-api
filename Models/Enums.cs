@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace smart_pet_care_api.Models
 {
@@ -30,6 +27,7 @@ namespace smart_pet_care_api.Models
             Veterinary,
             Grooming,
         }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderType
         {
             Feeding,
@@ -37,7 +35,7 @@ namespace smart_pet_care_api.Models
             Medication,
             Vaccination,
             ParasiteTreatment,
-            vetVisit,
+            VetVisit,
             Grooming,
         }
         public enum Frequency
@@ -48,6 +46,7 @@ namespace smart_pet_care_api.Models
             Monthly,
             Yearly,
         }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderStatus
         {
             Active,
@@ -56,6 +55,7 @@ namespace smart_pet_care_api.Models
             Cancelled,
         }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderRunStatus
         {
             Pending,
@@ -169,6 +169,17 @@ namespace smart_pet_care_api.Models
             Photo,
             Document,
             Other
+        }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public enum DaysOfWeek
+        {
+            Sunday,
+            Monday,
+            Tuesday,
+            Wednesday,
+            Thursday,
+            Friday,
+            Saturday
         }
 
     }

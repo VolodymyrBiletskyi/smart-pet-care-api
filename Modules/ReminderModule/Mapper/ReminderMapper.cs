@@ -17,6 +17,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             Status = r.Status,
             Days = r.Days,
             IsRepeatable = r.IsRepeatable,
+            TimeOfDay = r.TimeOfDay,
             StartAt = r.StartAt,
             NextTriggerAt = r.NextTriggerAt,
             EndAt = r.EndAt,
@@ -44,7 +45,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             Description = dto.Description,
             Type = dto.Type,
             Days = dto.Days,
-            TimeOfDay = dto.Time.ToUniversalTime().TimeOfDay,
+            TimeOfDay = dto.Time.ToTimeSpan(),
             IsRepeatable = dto.IsRepeatable,
             StartAt = firstTrigger,
             NextTriggerAt = firstTrigger,
@@ -57,7 +58,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             if (dto.Title != null) reminder.Title = dto.Title;
             if (dto.Description != null) reminder.Description = dto.Description;
             if (dto.Days != null) reminder.Days = dto.Days;
-            if (dto.Time.HasValue) reminder.TimeOfDay = dto.Time.Value.ToUniversalTime().TimeOfDay;
+            if (dto.Time.HasValue) reminder.TimeOfDay = dto.Time.Value.ToTimeSpan();
             if (dto.IsRepeatable.HasValue) reminder.IsRepeatable = dto.IsRepeatable.Value;
             if (dto.EndAt.HasValue) reminder.EndAt = dto.EndAt;
             if (dto.Status.HasValue) reminder.Status = dto.Status.Value;

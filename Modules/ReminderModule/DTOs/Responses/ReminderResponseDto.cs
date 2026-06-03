@@ -10,8 +10,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Responses
         public string? Description { get; set; }
         public ReminderType Type { get; set; }
         public ReminderStatus Status { get; set; }
-        public DayOfWeek[] Days { get; set; } = [];
+        public DaysOfWeek[] Days { get; set; } = [];
         public bool IsRepeatable { get; set; }
+        public TimeSpan TimeOfDay { get; set; }
         public DateTime StartAt { get; set; }
         public DateTime? NextTriggerAt { get; set; }
         public DateTime? EndAt { get; set; }

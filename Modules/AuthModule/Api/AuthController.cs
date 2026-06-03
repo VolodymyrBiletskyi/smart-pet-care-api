@@ -89,6 +89,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
 
         [Authorize]
         [HttpPost("logout")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Logout()
         {
             try
@@ -104,6 +106,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             }
         }
         [HttpGet("oauth/google")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public IActionResult GoogleLogin()
         {
             var url = _googleOAuth.GetAuthorizationUrl();
@@ -111,6 +115,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpGet("oauth/google/callback")]
+        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GoogleCallback([FromQuery(Name = "code")] string? authCode)
         {

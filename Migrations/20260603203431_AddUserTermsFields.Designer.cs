@@ -12,7 +12,7 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260527123900_AddUserTermsFields")]
+    [Migration("20260603203431_AddUserTermsFields")]
     partial class AddUserTermsFields
     {
         /// <inheritdoc />
