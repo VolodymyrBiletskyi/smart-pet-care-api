@@ -29,8 +29,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             try
             {
                 var result = await _authService.RegisterAsync(request);
-                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
-                return StatusCode(StatusCodes.Status201Created, result.Auth);
+                return StatusCode(StatusCodes.Status201Created, ToResponse(result));
             }
             catch (InvalidOperationException ex)
             {
@@ -50,8 +49,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             try
             {
                 var result = await _authService.LoginAsync(request);
-                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
-                return Ok(result.Auth);
+                return Ok(ToResponse(result));
             }
             catch (InvalidOperationException ex)
             {
@@ -63,23 +61,18 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             }
         }
 
-        [Authorize]
         [HttpPost("refresh")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Refresh()
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
             try
             {
-                if (!Request.Cookies.TryGetValue("refreshToken", out var rawRefreshToken))
-                    return Unauthorized(new { message = "No refresh token" });
-
-                var result = await _authService.RefreshAsync(rawRefreshToken);
+                var result = await _authService.RefreshAsync(request.RefreshToken);
                 if (result is null)
                     return Unauthorized(new { message = "Invalid or expired refresh token" });
 
-                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
-                return Ok(result.Auth);
+                return Ok(ToResponse(result));
             }
             catch (Exception)
             {
@@ -89,7 +82,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
 
         [Authorize]
         [HttpPost("logout")]
-        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Logout()
         {
@@ -97,7 +90,6 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             {
                 var userId = User.GetUserId();
                 await _authService.LogoutAsync(userId);
-                Response.Cookies.Delete("refreshToken");
                 return NoContent();
             }
             catch (Exception)
@@ -117,15 +109,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [HttpGet("oauth/google/callback")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GoogleCallback([FromQuery(Name = "code")] string? authCode)
         {
-
             try
             {
                 var result = await _authService.GoogleLoginAsync(authCode);
-                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
-                return Ok(result.Auth);
+                return Ok(ToResponse(result));
             }
             catch (Exception ex)
             {
@@ -141,8 +130,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             try
             {
                 var result = await _authService.GoogleMobileLoginAsync(request.IdToken);
-                Response.Cookies.Append("refreshToken", result.RefreshToken, RefreshTokenCookieOptions);
-                return Ok(result.Auth);
+                return Ok(ToResponse(result));
             }
             catch (Exception)
             {
@@ -150,12 +138,10 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             }
         }
 
-        private static CookieOptions RefreshTokenCookieOptions => new()
+        private static AuthResponse ToResponse(AuthTokenPair pair)
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(7)
-        };
+            pair.Auth.RefreshToken = pair.RefreshToken;
+            return pair.Auth;
+        }
     }
 }

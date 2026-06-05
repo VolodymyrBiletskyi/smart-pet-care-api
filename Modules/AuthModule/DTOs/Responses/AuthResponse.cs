@@ -11,5 +11,6 @@ namespace smart_pet_care_api.Modules.AuthModule.DTOs.Responses
         public string Email { get; set; } = null!;
         public string AccessToken { get; set; } = null!;
         public DateTime ExpiresAtUtc { get; set; }
+        public string RefreshToken { get; set; } = null!;
     }
 }
