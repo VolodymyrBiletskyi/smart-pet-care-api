@@ -1,0 +1,81 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Modules.AuthModule.Jwt;
+using smart_pet_care_api.Modules.PetModule.Domain;
+using smart_pet_care_api.Modules.PetModule.DTOs;
+
+namespace smart_pet_care_api.Modules.PetModule.Api
+{
+    [ApiController]
+    [Authorize]
+    [Route("api/pets")]
+    public class PetController : ControllerBase
+    {
+        private readonly IPetService _petService;
+
+        public PetController(IPetService petService)
+        {
+            _petService = petService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var userId = User.GetUserId();
+            var pets = await _petService.GetByUserIdAsync(userId);
+            return Ok(pets);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var userId = User.GetUserId();
+            var pet = await _petService.GetByIdAsync(id, userId);
+            if (pet == null) return NotFound();
+            return Ok(pet);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(CreatePetDto dto)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var createdPet = await _petService.CreateAsync(dto, userId);
+                return CreatedAtAction(nameof(GetById), new { id = createdPet.Id }, createdPet);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Update(Guid id, UpdatePetDto dto)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var updatedPet = await _petService.UpdateAsync(id, userId, dto);
+                return Ok(updatedPet);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var userId = User.GetUserId();
+            var deleted = await _petService.DeleteAsync(id, userId);
+            if (!deleted) return NotFound();
+            return NoContent();
+        }
+    }
+}

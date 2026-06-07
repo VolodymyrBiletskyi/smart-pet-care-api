@@ -6,8 +6,9 @@ namespace smart_pet_care_api.Models
     {
         public enum Sex
         {
-            Male,
-            Female
+            Unknown = 0,
+            Male = 1,
+            Female = 2
         }
         public enum Status
         {

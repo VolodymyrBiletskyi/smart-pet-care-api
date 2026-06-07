@@ -9,17 +9,18 @@ namespace smart_pet_care_api.Models
     public class Pet
     {
         public Guid Id { get; set; } = Guid.NewGuid();
-
         public Guid UserId { get; set; }
+        public string? PhotoUrl { get; set; }
 
         public string Name { get; set; } = null!;
         public string Species { get; set; } = null!;
         public string? Breed { get; set; }
-
         public DateTime? BirthDate { get; set; }
-        public Sex Sex { get; set; } = Sex.Male;
+        public Sex Sex { get; set; } = Sex.Unknown;
         public decimal? WeightKg { get; set; }
         public string? BehavioralNotes { get; set; }
+        public string? Allergies { get; set; }
+        public string? ChronicConditions { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
