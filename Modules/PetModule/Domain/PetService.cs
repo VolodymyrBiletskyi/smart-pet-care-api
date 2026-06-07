@@ -1,6 +1,7 @@
 using smart_pet_care_api.Modules.PetModule.DTOs;
 using smart_pet_care_api.Modules.PetModule.Mapper;
 using smart_pet_care_api.Modules.PetModule.Repository;
+using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.PetModule.Domain
 {
@@ -69,6 +70,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateRequiredText(dto.Species, "Species");
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
+            ValidateSex(dto.Sex);
         }
 
         private static void ValidateUpdate(UpdatePetDto dto)
@@ -77,6 +79,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateOptionalText(dto.Species, "Species");
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
+            ValidateOptionalSex(dto.Sex);
         }
 
         private static void ValidateRequiredText(string? value, string fieldName)
@@ -101,6 +104,18 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (weightKg.HasValue && weightKg.Value <= 0)
                 throw new ArgumentException("WeightKg must be greater than zero");
+        }
+
+        private static void ValidateOptionalSex(Sex? sex)
+        {
+            if (sex.HasValue)
+                ValidateSex(sex.Value);
+        }
+
+        private static void ValidateSex(Sex sex)
+        {
+            if (!Enum.IsDefined(sex))
+                throw new ArgumentException("Sex is invalid");
         }
     }
 }
