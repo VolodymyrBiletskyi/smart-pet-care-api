@@ -4,6 +4,7 @@ using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
+using smart_pet_care_api.Modules.PetModule;
 using smart_pet_care_api.Modules.ReminderModule;
 using smart_pet_care_api.Modules.UserModule;
 
@@ -15,9 +16,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(cs));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
 
 builder.Services.AddUserModule();
+builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
 builder.Services.AddScalarConfig();

@@ -6,7 +6,7 @@ using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
 namespace smart_pet_care_api.Modules.UserModule.Api
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/users")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -16,30 +16,22 @@ namespace smart_pet_care_api.Modules.UserModule.Api
             _userService = userService;
         }
 
-        [HttpGet]
-        [ProducesResponseType(typeof(List<UserResponseDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll()
-        {
-            var users = await _userService.GetAllAsync();
-            return Ok(users);
-        }
-
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(Guid id)
-        {
-            try
-            {
-                var user = await _userService.GetByIdAsync(id);
-                if (user == null) return NotFound();
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+        // [HttpGet("{id}")]
+        // [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
+        // [ProducesResponseType(StatusCodes.Status404NotFound)]
+        // public async Task<IActionResult> GetById(Guid id)
+        // {
+        //     try
+        //     {
+        //         var user = await _userService.GetByIdAsync(id);
+        //         if (user == null) return NotFound();
+        //         return Ok(user);
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         return StatusCode(500, ex.Message);
+        //     }
+        // }
 
         [HttpPatch("{id}")]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]

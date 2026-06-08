@@ -6,8 +6,9 @@ namespace smart_pet_care_api.Models
     {
         public enum Sex
         {
-            Male,
-            Female
+            Unknown = 0,
+            Male = 1,
+            Female = 2
         }
         public enum Status
         {
@@ -27,7 +28,6 @@ namespace smart_pet_care_api.Models
             Veterinary,
             Grooming,
         }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderType
         {
             Feeding,
@@ -46,7 +46,6 @@ namespace smart_pet_care_api.Models
             Monthly,
             Yearly,
         }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderStatus
         {
             Active,
@@ -55,7 +54,6 @@ namespace smart_pet_care_api.Models
             Cancelled,
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public enum ReminderRunStatus
         {
             Pending,
@@ -170,7 +168,7 @@ namespace smart_pet_care_api.Models
             Document,
             Other
         }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+
         public enum DaysOfWeek
         {
             Sunday,
