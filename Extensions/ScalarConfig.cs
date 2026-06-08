@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -5,8 +6,12 @@ namespace smart_pet_care_api.Extensions
 {
     public static class ScalarConfig
     {
+        // This is where we configure Scalar to work with our API, including setting up JWT authentication and customizing the OpenAPI document.
         public static IServiceCollection AddScalarConfig(this IServiceCollection services)
         {
+            services.ConfigureHttpJsonOptions(options =>
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
             services.AddOpenApi(options =>
             {
                 options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -28,6 +33,7 @@ namespace smart_pet_care_api.Extensions
                                 : "http://localhost:8080"
                         }
                     };
+                    // Ensure the Components and SecuritySchemes dictionaries are initialized before adding our Bearer scheme
 
                     document.Components ??= new OpenApiComponents();
 
@@ -48,7 +54,7 @@ namespace smart_pet_care_api.Extensions
 
             return services;
         }
-
+        // This extension method is used in Program.cs to add the Scalar API reference and OpenAPI document to our application.
         public static IApplicationBuilder UseScalarConfig(this WebApplication app)
         {
             app.MapOpenApi();
@@ -58,7 +64,7 @@ namespace smart_pet_care_api.Extensions
                 options.Theme = ScalarTheme.DeepSpace;
                 options.Authentication = new ScalarAuthenticationOptions
                 {
-                    PreferredSecurityScheme = "Bearer"
+                    PreferredSecuritySchemes = ["Bearer"]
                 };
             });
 

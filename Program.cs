@@ -16,7 +16,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(cs));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
 
 builder.Services.AddUserModule();
 builder.Services.AddPetModule();
