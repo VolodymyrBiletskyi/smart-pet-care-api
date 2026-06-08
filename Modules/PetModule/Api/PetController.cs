@@ -19,6 +19,8 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<PetResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAll()
         {
             var userId = User.GetUserId();
@@ -27,6 +29,9 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var userId = User.GetUserId();
@@ -36,6 +41,9 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(CreatePetDto dto)
         {
             try
@@ -51,6 +59,10 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         }
 
         [HttpPatch("{id}")]
+        [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid id, UpdatePetDto dto)
         {
             try
@@ -70,6 +82,9 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var userId = User.GetUserId();
