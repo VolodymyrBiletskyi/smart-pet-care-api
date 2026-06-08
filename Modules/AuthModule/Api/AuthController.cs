@@ -9,7 +9,7 @@ using smart_pet_care_api.Modules.AuthModule.OAuth;
 namespace smart_pet_care_api.Modules.AuthModule.Api
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

@@ -43,6 +43,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
 
         [HttpPost]
         [ProducesResponseType(typeof(ReminderResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create([FromBody] CreateReminderDto dto)
         {
@@ -60,6 +61,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
 
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(typeof(ReminderResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid id, [FromBody] PatchReminderDto dto)
         {
@@ -76,7 +78,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         }
 
         [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -93,6 +97,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
 
         [HttpGet("{id:guid}/runs")]
         [ProducesResponseType(typeof(IEnumerable<ReminderRunResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRuns(Guid id)
         {
             var userId = User.GetUserId();
@@ -102,6 +107,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
 
         [HttpPost("runs/{runId:guid}/acknowledge")]
         [ProducesResponseType(typeof(ReminderRunResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 
         public async Task<IActionResult> AcknowledgeRun(Guid runId)
         {

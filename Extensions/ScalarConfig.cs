@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -7,6 +8,9 @@ namespace smart_pet_care_api.Extensions
     {
         public static IServiceCollection AddScalarConfig(this IServiceCollection services)
         {
+            services.ConfigureHttpJsonOptions(options =>
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
             services.AddOpenApi(options =>
             {
                 options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -58,7 +62,7 @@ namespace smart_pet_care_api.Extensions
                 options.Theme = ScalarTheme.DeepSpace;
                 options.Authentication = new ScalarAuthenticationOptions
                 {
-                    PreferredSecurityScheme = "Bearer"
+                    PreferredSecuritySchemes = ["Bearer"]
                 };
             });
 
