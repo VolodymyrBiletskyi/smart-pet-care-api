@@ -13,9 +13,8 @@ namespace smart_pet_care_api.Modules.UserModule.Mapper
                 Id = user.Id,
                 Email = user.Email,
                 DisplayName = user.DisplayName,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber,
+                AvatarUrl = user.AvatarUrl,
                 TermsAccepted = user.TermsAccepted,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
@@ -25,8 +24,6 @@ namespace smart_pet_care_api.Modules.UserModule.Mapper
         public static void PatchEntity(this User user, PatchUserDto patchDto)
         {
             if (patchDto.DisplayName != null) user.DisplayName = patchDto.DisplayName;
-            if (patchDto.FirstName != null) user.FirstName = patchDto.FirstName;
-            if (patchDto.LastName != null) user.LastName = patchDto.LastName;
             if (patchDto.PhoneNumber != null) user.PhoneNumber = patchDto.PhoneNumber;
 
             user.UpdatedAt = DateTime.UtcNow;

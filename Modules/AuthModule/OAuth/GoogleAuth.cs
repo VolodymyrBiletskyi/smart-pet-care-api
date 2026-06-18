@@ -55,7 +55,11 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
             return new GoogleUserInfo
             {
                 Email = payload.Email,
-                GoogleId = payload.Subject
+                GoogleId = payload.Subject,
+                Name = payload.Name,
+                GivenName = payload.GivenName,
+                FamilyName = payload.FamilyName,
+                Picture = payload.Picture
             };
         }
     }
