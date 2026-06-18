@@ -10,5 +10,8 @@
       "Bash(dotnet ef *)",
       "Bash(git add *)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "connect-apps"
+  ]
 }

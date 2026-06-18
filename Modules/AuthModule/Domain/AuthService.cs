@@ -128,6 +128,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             return await LoginOrRegisterOAuthUserAsync(userInfo);
         }
 
+        private static void SyncGoogleProfile(User user, GoogleUserInfo userInfo)
+        {
+            user.DisplayName ??= userInfo.Name;
+            user.AvatarUrl = userInfo.Picture;
+        }
+
         private async Task<AuthTokenPair> LoginOrRegisterOAuthUserAsync(GoogleUserInfo userInfo)
         {
             // 1. check if oauth account already linked
@@ -135,13 +141,14 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             if (existingLogin is not null)
             {
                 var existingUser = await _userRepo.GetByIdAsync(existingLogin.UserId);
+                SyncGoogleProfile(existingUser!, userInfo);
+                await _userRepo.SaveChangesAsync();
                 return await IssueTokensAsync(existingUser!);
             }
 
             var user = await _userRepo.GetByEmailAsync(userInfo.Email);
             if (user is null)
             {
-
                 user = await _userRepo.AddAsync(new User
                 {
                     Email = userInfo.Email,
@@ -151,6 +158,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
                     CreatedAt = DateTime.UtcNow
                 });
             }
+
+            SyncGoogleProfile(user, userInfo);
 
             await _userRepo.AddExternalLoginAsync(new ExternalLogin
             {
