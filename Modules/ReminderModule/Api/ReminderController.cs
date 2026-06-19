@@ -30,6 +30,24 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             return Ok(reminders);
         }
 
+        [HttpGet("pet/{petId:guid}")]
+        [ProducesResponseType(typeof(IEnumerable<ReminderResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetByPetId(Guid petId)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var reminders = await _service.GetByPetIdAsync(petId, userId);
+                return Ok(reminders);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ReminderResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -55,7 +73,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -73,7 +91,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -120,7 +138,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

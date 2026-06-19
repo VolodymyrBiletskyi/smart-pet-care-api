@@ -38,14 +38,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             CreatedAt = run.CreatedAt
         };
 
-        public static Reminder ToEntity(CreateReminderDto dto, DateTime firstTrigger) => new()
+        public static Reminder ToEntity(CreateReminderDto dto, DateTime firstTrigger, TimeSpan timeOfDayUtc) => new()
         {
             PetId = dto.PetId,
             Title = dto.Title,
             Description = dto.Description,
             Type = dto.Type,
             Days = dto.Days,
-            TimeOfDay = dto.Time.ToTimeSpan(),
+            TimeOfDay = timeOfDayUtc,
             IsRepeatable = dto.IsRepeatable,
             StartAt = firstTrigger,
             NextTriggerAt = firstTrigger,
@@ -53,12 +53,12 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             SourceType = SourceType.Manual
         };
 
-        public static void PatchEntity(this Reminder reminder, PatchReminderDto dto)
+        public static void PatchEntity(this Reminder reminder, PatchReminderDto dto, TimeOnly? timeUtc = null)
         {
             if (dto.Title != null) reminder.Title = dto.Title;
             if (dto.Description != null) reminder.Description = dto.Description;
             if (dto.Days != null) reminder.Days = dto.Days;
-            if (dto.Time.HasValue) reminder.TimeOfDay = dto.Time.Value.ToTimeSpan();
+            if (dto.Time.HasValue) reminder.TimeOfDay = (timeUtc ?? dto.Time.Value).ToTimeSpan();
             if (dto.IsRepeatable.HasValue) reminder.IsRepeatable = dto.IsRepeatable.Value;
             if (dto.EndAt.HasValue) reminder.EndAt = dto.EndAt;
             if (dto.Status.HasValue) reminder.Status = dto.Status.Value;
