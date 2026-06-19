@@ -12,5 +12,6 @@ namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Requests
         public bool IsRepeatable { get; set; }
         public TimeOnly Time { get; set; }
         public DateTime? EndAt { get; set; }
+        public int UtcOffsetMinutes { get; set; }
     }
 }

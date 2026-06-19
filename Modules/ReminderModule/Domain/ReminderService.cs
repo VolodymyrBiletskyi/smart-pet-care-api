@@ -49,10 +49,16 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            var firstTrigger = ComputeNextTrigger(dto.Days, dto.Time.ToTimeSpan(), DateTime.UtcNow)
+            var localNow = DateTime.UtcNow.AddMinutes(dto.UtcOffsetMinutes);
+            var localDay = (DaysOfWeek)localNow.DayOfWeek;
+            if (dto.Days.Contains(localDay) && dto.Time <= TimeOnly.FromDateTime(localNow))
+                throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
+
+            var timeUtc = dto.Time.Add(TimeSpan.FromMinutes(-dto.UtcOffsetMinutes));
+            var firstTrigger = ComputeNextTrigger(dto.Days, timeUtc.ToTimeSpan(), DateTime.UtcNow)
                 ?? throw new InvalidOperationException("Could not compute a valid trigger time");
 
-            var reminder = ReminderMapper.ToEntity(dto, firstTrigger);
+            var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeUtc.ToTimeSpan());
             await _repo.AddAsync(reminder);
             await _repo.SaveChangesAsync();
             return reminder.ToDto();
@@ -66,12 +72,25 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            reminder.PatchEntity(dto);
+            TimeOnly? timeUtc = null;
+            if (dto.Time.HasValue)
+            {
+                var offset = dto.UtcOffsetMinutes ?? 0;
+                var localNow = DateTime.UtcNow.AddMinutes(offset);
+                var days = dto.Days ?? reminder.Days;
+                var localDay = (DaysOfWeek)localNow.DayOfWeek;
+                if (days.Contains(localDay) && dto.Time.Value <= TimeOnly.FromDateTime(localNow))
+                    throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
+
+                timeUtc = dto.Time.Value.Add(TimeSpan.FromMinutes(-offset));
+            }
+
+            reminder.PatchEntity(dto, timeUtc);
 
             if (dto.Days != null || dto.Time.HasValue)
             {
                 var days = dto.Days ?? reminder.Days;
-                var time = dto.Time.HasValue ? dto.Time.Value.ToTimeSpan() : reminder.TimeOfDay;
+                var time = timeUtc.HasValue ? timeUtc.Value.ToTimeSpan() : reminder.TimeOfDay;
 
                 if (days.Length == 0)
                     throw new InvalidOperationException("At least one day must be specified");
