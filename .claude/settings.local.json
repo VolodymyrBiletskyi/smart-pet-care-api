@@ -8,7 +8,8 @@
       "Bash(Remove-Item -Force \"C:\\\\Users\\\\manga\\\\Documents\\\\JunkProjects2\\\\smart-pet-care-api\\\\Models\\\\DeviceToken.cs\")",
       "Bash(dotnet build *)",
       "Bash(dotnet ef *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "PowerShell(dotnet add package *)"
     ]
   },
   "disabledMcpjsonServers": [

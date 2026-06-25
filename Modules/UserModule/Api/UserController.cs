@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.UserModule.Domain;
 using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
 using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
@@ -33,14 +35,17 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         //     }
         // }
 
-        [HttpPatch("{id}")]
+        [Authorize]
+        [HttpPatch]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Update(Guid id, PatchUserDto patchDto)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Update(PatchUserDto patchDto)
         {
             try
             {
-                var updatedUser = await _userService.UpdateAsync(id, patchDto);
+                var userId = User.GetUserId();
+                var updatedUser = await _userService.UpdateAsync(userId, patchDto);
                 return Ok(updatedUser);
             }
             catch (InvalidOperationException ex)

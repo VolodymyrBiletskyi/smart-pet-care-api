@@ -14,7 +14,8 @@ namespace smart_pet_care_api.Modules.UserModule.Mapper
                 Email = user.Email,
                 DisplayName = user.DisplayName,
                 PhoneNumber = user.PhoneNumber,
-                AvatarUrl = user.AvatarUrl,
+                GoogleAvatarUrl = user.AvatarUrl,
+                CustomAvatarUrl = user.AvatarData != null ? $"/api/profile/avatar/{user.Id}" : null,
                 TermsAccepted = user.TermsAccepted,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt

@@ -131,7 +131,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         private static void SyncGoogleProfile(User user, GoogleUserInfo userInfo)
         {
             user.DisplayName ??= userInfo.Name;
-            user.AvatarUrl = userInfo.Picture;
+            user.AvatarUrl ??= userInfo.Picture;
         }
 
         private async Task<AuthTokenPair> LoginOrRegisterOAuthUserAsync(GoogleUserInfo userInfo)
