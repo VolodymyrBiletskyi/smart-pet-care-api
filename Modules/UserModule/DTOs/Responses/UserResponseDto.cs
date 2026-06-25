@@ -12,7 +12,8 @@ namespace smart_pet_care_api.Modules.UserModule.DTOs.Responses
         public string Email { get; set; } = null!;
         public string? DisplayName { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? AvatarUrl { get; set; }
+        public string? GoogleAvatarUrl { get; set; }
+        public string? CustomAvatarUrl { get; set; }
         public bool TermsAccepted { get; set; }
 
         public DateTime CreatedAt { get; set; }

@@ -47,5 +47,25 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
             return existingUser.ToDto();
         }
 
+        public async Task<UserResponseDto> SaveAvatarAsync(Guid id, byte[] data, string contentType)
+        {
+            var user = await _userRepo.GetByIdAsync(id);
+            if (user is null)
+                throw new InvalidOperationException("User does not exist");
+
+            user.AvatarData = data;
+            user.AvatarContentType = contentType;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _userRepo.SaveChangesAsync();
+            return user.ToDto();
+        }
+
+        public async Task<(byte[] Data, string ContentType)?> GetAvatarAsync(Guid id)
+        {
+            var user = await _userRepo.GetByIdAsync(id);
+            if (user?.AvatarData == null) return null;
+            return (user.AvatarData, user.AvatarContentType!);
+        }
     }
 }
