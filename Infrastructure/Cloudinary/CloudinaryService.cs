@@ -13,7 +13,7 @@ public class CloudinaryService : ICloudinaryService
         _options = options.Value;
     }
 
-    public async Task<string> UploadImageAsync(IFormFile file, string folder)
+    public async Task<CloudinaryUploadResult> UploadImageAsync(IFormFile file, string folder)
     {
         if (file is null || file.Length == 0)
             throw new ArgumentException("Image file is required.", nameof(file));
@@ -46,8 +46,38 @@ public class CloudinaryService : ICloudinaryService
         if (result.Error is not null)
             throw new CloudinaryUploadException(result.Error.Message);
 
-        return result.SecureUrl?.ToString()
+        var url = result.SecureUrl?.ToString()
             ?? throw new CloudinaryUploadException("Cloudinary did not return a secure image URL.");
+
+        if (string.IsNullOrWhiteSpace(result.PublicId))
+            throw new CloudinaryUploadException("Cloudinary did not return an image public ID.");
+
+        return new CloudinaryUploadResult(url, result.PublicId);
+    }
+
+    public async Task DeleteImageAsync(string publicId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId))
+            throw new ArgumentException("Cloudinary public ID is required.", nameof(publicId));
+
+        var cloudinary = CreateClient();
+        var deleteParams = new DeletionParams(publicId.Trim())
+        {
+            ResourceType = ResourceType.Image
+        };
+
+        DeletionResult result;
+        try
+        {
+            result = await cloudinary.DestroyAsync(deleteParams);
+        }
+        catch (Exception ex)
+        {
+            throw new CloudinaryUploadException("Cloudinary image deletion failed.", ex);
+        }
+
+        if (result.Error is not null)
+            throw new CloudinaryUploadException(result.Error.Message);
     }
 
     private CloudinaryDotNet.Cloudinary CreateClient()

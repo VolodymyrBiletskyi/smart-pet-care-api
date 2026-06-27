@@ -10,11 +10,16 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
     {
         private readonly IPetRepository _petRepo;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly ILogger<PetService> _logger;
 
-        public PetService(IPetRepository petRepo, ICloudinaryService cloudinaryService)
+        public PetService(
+            IPetRepository petRepo,
+            ICloudinaryService cloudinaryService,
+            ILogger<PetService> logger)
         {
             _petRepo = petRepo;
             _cloudinaryService = cloudinaryService;
+            _logger = logger;
         }
 
         public async Task<PetResponseDto> CreateAsync(CreatePetDto dto, Guid userId)
@@ -34,8 +39,12 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             var pet = await _petRepo.GetTrackedByIdAndUserIdAsync(id, userId);
             if (pet == null) return false;
 
+            var oldPhotoPublicId = pet.PhotoPublicId;
+
             _petRepo.Delete(pet);
             await _petRepo.SaveChangesAsync();
+
+            await TryDeleteCloudinaryImageAsync(oldPhotoPublicId);
 
             return true;
         }
@@ -75,13 +84,40 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             if (pet is null)
                 throw new InvalidOperationException("Pet does not exist");
 
-            var photoUrl = await _cloudinaryService.UploadImageAsync(photo!, "pets/photos");
-            pet.PhotoUrl = photoUrl;
+            var oldPhotoPublicId = pet.PhotoPublicId;
+            var uploadResult = await _cloudinaryService.UploadImageAsync(photo!, "pets/photos");
+            pet.PhotoUrl = uploadResult.Url;
+            pet.PhotoPublicId = uploadResult.PublicId;
             pet.UpdatedAt = DateTime.UtcNow;
 
-            await _petRepo.SaveChangesAsync();
+            try
+            {
+                await _petRepo.SaveChangesAsync();
+            }
+            catch
+            {
+                await TryDeleteCloudinaryImageAsync(uploadResult.PublicId);
+                throw;
+            }
+
+            await TryDeleteCloudinaryImageAsync(oldPhotoPublicId);
 
             return PetMapper.ToResponseDto(pet);
+        }
+
+        private async Task TryDeleteCloudinaryImageAsync(string? publicId)
+        {
+            if (string.IsNullOrWhiteSpace(publicId))
+                return;
+
+            try
+            {
+                await _cloudinaryService.DeleteImageAsync(publicId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete Cloudinary pet photo {PublicId}", publicId);
+            }
         }
 
         private static void ValidateCreate(CreatePetDto dto)
