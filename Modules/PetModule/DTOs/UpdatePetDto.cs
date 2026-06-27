@@ -12,7 +12,6 @@ public class UpdatePetDto
     public decimal? WeightKg { get; set; }
     public Sex? Sex { get; set; }
 
-    public string? PhotoUrl { get; set; }
     public string? Allergies { get; set; }
     public string? ChronicConditions { get; set; }
     public string? BehavioralNotes { get; set; }

@@ -18,7 +18,6 @@ public static class PetMapper
             WeightKg = dto.WeightKg,
             Sex = dto.Sex,
 
-            PhotoUrl = dto.PhotoUrl,
             Allergies = dto.Allergies,
             ChronicConditions = dto.ChronicConditions,
             BehavioralNotes = dto.BehavioralNotes,
@@ -71,9 +70,6 @@ public static class PetMapper
 
         if (dto.Sex is not null)
             pet.Sex = dto.Sex.Value;
-
-        if (dto.PhotoUrl is not null)
-            pet.PhotoUrl = dto.PhotoUrl;
 
         if (dto.Allergies is not null)
             pet.Allergies = dto.Allergies;
