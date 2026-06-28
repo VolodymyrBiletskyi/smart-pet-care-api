@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using smart_pet_care_api.Data;
+using smart_pet_care_api.Modules.PetModule.Repository;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Responses;
 using smart_pet_care_api.Modules.ReminderModule.Mapper;
@@ -10,37 +9,43 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
 {
     public class ReminderService : IReminderService
     {
-        private readonly IReminderRepository _repo;
-        private readonly AppDbContext _db;
+        private readonly IReminderRepository _reminderRepo;
+        private readonly IPetRepository _petRepo;
 
-        public ReminderService(IReminderRepository repo, AppDbContext db)
+        public ReminderService(IReminderRepository repo, IPetRepository petRepo)
         {
-            _repo = repo;
-            _db = db;
+            _reminderRepo = repo;
+            _petRepo = petRepo;
         }
 
         public async Task<IReadOnlyList<ReminderResponseDto>> GetByUserIdAsync(Guid userId)
         {
-            var reminders = await _repo.GetByUserIdAsync(userId);
+            var pets = await _petRepo.GetByUserIdAsync(userId);
+            var petIds = pets.Select(p => p.Id);
+            var reminders = await _reminderRepo.GetByPetIdsAsync(petIds);
             return reminders.Select(r => r.ToDto()).ToList();
         }
 
         public async Task<IReadOnlyList<ReminderResponseDto>> GetByPetIdAsync(Guid petId, Guid userId)
         {
-            var reminders = await _repo.GetByPetIdAsync(petId, userId);
+            if (!await _petRepo.ExistsForUserAsync(petId, userId))
+                throw new InvalidOperationException("Pet not found");
+
+            var reminders = await _reminderRepo.GetByPetIdAsync(petId);
             return reminders.Select(r => r.ToDto()).ToList();
         }
 
         public async Task<ReminderResponseDto?> GetByIdAsync(Guid id, Guid userId)
         {
-            var reminder = await _repo.GetByIdAsync(id, userId);
-            return reminder?.ToDto();
+            var reminder = await _reminderRepo.GetByIdAsync(id);
+            if (reminder == null) return null;
+            if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId)) return null;
+            return reminder.ToDto();
         }
 
         public async Task<ReminderResponseDto> CreateAsync(CreateReminderDto dto, Guid userId)
         {
-            var petBelongsToUser = await _db.Pets.AnyAsync(p => p.Id == dto.PetId && p.UserId == userId);
-            if (!petBelongsToUser)
+            if (!await _petRepo.ExistsForUserAsync(dto.PetId, userId))
                 throw new InvalidOperationException("Pet not found");
 
             if (dto.Days.Length == 0)
@@ -49,25 +54,25 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            var localNow = DateTime.UtcNow.AddMinutes(dto.UtcOffsetMinutes);
-            var localDay = (DaysOfWeek)localNow.DayOfWeek;
-            if (dto.Days.Contains(localDay) && dto.Time <= TimeOnly.FromDateTime(localNow))
-                throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
+            ValidateTimeNotPassed(dto.Days, dto.Time, dto.UtcOffsetMinutes);
 
             var timeUtc = dto.Time.Add(TimeSpan.FromMinutes(-dto.UtcOffsetMinutes));
             var firstTrigger = ComputeNextTrigger(dto.Days, timeUtc.ToTimeSpan(), DateTime.UtcNow)
                 ?? throw new InvalidOperationException("Could not compute a valid trigger time");
 
             var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeUtc.ToTimeSpan());
-            await _repo.AddAsync(reminder);
-            await _repo.SaveChangesAsync();
+            await _reminderRepo.AddAsync(reminder);
+            await _reminderRepo.SaveChangesAsync();
             return reminder.ToDto();
         }
 
         public async Task<ReminderResponseDto> UpdateAsync(Guid id, PatchReminderDto dto, Guid userId)
         {
-            var reminder = await _repo.GetByIdAsync(id, userId)
+            var reminder = await _reminderRepo.GetByIdAsync(id)
                 ?? throw new InvalidOperationException("Reminder not found");
+
+            if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
+                throw new InvalidOperationException("Reminder not found");
 
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
@@ -76,12 +81,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.Time.HasValue)
             {
                 var offset = dto.UtcOffsetMinutes ?? 0;
-                var localNow = DateTime.UtcNow.AddMinutes(offset);
                 var days = dto.Days ?? reminder.Days;
-                var localDay = (DaysOfWeek)localNow.DayOfWeek;
-                if (days.Contains(localDay) && dto.Time.Value <= TimeOnly.FromDateTime(localNow))
-                    throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
-
+                ValidateTimeNotPassed(days, dto.Time.Value, offset);
                 timeUtc = dto.Time.Value.Add(TimeSpan.FromMinutes(-offset));
             }
 
@@ -100,29 +101,40 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 if (next.HasValue) reminder.StartAt = next.Value;
             }
 
-            await _repo.SaveChangesAsync();
+            await _reminderRepo.SaveChangesAsync();
             return reminder.ToDto();
         }
 
         public async Task DeleteAsync(Guid id, Guid userId)
         {
-            var reminder = await _repo.GetByIdAsync(id, userId)
+            var reminder = await _reminderRepo.GetByIdAsync(id)
                 ?? throw new InvalidOperationException("Reminder not found");
 
-            await _repo.DeleteAsync(reminder);
-            await _repo.SaveChangesAsync();
+            if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
+                throw new InvalidOperationException("Reminder not found");
+
+            await _reminderRepo.DeleteAsync(reminder);
+            await _reminderRepo.SaveChangesAsync();
         }
 
         public async Task<IReadOnlyList<ReminderRunResponseDto>> GetRunsAsync(Guid reminderId, Guid userId)
         {
-            var runs = await _repo.GetRunsByReminderIdAsync(reminderId, userId);
+            var reminder = await _reminderRepo.GetByIdAsync(reminderId);
+            if (reminder == null || !await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
+                throw new InvalidOperationException("Reminder not found");
+
+            var runs = await _reminderRepo.GetRunsByReminderIdAsync(reminderId);
             return runs.Select(r => r.ToDto()).ToList();
         }
 
         public async Task<ReminderRunResponseDto> AcknowledgeRunAsync(Guid runId, Guid userId)
         {
-            var run = await _repo.GetRunByIdAsync(runId, userId)
+            var run = await _reminderRepo.GetRunByIdAsync(runId)
                 ?? throw new InvalidOperationException("Reminder run not found");
+
+            var reminder = await _reminderRepo.GetByIdAsync(run.ReminderId);
+            if (reminder == null || !await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
+                throw new InvalidOperationException("Reminder run not found");
 
             if (run.Status == ReminderRunStatus.Completed)
                 throw new InvalidOperationException("Run already acknowledged");
@@ -131,7 +143,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             run.CompletedAt = DateTime.UtcNow;
             run.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.SaveChangesAsync();
+            await _reminderRepo.SaveChangesAsync();
             return run.ToDto();
         }
 
@@ -144,6 +156,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 .OrderBy(d => d)
                 .Cast<DateTime?>()
                 .First();
+        }
+
+        private static void ValidateTimeNotPassed(DaysOfWeek[] days, TimeOnly time, int utcOffsetMinutes)
+        {
+            var localNow = DateTime.UtcNow.AddMinutes(utcOffsetMinutes);
+            var localDay = (DaysOfWeek)localNow.DayOfWeek;
+            if (days.Contains(localDay) && time <= TimeOnly.FromDateTime(localNow))
+                throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
         }
 
         private static DateTime NextOccurrence(DaysOfWeek day, TimeSpan time, DateTime after)

@@ -11,29 +11,28 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
 
         public ReminderRepository(AppDbContext db) => _db = db;
 
-        public async Task<IReadOnlyList<Reminder>> GetByUserIdAsync(Guid userId)
+        public async Task<IReadOnlyList<Reminder>> GetByPetIdsAsync(IEnumerable<Guid> petIds)
         {
             return await _db.Reminders
                 .AsNoTracking()
-                .Where(r => _db.Pets.Any(p => p.Id == r.PetId && p.UserId == userId))
+                .Where(r => petIds.Contains(r.PetId))
                 .OrderBy(r => r.NextTriggerAt)
                 .ToListAsync();
         }
 
-        public async Task<IReadOnlyList<Reminder>> GetByPetIdAsync(Guid petId, Guid userId)
+        public async Task<IReadOnlyList<Reminder>> GetByPetIdAsync(Guid petId)
         {
             return await _db.Reminders
                 .AsNoTracking()
-                .Where(r => r.PetId == petId && _db.Pets.Any(p => p.Id == petId && p.UserId == userId))
+                .Where(r => r.PetId == petId)
                 .OrderBy(r => r.NextTriggerAt)
                 .ToListAsync();
         }
 
-        public async Task<Reminder?> GetByIdAsync(Guid id, Guid userId)
+        public async Task<Reminder?> GetByIdAsync(Guid id)
         {
             return await _db.Reminders
-                .Where(r => r.Id == id && _db.Pets.Any(p => p.Id == r.PetId && p.UserId == userId))
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(r => r.Id == id);
         }
 
         public async Task<IReadOnlyList<Reminder>> GetDueRemindersAsync(DateTime asOf)
@@ -52,24 +51,19 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
             return Task.CompletedTask;
         }
 
-        public async Task<IReadOnlyList<ReminderRun>> GetRunsByReminderIdAsync(Guid reminderId, Guid userId)
+        public async Task<IReadOnlyList<ReminderRun>> GetRunsByReminderIdAsync(Guid reminderId)
         {
             return await _db.ReminderRuns
                 .AsNoTracking()
-                .Where(rr => rr.ReminderId == reminderId &&
-                             _db.Reminders.Any(r => r.Id == reminderId &&
-                                                    _db.Pets.Any(p => p.Id == r.PetId && p.UserId == userId)))
+                .Where(rr => rr.ReminderId == reminderId)
                 .OrderByDescending(rr => rr.ScheduledFor)
                 .ToListAsync();
         }
 
-        public async Task<ReminderRun?> GetRunByIdAsync(Guid runId, Guid userId)
+        public async Task<ReminderRun?> GetRunByIdAsync(Guid runId)
         {
             return await _db.ReminderRuns
-                .Where(rr => rr.Id == runId &&
-                             _db.Reminders.Any(r => r.Id == rr.ReminderId &&
-                                                    _db.Pets.Any(p => p.Id == r.PetId && p.UserId == userId)))
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(rr => rr.Id == runId);
         }
 
         public async Task AddRunAsync(ReminderRun run) =>

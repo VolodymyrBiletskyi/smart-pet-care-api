@@ -14,13 +14,6 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
             _dbContext = dbContext;
         }
 
-        public async Task<IReadOnlyList<User>> GetAllAsync()
-        {
-            return await _dbContext.Users
-            .AsNoTracking()
-            .ToListAsync();
-        }
-
         public async Task<User?> GetByEmailAsync(string email)
         {
             return await _dbContext.Users
