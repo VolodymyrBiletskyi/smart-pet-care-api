@@ -23,12 +23,6 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
             return true;
         }
 
-        public async Task<IReadOnlyList<UserResponseDto>> GetAllAsync()
-        {
-            var users = await _userRepo.GetAllAsync();
-            return users.Select(UserMapper.ToDto).ToList();
-        }
-
         public async Task<UserResponseDto?> GetByIdAsync(Guid id)
         {
             var user = await _userRepo.GetByIdAsync(id);

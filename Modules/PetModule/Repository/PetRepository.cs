@@ -49,5 +49,10 @@ namespace smart_pet_care_api.Modules.PetModule.Repository
         {
             _dbContext.Pets.Remove(pet);
         }
+
+        public async Task<bool> ExistsForUserAsync(Guid petId, Guid userId)
+        {
+            return await _dbContext.Pets.AnyAsync(p => p.Id == petId && p.UserId == userId);
+        }
     }
 }

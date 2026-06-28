@@ -18,23 +18,6 @@ namespace smart_pet_care_api.Modules.UserModule.Api
             _userService = userService;
         }
 
-        // [HttpGet("{id}")]
-        // [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-        // [ProducesResponseType(StatusCodes.Status404NotFound)]
-        // public async Task<IActionResult> GetById(Guid id)
-        // {
-        //     try
-        //     {
-        //         var user = await _userService.GetByIdAsync(id);
-        //         if (user == null) return NotFound();
-        //         return Ok(user);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         return StatusCode(500, ex.Message);
-        //     }
-        // }
-
         [Authorize]
         [HttpPatch]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
