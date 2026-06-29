@@ -6,7 +6,6 @@ namespace smart_pet_care_api.Extensions
 {
     public static class ScalarConfig
     {
-        // This is where we configure Scalar to work with our API, including setting up JWT authentication and customizing the OpenAPI document.
         public static IServiceCollection AddScalarConfig(this IServiceCollection services)
         {
             services.ConfigureHttpJsonOptions(options =>
@@ -24,16 +23,17 @@ namespace smart_pet_care_api.Extensions
 
                     var env = context.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
-                    document.Servers = new List<OpenApiServer>
+                    var servers = new List<OpenApiServer>
                     {
-                        new OpenApiServer
-                        {
-                            Url = env.IsProduction()
-                                ? "https://smart-pet-care.duckdns.org"
-                                : "http://localhost:8080"
-                        }
+                        new OpenApiServer { Url = "https://smart-pet-care.duckdns.org" },
+                        new OpenApiServer { Url = "http://localhost:8080" }
                     };
-                    // Ensure the Components and SecuritySchemes dictionaries are initialized before adding our Bearer scheme
+
+                    if (!env.IsProduction())
+                        servers.Reverse();
+
+                    document.Servers = servers;
+
 
                     document.Components ??= new OpenApiComponents();
 
@@ -54,7 +54,6 @@ namespace smart_pet_care_api.Extensions
 
             return services;
         }
-        // This extension method is used in Program.cs to add the Scalar API reference and OpenAPI document to our application.
         public static IApplicationBuilder UseScalarConfig(this WebApplication app)
         {
             app.MapOpenApi();

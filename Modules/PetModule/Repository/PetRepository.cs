@@ -13,6 +13,13 @@ namespace smart_pet_care_api.Modules.PetModule.Repository
             _dbContext = dbContext;
         }
 
+        public async Task<Pet?> GetByIdAsync(Guid id)
+        {
+            return await _dbContext.Pets
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
         public async Task<Pet?> GetByIdAndUserIdAsync(Guid id, Guid userId)
         {
             return await _dbContext.Pets

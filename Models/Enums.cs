@@ -180,5 +180,11 @@ namespace smart_pet_care_api.Models
             Saturday
         }
 
+        public enum DevicePlatform
+        {
+            Android,
+            iOS
+        }
+
     }
 }

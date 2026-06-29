@@ -1,4 +1,5 @@
 using smart_pet_care_api.Models;
+using smart_pet_care_api.Modules.NotificationModule.Domain;
 using smart_pet_care_api.Modules.ReminderModule.Domain;
 using smart_pet_care_api.Modules.ReminderModule.Repository;
 using static smart_pet_care_api.Models.Enums;
@@ -38,6 +39,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
         {
             using var scope = _scopeFactory.CreateScope();
             var reminderRepo = scope.ServiceProvider.GetRequiredService<IReminderRepository>();
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
             var now = DateTime.UtcNow;
             var dueReminders = await reminderRepo.GetDueRemindersAsync(now);
@@ -46,7 +48,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             {
                 try
                 {
-                    await FireReminderAsync(reminder, now, reminderRepo);
+                    await FireReminderAsync(reminder, now, reminderRepo, notificationService);
                 }
                 catch (Exception ex)
                 {
@@ -58,7 +60,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
         private static async Task FireReminderAsync(
             Reminder reminder,
             DateTime now,
-            IReminderRepository reminderRepo)
+            IReminderRepository reminderRepo,
+            INotificationService notificationService)
         {
             await reminderRepo.AddRunAsync(new ReminderRun
             {
@@ -68,6 +71,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
                 SentAt = now,
                 Channel = "push"
             });
+
+            await notificationService.SendReminderNotificationAsync(reminder, CancellationToken.None);
 
             if (!reminder.IsRepeatable)
             {

@@ -26,6 +26,7 @@ namespace smart_pet_care_api.Data
         public DbSet<AiSession> AiSessions { get; set; }
         public DbSet<AiMessage> AiMessages { get; set; }
         public DbSet<ActivityDaily> ActivityDailies { get; set; }
+        public DbSet<DeviceToken> DeviceTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
