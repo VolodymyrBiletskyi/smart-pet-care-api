@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
+using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.PetModule;
@@ -22,6 +23,13 @@ builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
 builder.Services.AddScalarConfig();
+builder.Services.Configure<CloudinaryOptions>(options =>
+{
+    options.CloudName = builder.Configuration["CLOUDINARY_NAME"] ?? string.Empty;
+    options.ApiKey = builder.Configuration["CLOUDINARY_API_KEY"] ?? string.Empty;
+    options.ApiSecret = builder.Configuration["CLOUDINARY_API_SECRET"] ?? string.Empty;
+});
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));

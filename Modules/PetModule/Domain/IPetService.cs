@@ -8,6 +8,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         Task<PetResponseDto?> GetByIdAsync(Guid id, Guid userId);
         Task<PetResponseDto> CreateAsync(CreatePetDto dto, Guid userId);
         Task<PetResponseDto> UpdateAsync(Guid id, Guid userId, UpdatePetDto dto);
+        Task<PetResponseDto> UpdatePhotoAsync(Guid id, Guid userId, IFormFile? photo);
         Task<bool> DeleteAsync(Guid id, Guid userId);
     }
 }
