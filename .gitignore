@@ -25,6 +25,8 @@ appsettings.*.json
 **/*.secrets.json
 .env
 settings.local.json
+secrets/
+NOTIFICATIONS.md
 
 nginx/.htpasswd
 
