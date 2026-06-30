@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Requests
@@ -12,6 +13,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Requests
         public bool IsRepeatable { get; set; }
         public TimeOnly Time { get; set; }
         public DateTime? EndAt { get; set; }
+        [Required]
         public int UtcOffsetMinutes { get; set; }
     }
 }
