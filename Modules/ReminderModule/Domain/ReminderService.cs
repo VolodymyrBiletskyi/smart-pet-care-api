@@ -48,19 +48,15 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (!await _petRepo.ExistsForUserAsync(dto.PetId, userId))
                 throw new InvalidOperationException("Pet not found");
 
-            if (dto.Days.Length == 0)
-                throw new InvalidOperationException("At least one day must be specified");
-
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            ValidateTimeNotPassed(dto.Days, dto.Time, dto.UtcOffsetMinutes);
+            ValidateMode(dto.RepeatType, dto.Days, dto.Date);
 
-            var timeUtc = dto.Time.Add(TimeSpan.FromMinutes(-dto.UtcOffsetMinutes));
-            var firstTrigger = ComputeNextTrigger(dto.Days, timeUtc.ToTimeSpan(), DateTime.UtcNow)
-                ?? throw new InvalidOperationException("Could not compute a valid trigger time");
+            var (firstTrigger, timeOfDayUtc) = ComputeSchedule(
+                dto.RepeatType, dto.Days, dto.Date, dto.Time, dto.UtcOffsetMinutes, DateTime.UtcNow);
 
-            var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeUtc.ToTimeSpan());
+            var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeOfDayUtc);
             await _reminderRepo.AddAsync(reminder);
             await _reminderRepo.SaveChangesAsync();
             return reminder.ToDto();
@@ -77,28 +73,35 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            TimeOnly? timeUtc = null;
-            if (dto.Time.HasValue)
+            reminder.PatchEntity(dto);
+
+            var touchesSchedule = dto.RepeatType.HasValue || dto.Days != null
+                || dto.Date.HasValue || dto.Time.HasValue || dto.UtcOffsetMinutes.HasValue;
+
+            if (touchesSchedule)
             {
-                var offset = dto.UtcOffsetMinutes ?? 0;
-                var days = dto.Days ?? reminder.Days;
-                ValidateTimeNotPassed(days, dto.Time.Value, offset);
-                timeUtc = dto.Time.Value.Add(TimeSpan.FromMinutes(-offset));
-            }
+                var repeatType = dto.RepeatType ?? reminder.RepeatType;
+                var offset = dto.UtcOffsetMinutes ?? reminder.UtcOffsetMinutes;
 
-            reminder.PatchEntity(dto, timeUtc);
+                var usesDate = repeatType is RepeatType.Monthly or RepeatType.Once;
+                var days = repeatType == RepeatType.Weekly ? (dto.Days ?? reminder.Days) : [];
+                DateOnly? date = usesDate ? (dto.Date ?? reminder.Date) : null;
 
-            if (dto.Days != null || dto.Time.HasValue)
-            {
-                var days = dto.Days ?? reminder.Days;
-                var time = timeUtc.HasValue ? timeUtc.Value.ToTimeSpan() : reminder.TimeOfDay;
+                ValidateMode(repeatType, days, date);
 
-                if (days.Length == 0)
-                    throw new InvalidOperationException("At least one day must be specified");
+                var localTime = dto.Time ?? TimeOnly.FromTimeSpan(reminder.TimeOfDay)
+                    .Add(TimeSpan.FromMinutes(offset));
 
-                var next = ComputeNextTrigger(days, time, DateTime.UtcNow);
-                reminder.NextTriggerAt = next;
-                if (next.HasValue) reminder.StartAt = next.Value;
+                var (trigger, timeOfDayUtc) = ComputeSchedule(
+                    repeatType, days, date, localTime, offset, DateTime.UtcNow);
+
+                reminder.RepeatType = repeatType;
+                reminder.Days = days;
+                reminder.Date = date;
+                reminder.UtcOffsetMinutes = offset;
+                reminder.TimeOfDay = timeOfDayUtc;
+                reminder.StartAt = trigger;
+                reminder.NextTriggerAt = trigger;
             }
 
             await _reminderRepo.SaveChangesAsync();
@@ -158,12 +161,94 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 .First();
         }
 
-        private static void ValidateTimeNotPassed(DaysOfWeek[] days, TimeOnly time, int utcOffsetMinutes)
+        private static (DateTime trigger, TimeSpan timeOfDayUtc) ComputeSchedule(
+            RepeatType repeatType, DaysOfWeek[] days, DateOnly? date, TimeOnly localTime, int offsetMinutes, DateTime nowUtc)
         {
-            var localNow = DateTime.UtcNow.AddMinutes(utcOffsetMinutes);
-            var localDay = (DaysOfWeek)localNow.DayOfWeek;
-            if (days.Contains(localDay) && time <= TimeOnly.FromDateTime(localNow))
-                throw new InvalidOperationException("Reminder time has already passed for today. Choose a future time or a different day.");
+            switch (repeatType)
+            {
+                case RepeatType.Weekly:
+                    {
+                        // No "time already passed today" guard: ComputeNextTrigger rolls a same-day-but-past
+                        // time forward to next week automatically.
+                        var timeUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
+                        var trigger = ComputeNextTrigger(days, timeUtc, nowUtc)
+                            ?? throw new InvalidOperationException("Could not compute a valid trigger time");
+                        return (trigger, timeUtc);
+                    }
+                case RepeatType.Daily:
+                    {
+                        var timeUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
+                        return (ComputeNextDaily(timeUtc, nowUtc), timeUtc);
+                    }
+                case RepeatType.Monthly:
+                    {
+                        var trigger = ComputeNextMonthly(date!.Value, localTime, offsetMinutes, nowUtc);
+                        return (trigger, trigger.TimeOfDay);
+                    }
+                case RepeatType.Once:
+                    {
+                        var trigger = date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes);
+                        if (trigger <= nowUtc)
+                            throw new InvalidOperationException("Date must be in the future.");
+                        return (trigger, trigger.TimeOfDay);
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown repeat type.");
+            }
+        }
+
+        private static void ValidateMode(RepeatType repeatType, DaysOfWeek[] days, DateOnly? date)
+        {
+            switch (repeatType)
+            {
+                case RepeatType.Weekly:
+                    if (days.Length == 0)
+                        throw new InvalidOperationException("Weekly reminders require at least one day.");
+                    if (date.HasValue)
+                        throw new InvalidOperationException("Weekly reminders must not include a date.");
+                    break;
+                case RepeatType.Daily:
+                    if (days.Length > 0)
+                        throw new InvalidOperationException("Daily reminders must not include days.");
+                    if (date.HasValue)
+                        throw new InvalidOperationException("Daily reminders must not include a date.");
+                    break;
+                case RepeatType.Monthly:
+                case RepeatType.Once:
+                    if (!date.HasValue)
+                        throw new InvalidOperationException($"{repeatType} reminders require a date.");
+                    if (days.Length > 0)
+                        throw new InvalidOperationException($"{repeatType} reminders must not include days.");
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown repeat type.");
+            }
+        }
+
+        internal static DateTime ComputeNextDaily(TimeSpan timeOfDayUtc, DateTime afterUtc)
+        {
+            var candidate = afterUtc.Date + timeOfDayUtc;
+            return candidate <= afterUtc ? candidate.AddDays(1) : candidate;
+        }
+
+        internal static DateTime ComputeNextMonthly(DateOnly anchor, TimeOnly localTime, int offsetMinutes, DateTime afterUtc)
+        {
+            var afterLocal = afterUtc.AddMinutes(offsetMinutes);
+
+            var candidate = BuildMonthlyLocal(afterLocal.Year, afterLocal.Month, anchor.Day, localTime);
+            if (candidate <= afterLocal)
+            {
+                var nextMonth = new DateTime(afterLocal.Year, afterLocal.Month, 1).AddMonths(1);
+                candidate = BuildMonthlyLocal(nextMonth.Year, nextMonth.Month, anchor.Day, localTime);
+            }
+
+            return candidate.AddMinutes(-offsetMinutes);
+        }
+
+        private static DateTime BuildMonthlyLocal(int year, int month, int dayOfMonth, TimeOnly localTime)
+        {
+            var day = Math.Min(dayOfMonth, DateTime.DaysInMonth(year, month));
+            return new DateTime(year, month, day).Add(localTime.ToTimeSpan());
         }
 
         private static DateTime NextOccurrence(DaysOfWeek day, TimeSpan time, DateTime after)

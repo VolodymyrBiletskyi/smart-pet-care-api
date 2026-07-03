@@ -12,9 +12,15 @@ namespace smart_pet_care_api.Models
         public ReminderType Type { get; set; } = ReminderType.Feeding;
         public ReminderStatus Status { get; set; } = ReminderStatus.Active;
 
+        public RepeatType RepeatType { get; set; } = RepeatType.Weekly;
+
         public DaysOfWeek[] Days { get; set; } = [];
+
+        public DateOnly? Date { get; set; }
+
         public TimeSpan TimeOfDay { get; set; }
-        public bool IsRepeatable { get; set; }
+
+        public int UtcOffsetMinutes { get; set; }
 
         public DateTime StartAt { get; set; }
         public DateTime? NextTriggerAt { get; set; }

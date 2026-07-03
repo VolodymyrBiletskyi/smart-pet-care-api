@@ -54,6 +54,14 @@ namespace smart_pet_care_api.Models
             Cancelled,
         }
 
+        public enum RepeatType
+        {
+            Weekly = 0,
+            Monthly = 1,
+            Once = 2,
+            Daily = 3,
+        }
+
         public enum ReminderRunStatus
         {
             Pending,
