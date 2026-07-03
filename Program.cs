@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
+using smart_pet_care_api.Modules.FeedingModule;
 using smart_pet_care_api.Modules.NotificationModule;
 using smart_pet_care_api.Modules.NotificationModule.Config;
 using smart_pet_care_api.Modules.PetModule;
@@ -24,6 +26,7 @@ builder.Services.AddUserModule();
 builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
+builder.Services.AddFeedingModule();
 builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddScalarConfig();
 builder.Services.Configure<CloudinaryOptions>(options =>
@@ -35,7 +38,11 @@ builder.Services.Configure<CloudinaryOptions>(options =>
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 builder.Services.AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new PatchFieldJsonConverterFactory());
+        o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 var app = builder.Build();
 
