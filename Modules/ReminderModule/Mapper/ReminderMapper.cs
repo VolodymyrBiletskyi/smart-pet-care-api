@@ -15,8 +15,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             Description = r.Description,
             Type = r.Type,
             Status = r.Status,
+            RepeatType = r.RepeatType,
             Days = r.Days,
-            IsRepeatable = r.IsRepeatable,
+            Date = r.Date,
             TimeOfDay = r.TimeOfDay,
             StartAt = r.StartAt,
             NextTriggerAt = r.NextTriggerAt,
@@ -44,22 +45,21 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             Title = dto.Title,
             Description = dto.Description,
             Type = dto.Type,
-            Days = dto.Days,
+            RepeatType = dto.RepeatType,
+            Days = dto.RepeatType == RepeatType.Weekly ? dto.Days : [],
+            Date = dto.RepeatType is RepeatType.Monthly or RepeatType.Once ? dto.Date : null,
             TimeOfDay = timeOfDayUtc,
-            IsRepeatable = dto.IsRepeatable,
+            UtcOffsetMinutes = dto.UtcOffsetMinutes,
             StartAt = firstTrigger,
             NextTriggerAt = firstTrigger,
             EndAt = dto.EndAt,
             SourceType = SourceType.Manual
         };
 
-        public static void PatchEntity(this Reminder reminder, PatchReminderDto dto, TimeOnly? timeUtc = null)
+        public static void PatchEntity(this Reminder reminder, PatchReminderDto dto)
         {
             if (dto.Title != null) reminder.Title = dto.Title;
             if (dto.Description != null) reminder.Description = dto.Description;
-            if (dto.Days != null) reminder.Days = dto.Days;
-            if (dto.Time.HasValue) reminder.TimeOfDay = (timeUtc ?? dto.Time.Value).ToTimeSpan();
-            if (dto.IsRepeatable.HasValue) reminder.IsRepeatable = dto.IsRepeatable.Value;
             if (dto.EndAt.HasValue) reminder.EndAt = dto.EndAt;
             if (dto.Status.HasValue) reminder.Status = dto.Status.Value;
             reminder.UpdatedAt = DateTime.UtcNow;

@@ -74,28 +74,33 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
 
             await notificationService.SendReminderNotificationAsync(reminder, CancellationToken.None);
 
-            if (!reminder.IsRepeatable)
+            var next = ComputeNextTrigger(reminder, now);
+
+            if (next == null || (reminder.EndAt.HasValue && next > reminder.EndAt))
             {
                 reminder.Status = ReminderStatus.Completed;
                 reminder.NextTriggerAt = null;
             }
             else
             {
-                var next = ReminderService.ComputeNextTrigger(reminder.Days, reminder.TimeOfDay, now);
-
-                if (next == null || (reminder.EndAt.HasValue && next > reminder.EndAt))
-                {
-                    reminder.Status = ReminderStatus.Completed;
-                    reminder.NextTriggerAt = null;
-                }
-                else
-                {
-                    reminder.NextTriggerAt = next;
-                }
+                reminder.NextTriggerAt = next;
             }
 
             reminder.UpdatedAt = now;
             await reminderRepo.SaveChangesAsync();
         }
+
+        private static DateTime? ComputeNextTrigger(Reminder reminder, DateTime now) => reminder.RepeatType switch
+        {
+            RepeatType.Once => null,
+            RepeatType.Daily => ReminderService.ComputeNextDaily(reminder.TimeOfDay, now),
+            RepeatType.Weekly => ReminderService.ComputeNextTrigger(reminder.Days, reminder.TimeOfDay, now),
+            RepeatType.Monthly => ReminderService.ComputeNextMonthly(
+                reminder.Date!.Value,
+                TimeOnly.FromDateTime(reminder.NextTriggerAt!.Value.AddMinutes(reminder.UtcOffsetMinutes)),
+                reminder.UtcOffsetMinutes,
+                now),
+            _ => null,
+        };
     }
 }

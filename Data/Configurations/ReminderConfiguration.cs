@@ -11,9 +11,6 @@ public class ReminderConfiguration : IEntityTypeConfiguration<Reminder>
             t.HasCheckConstraint(
                 "CK_Reminders_DateRange",
                 "\"EndAt\" IS NULL OR \"EndAt\" >= \"StartAt\"");
-            t.HasCheckConstraint(
-                "CK_Reminders_Interval_Positive",
-                "\"Interval\" > 0");
         });
 
         builder.HasKey(r => r.Id);
