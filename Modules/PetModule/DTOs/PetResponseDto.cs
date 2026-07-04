@@ -12,9 +12,10 @@ public class PetResponseDto
     public decimal? WeightKg { get; set; }
     public Sex Sex { get; set; }
     public string? PhotoUrl { get; set; }
-    public string? Allergies { get; set; }
-    public string? ChronicConditions { get; set; }
-    public string? BehavioralNotes { get; set; }
+    public string? PhotoPublicId { get; set; }
+    public List<string>? Allergies { get; set; }
+    public List<string>? ChronicConditions { get; set; }
+    public List<string>? BehavioralNotes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

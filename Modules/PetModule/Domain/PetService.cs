@@ -127,6 +127,10 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateSex(dto.Sex);
+            ValidateOptionalText(dto.PhotoPublicId, "PhotoPublicId");
+            ValidateOptionalTextItems(dto.Allergies, "Allergies");
+            ValidateOptionalTextItems(dto.ChronicConditions, "ChronicConditions");
+            ValidateOptionalTextItems(dto.BehavioralNotes, "BehavioralNotes");
         }
 
         private static void ValidateUpdate(UpdatePetDto dto)
@@ -136,6 +140,11 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateOptionalSex(dto.Sex);
+            if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
+            if (dto.PhotoPublicId.IsSet) ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId");
+            if (dto.Allergies.IsSet) ValidateOptionalTextItems(dto.Allergies.Value, "Allergies");
+            if (dto.ChronicConditions.IsSet) ValidateOptionalTextItems(dto.ChronicConditions.Value, "ChronicConditions");
+            if (dto.BehavioralNotes.IsSet) ValidateOptionalTextItems(dto.BehavioralNotes.Value, "BehavioralNotes");
         }
 
         private static void ValidateRequiredText(string? value, string fieldName)
@@ -148,6 +157,12 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (value is not null && string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException($"{fieldName} cannot be empty");
+        }
+
+        private static void ValidateOptionalTextItems(IReadOnlyCollection<string>? values, string fieldName)
+        {
+            if (values is not null && values.Any(string.IsNullOrWhiteSpace))
+                throw new ArgumentException($"{fieldName} cannot contain empty values");
         }
 
         private static void ValidateBirthDate(DateTime? birthDate)

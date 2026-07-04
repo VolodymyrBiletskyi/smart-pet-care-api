@@ -22,6 +22,11 @@ namespace smart_pet_care_api.Extensions
                     };
 
                     var env = context.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+                    var configuration = context.ApplicationServices.GetRequiredService<IConfiguration>();
+                    var apiPublicUrl = configuration["ApiPublicUrl"]
+                        ?? (env.IsProduction()
+                            ? "https://smart-pet-care.duckdns.org"
+                            : "http://localhost:8080");
 
                     var servers = new List<OpenApiServer>
                     {

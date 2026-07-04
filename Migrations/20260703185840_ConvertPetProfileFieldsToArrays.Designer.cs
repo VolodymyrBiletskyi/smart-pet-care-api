@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using smart_pet_care_api.Data;
@@ -12,9 +13,11 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703185840_ConvertPetProfileFieldsToArrays")]
+    partial class ConvertPetProfileFieldsToArrays
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -142,42 +145,6 @@ namespace smart_pet_care_api.Migrations
                     b.ToTable("AiSessions", (string)null);
                 });
 
-            modelBuilder.Entity("smart_pet_care_api.Models.DeviceToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTime>("LastSeenAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<int>("Platform")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LastSeenAt");
-
-                    b.HasIndex("UserId", "Token")
-                        .IsUnique();
-
-                    b.ToTable("DeviceTokens", (string)null);
-                });
-
             modelBuilder.Entity("smart_pet_care_api.Models.ExternalLogin", b =>
                 {
                     b.Property<Guid>("Id")
@@ -291,13 +258,7 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("PhotoPublicId")
-                        .HasColumnType("text");
-
                     b.Property<string>("PhotoUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhotoPublicId")
                         .HasColumnType("text");
 
                     b.Property<int>("Sex")
@@ -615,9 +576,6 @@ namespace smart_pet_care_api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<DateOnly?>("Date")
-                        .HasColumnType("date");
-
                     b.PrimitiveCollection<int[]>("Days")
                         .IsRequired()
                         .HasColumnType("integer[]");
@@ -628,6 +586,9 @@ namespace smart_pet_care_api.Migrations
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsRepeatable")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsSystemGenerated")
                         .HasColumnType("boolean");
 
@@ -636,9 +597,6 @@ namespace smart_pet_care_api.Migrations
 
                     b.Property<Guid>("PetId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("RepeatType")
-                        .HasColumnType("integer");
 
                     b.Property<Guid?>("SourceId")
                         .HasColumnType("uuid");
@@ -665,9 +623,6 @@ namespace smart_pet_care_api.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("UtcOffsetMinutes")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PetId", "NextTriggerAt");
@@ -679,6 +634,8 @@ namespace smart_pet_care_api.Migrations
                     b.ToTable("Reminders", null, t =>
                         {
                             t.HasCheckConstraint("CK_Reminders_DateRange", "\"EndAt\" IS NULL OR \"EndAt\" >= \"StartAt\"");
+
+                            t.HasCheckConstraint("CK_Reminders_Interval_Positive", "\"Interval\" > 0");
                         });
                 });
 
@@ -806,15 +763,6 @@ namespace smart_pet_care_api.Migrations
 
                     b.HasOne("smart_pet_care_api.Models.User", null)
                         .WithMany("AiSessions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("smart_pet_care_api.Models.DeviceToken", b =>
-                {
-                    b.HasOne("smart_pet_care_api.Models.User", null)
-                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

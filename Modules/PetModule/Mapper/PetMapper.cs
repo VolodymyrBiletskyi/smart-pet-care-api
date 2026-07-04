@@ -18,6 +18,8 @@ public static class PetMapper
             WeightKg = dto.WeightKg,
             Sex = dto.Sex,
 
+            PhotoUrl = dto.PhotoUrl,
+            PhotoPublicId = dto.PhotoPublicId,
             Allergies = dto.Allergies,
             ChronicConditions = dto.ChronicConditions,
             BehavioralNotes = dto.BehavioralNotes,
@@ -42,6 +44,7 @@ public static class PetMapper
             Sex = pet.Sex,
 
             PhotoUrl = pet.PhotoUrl,
+            PhotoPublicId = pet.PhotoPublicId,
             Allergies = pet.Allergies,
             ChronicConditions = pet.ChronicConditions,
             BehavioralNotes = pet.BehavioralNotes,
@@ -71,14 +74,20 @@ public static class PetMapper
         if (dto.Sex is not null)
             pet.Sex = dto.Sex.Value;
 
-        if (dto.Allergies is not null)
-            pet.Allergies = dto.Allergies;
+        if (dto.PhotoUrl.IsSet)
+            pet.PhotoUrl = dto.PhotoUrl.Value;
 
-        if (dto.ChronicConditions is not null)
-            pet.ChronicConditions = dto.ChronicConditions;
+        if (dto.PhotoPublicId.IsSet)
+            pet.PhotoPublicId = dto.PhotoPublicId.Value;
 
-        if (dto.BehavioralNotes is not null)
-            pet.BehavioralNotes = dto.BehavioralNotes;
+        if (dto.Allergies.IsSet)
+            pet.Allergies = dto.Allergies.Value;
+
+        if (dto.ChronicConditions.IsSet)
+            pet.ChronicConditions = dto.ChronicConditions.Value;
+
+        if (dto.BehavioralNotes.IsSet)
+            pet.BehavioralNotes = dto.BehavioralNotes.Value;
 
         pet.UpdatedAt = DateTime.UtcNow;
     }
