@@ -69,9 +69,19 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             if (pet is null)
                 throw new InvalidOperationException("Pet does not exist");
 
+            var oldPhotoUrl = pet.PhotoUrl;
+            var oldPhotoPublicId = pet.PhotoPublicId;
+            var shouldDeleteOldPhoto = ShouldDeleteOldPhoto(dto, oldPhotoUrl, oldPhotoPublicId);
+
             PetMapper.UpdateEntity(pet, dto);
 
+            if (dto.PhotoUrl.IsSet && dto.PhotoUrl.Value is null)
+                pet.PhotoPublicId = null;
+
             await _petRepo.SaveChangesAsync();
+
+            if (shouldDeleteOldPhoto)
+                await TryDeleteCloudinaryImageAsync(oldPhotoPublicId);
 
             return PetMapper.ToResponseDto(pet);
         }
@@ -118,6 +128,17 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             {
                 _logger.LogWarning(ex, "Failed to delete Cloudinary pet photo {PublicId}", publicId);
             }
+        }
+
+        private static bool ShouldDeleteOldPhoto(UpdatePetDto dto, string? oldPhotoUrl, string? oldPhotoPublicId)
+        {
+            if (string.IsNullOrWhiteSpace(oldPhotoPublicId))
+                return false;
+
+            if (!dto.PhotoUrl.IsSet)
+                return false;
+
+            return !string.Equals(dto.PhotoUrl.Value, oldPhotoUrl, StringComparison.Ordinal);
         }
 
         private static void ValidateCreate(CreatePetDto dto)
