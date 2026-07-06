@@ -50,16 +50,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    try
-    {
-        db.Database.CanConnect();
-        db.Database.Migrate();
-        Console.WriteLine("✅ Database connected");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("❌ Database connection failed: " + ex.Message);
-    }
+    // Fail fast: running with an unmigrated/unreachable database would only
+    // surface as confusing 500s on the first request.
+    db.Database.Migrate();
+    Console.WriteLine("✅ Database connected and migrated");
 }
 
 app.Services.GetRequiredService<FirebaseInitializer>();

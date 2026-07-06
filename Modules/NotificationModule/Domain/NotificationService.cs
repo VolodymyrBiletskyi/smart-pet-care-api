@@ -29,12 +29,12 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             _logger = logger;
         }
 
-        public async Task SendReminderNotificationAsync(Reminder reminder, CancellationToken ct)
+        public async Task<bool> SendReminderNotificationAsync(Reminder reminder, DateTime scheduledFor, CancellationToken ct)
         {
             if (!_firebase.IsConfigured)
             {
                 _logger.LogDebug("Firebase not configured; skipping push for reminder {ReminderId}", reminder.Id);
-                return;
+                return false;
             }
 
             var pet = await _petRepo.GetByIdAsync(reminder.PetId);
@@ -42,14 +42,14 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             {
                 _logger.LogWarning("Pet {PetId} not found for reminder {ReminderId}; skipping push",
                     reminder.PetId, reminder.Id);
-                return;
+                return false;
             }
 
             var tokens = await _tokenRepo.GetByUserIdAsync(pet.UserId);
             if (tokens.Count == 0)
             {
                 _logger.LogDebug("No device tokens for user {UserId}; nothing to send", pet.UserId);
-                return;
+                return false;
             }
 
             var (title, body) = BuildContent(reminder, pet.Name);
@@ -58,16 +58,15 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
                 ["reminderId"] = reminder.Id.ToString(),
                 ["petId"] = reminder.PetId.ToString(),
                 ["reminderType"] = reminder.Type.ToString(),
-                ["scheduledAt"] = (reminder.NextTriggerAt ?? reminder.StartAt).ToString("o")
+                ["scheduledAt"] = scheduledFor.ToString("o")
             };
 
-            if (tokens.Count == 1)
-                await SendSingleAsync(tokens[0], title, body, data, ct);
-            else
-                await SendBatchAsync(tokens, title, body, data, ct);
+            return tokens.Count == 1
+                ? await SendSingleAsync(tokens[0], title, body, data, ct)
+                : await SendBatchAsync(tokens, title, body, data, ct);
         }
 
-        private async Task SendSingleAsync(
+        private async Task<bool> SendSingleAsync(
             DeviceToken token, string title, string body,
             IReadOnlyDictionary<string, string> data, CancellationToken ct)
         {
@@ -77,19 +76,22 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             {
                 await _retry.Policy.ExecuteAsync(
                     _ => FirebaseMessaging.DefaultInstance.SendAsync(message, ct), ct);
+                return true;
             }
             catch (FirebaseMessagingException ex) when (FcmRetryPolicy.IsTokenInvalid(ex))
             {
                 _logger.LogInformation("Removing invalid device token ({Code})", ex.MessagingErrorCode);
                 await _tokenRepo.RemoveByTokensAsync(new[] { token.Token });
+                return false;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send push notification after retries");
+                return false;
             }
         }
 
-        private async Task SendBatchAsync(
+        private async Task<bool> SendBatchAsync(
             IReadOnlyList<DeviceToken> tokens, string title, string body,
             IReadOnlyDictionary<string, string> data, CancellationToken ct)
         {
@@ -106,7 +108,7 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FCM batch send failed after retries for {Count} tokens", messages.Count);
-                return;
+                return false;
             }
 
             var staleTokens = new List<string>();
@@ -126,6 +128,8 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
                 _logger.LogInformation("Removing {Count} invalid device tokens", staleTokens.Count);
                 await _tokenRepo.RemoveByTokensAsync(staleTokens);
             }
+
+            return response.SuccessCount > 0;
         }
 
         private static Message BuildMessage(

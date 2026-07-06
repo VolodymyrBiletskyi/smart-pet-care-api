@@ -24,25 +24,14 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
 
             await _repo.RemoveStaleAsync(DateTime.UtcNow - StaleAfter);
 
-            var existing = await _repo.GetByUserAndTokenAsync(userId, token);
-            if (existing is not null)
+            await _repo.UpsertAsync(new DeviceToken
             {
-                existing.LastSeenAt = DateTime.UtcNow;
-                existing.Platform = dto.Platform;
-            }
-            else
-            {
-                await _repo.AddAsync(new DeviceToken
-                {
-                    UserId = userId,
-                    Token = token,
-                    Platform = dto.Platform,
-                    CreatedAt = DateTime.UtcNow,
-                    LastSeenAt = DateTime.UtcNow
-                });
-            }
-
-            await _repo.SaveChangesAsync();
+                UserId = userId,
+                Token = token,
+                Platform = dto.Platform,
+                CreatedAt = DateTime.UtcNow,
+                LastSeenAt = DateTime.UtcNow
+            });
         }
 
         public async Task<bool> UnregisterAsync(Guid userId, string token)

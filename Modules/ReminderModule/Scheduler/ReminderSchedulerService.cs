@@ -63,16 +63,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             IReminderRepository reminderRepo,
             INotificationService notificationService)
         {
-            await reminderRepo.AddRunAsync(new ReminderRun
+            var run = new ReminderRun
             {
                 ReminderId = reminder.Id,
                 ScheduledFor = reminder.NextTriggerAt!.Value,
-                Status = ReminderRunStatus.Sent,
-                SentAt = now,
+                Status = ReminderRunStatus.Pending,
                 Channel = "push"
-            });
-
-            await notificationService.SendReminderNotificationAsync(reminder, CancellationToken.None);
+            };
+            await reminderRepo.AddRunAsync(run);
 
             var next = ComputeNextTrigger(reminder, now);
 
@@ -87,6 +85,15 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             }
 
             reminder.UpdatedAt = now;
+
+            await reminderRepo.SaveChangesAsync();
+
+            var sent = await notificationService.SendReminderNotificationAsync(
+                reminder, run.ScheduledFor, CancellationToken.None);
+
+            run.Status = sent ? ReminderRunStatus.Sent : ReminderRunStatus.Failed;
+            run.SentAt = sent ? now : null;
+            run.UpdatedAt = now;
             await reminderRepo.SaveChangesAsync();
         }
 
@@ -94,7 +101,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
         {
             RepeatType.Once => null,
             RepeatType.Daily => ReminderService.ComputeNextDaily(reminder.TimeOfDay, now),
-            RepeatType.Weekly => ReminderService.ComputeNextTrigger(reminder.Days, reminder.TimeOfDay, now),
+            RepeatType.Weekly => ReminderService.ComputeNextTrigger(
+                ReminderService.ToUtcDays(reminder.Days, reminder.TimeOfDay, reminder.UtcOffsetMinutes),
+                reminder.TimeOfDay, now),
             RepeatType.Monthly => ReminderService.ComputeNextMonthly(
                 reminder.Date!.Value,
                 TimeOnly.FromDateTime(reminder.NextTriggerAt!.Value.AddMinutes(reminder.UtcOffsetMinutes)),

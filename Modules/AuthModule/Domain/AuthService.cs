@@ -24,9 +24,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             _googleOAuth = googleOAuth;
         }
 
+        private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
         public async Task<AuthTokenPair> RegisterAsync(RegisterRequest request)
         {
-            var email = request.Email.Trim().ToLowerInvariant();
+            var email = NormalizeEmail(request.Email);
 
             if (await _userRepo.GetByEmailAsync(email) is not null)
                 throw new InvalidOperationException("Email is already taken");
@@ -49,8 +51,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)
         {
-            var user = await _userRepo.GetByEmailAsync(request.Email)
+            var user = await _userRepo.GetByEmailAsync(NormalizeEmail(request.Email))
                 ?? throw new InvalidOperationException("Invalid email or password");
+
+            // OAuth-only accounts have no password hash.
+            if (user.PasswordHash is null)
+                throw new InvalidOperationException("Invalid email or password");
 
             var isValid = BCrypt.Net.BCrypt.EnhancedVerify(request.Password, user.PasswordHash);
             if (!isValid)
@@ -136,7 +142,6 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         private async Task<AuthTokenPair> LoginOrRegisterOAuthUserAsync(GoogleUserInfo userInfo)
         {
-            // 1. check if oauth account already linked
             var existingLogin = await _userRepo.GetExternalLoginAsync(AuthProvider.Google, userInfo.GoogleId);
             if (existingLogin is not null)
             {
@@ -146,12 +151,14 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
                 return await IssueTokensAsync(existingUser!);
             }
 
-            var user = await _userRepo.GetByEmailAsync(userInfo.Email);
+            var email = NormalizeEmail(userInfo.Email);
+
+            var user = await _userRepo.GetTrackedByEmailAsync(email);
             if (user is null)
             {
                 user = await _userRepo.AddAsync(new User
                 {
-                    Email = userInfo.Email,
+                    Email = email,
                     PasswordHash = null,
                     TermsAccepted = true,
                     TermsAcceptedAt = DateTime.UtcNow,

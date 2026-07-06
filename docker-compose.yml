@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=smartPetCareDb;Username=postgres;Password=${DB_PASSWORD}
       - JwtOptions__SecretKey=${JWT_SECRET}
       - JwtOptions__Issuer=${JWT_ISSUER}
@@ -14,6 +14,8 @@ services:
       - GoogleOAuth__ClientId=${GOOGLE_CLIENT_ID}
       - GoogleOAuth__ClientSecret=${GOOGLE_CLIENT_SECRET}
       - GoogleOAuth__RedirectUri=${GOOGLE_REDIRECT_URI}
+      - GoogleOAuth__AllowedAudiences__0=${GOOGLE_CLIENT_ID}
+      - GoogleOAuth__AllowedAudiences__1=${GOOGLE_ANDROID_CLIENT_ID}
       - CLOUDINARY_NAME=${CLOUDINARY_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}

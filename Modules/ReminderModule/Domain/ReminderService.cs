@@ -84,6 +84,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 var offset = dto.UtcOffsetMinutes ?? reminder.UtcOffsetMinutes;
 
                 var usesDate = repeatType is RepeatType.Monthly or RepeatType.Once;
+
+                // Reject request fields that don't belong to the (target) mode; stale entity
+                // fields left over from a mode switch are cleared silently instead.
+                if (!usesDate && dto.Date.HasValue)
+                    throw new InvalidOperationException($"{repeatType} reminders must not include a date.");
+                if (repeatType != RepeatType.Weekly && dto.Days is { Length: > 0 })
+                    throw new InvalidOperationException($"{repeatType} reminders must not include days.");
+
                 var days = repeatType == RepeatType.Weekly ? (dto.Days ?? reminder.Days) : [];
                 DateOnly? date = usesDate ? (dto.Date ?? reminder.Date) : null;
 
@@ -102,6 +110,11 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 reminder.TimeOfDay = timeOfDayUtc;
                 reminder.StartAt = trigger;
                 reminder.NextTriggerAt = trigger;
+
+                // Rescheduling implies the reminder should fire again; without this a
+                // Completed/Missed reminder would hold a trigger the scheduler ignores.
+                if (!dto.Status.HasValue)
+                    reminder.Status = ReminderStatus.Active;
             }
 
             await _reminderRepo.SaveChangesAsync();
@@ -150,6 +163,20 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             return run.ToDto();
         }
 
+        /// <summary>
+        /// Days are stored as the user's local weekdays while TimeOfDay is UTC; when the
+        /// local→UTC conversion crosses midnight the occurrence falls on the adjacent UTC weekday.
+        /// </summary>
+        internal static DaysOfWeek[] ToUtcDays(DaysOfWeek[] localDays, TimeSpan timeOfDayUtc, int offsetMinutes)
+        {
+            var localMinutes = timeOfDayUtc.TotalMinutes + offsetMinutes;
+            var shift = localMinutes >= 1440 ? -1 : localMinutes < 0 ? 1 : 0;
+
+            return shift == 0
+                ? localDays
+                : localDays.Select(d => (DaysOfWeek)(((int)d + shift + 7) % 7)).ToArray();
+        }
+
         internal static DateTime? ComputeNextTrigger(DaysOfWeek[] days, TimeSpan time, DateTime after)
         {
             if (days.Length == 0) return null;
@@ -171,7 +198,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                         // No "time already passed today" guard: ComputeNextTrigger rolls a same-day-but-past
                         // time forward to next week automatically.
                         var timeUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
-                        var trigger = ComputeNextTrigger(days, timeUtc, nowUtc)
+                        var utcDays = ToUtcDays(days, timeUtc, offsetMinutes);
+                        var trigger = ComputeNextTrigger(utcDays, timeUtc, nowUtc)
                             ?? throw new InvalidOperationException("Could not compute a valid trigger time");
                         return (trigger, timeUtc);
                     }

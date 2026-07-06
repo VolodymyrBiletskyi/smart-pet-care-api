@@ -21,6 +21,12 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
             .FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        public async Task<User?> GetTrackedByEmailAsync(string email)
+        {
+            return await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
         public Task<User?> GetByIdAsync(Guid id)
         {
             return _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
