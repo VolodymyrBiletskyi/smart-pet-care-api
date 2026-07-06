@@ -1,5 +1,0 @@
-services:
-  api:
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ApiPublicUrl=http://localhost:8080
