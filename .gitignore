@@ -27,6 +27,8 @@ appsettings.*.json
 settings.local.json
 secrets/
 NOTIFICATIONS.md
+MIGRATION_CHECK_HISTORY.md
+docker-compose.dev.yml
 
 nginx/.htpasswd
 

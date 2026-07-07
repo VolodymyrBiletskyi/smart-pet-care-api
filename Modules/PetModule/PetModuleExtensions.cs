@@ -8,6 +8,7 @@ namespace smart_pet_care_api.Modules.PetModule
         public static IServiceCollection AddPetModule(this IServiceCollection services)
         {
             services.AddScoped<IPetRepository, PetRepository>();
+            services.AddScoped<IPetPhotoCleanupService, PetPhotoCleanupService>();
             services.AddScoped<IPetService, PetService>();
             return services;
         }

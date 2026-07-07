@@ -19,9 +19,9 @@ namespace smart_pet_care_api.Models
         public DateTime? BirthDate { get; set; }
         public Sex Sex { get; set; } = Sex.Unknown;
         public decimal? WeightKg { get; set; }
-        public string? BehavioralNotes { get; set; }
-        public string? Allergies { get; set; }
-        public string? ChronicConditions { get; set; }
+        public List<string>? BehavioralNotes { get; set; }
+        public List<string>? Allergies { get; set; }
+        public List<string>? ChronicConditions { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

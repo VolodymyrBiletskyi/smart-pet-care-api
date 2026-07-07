@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Patching;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.PetModule.DTOs;
@@ -12,7 +13,9 @@ public class UpdatePetDto
     public decimal? WeightKg { get; set; }
     public Sex? Sex { get; set; }
 
-    public string? Allergies { get; set; }
-    public string? ChronicConditions { get; set; }
-    public string? BehavioralNotes { get; set; }
+    public PatchField<string?> PhotoUrl { get; set; }
+    public PatchField<string?> PhotoPublicId { get; set; }
+    public PatchField<List<string>?> Allergies { get; set; }
+    public PatchField<List<string>?> ChronicConditions { get; set; }
+    public PatchField<List<string>?> BehavioralNotes { get; set; }
 }

@@ -41,6 +41,15 @@ namespace smart_pet_care_api.Modules.PetModule.Repository
                 .ToListAsync();
         }
 
+        public async Task<IReadOnlyList<string?>> GetPhotoPublicIdsByUserIdAsync(Guid userId)
+        {
+            return await _dbContext.Pets
+                .AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .Select(p => p.PhotoPublicId)
+                .ToListAsync();
+        }
+
         public async Task<Pet> AddAsync(Pet entity)
         {
             await _dbContext.Pets.AddAsync(entity);

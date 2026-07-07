@@ -2,15 +2,25 @@ using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
 using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
 using smart_pet_care_api.Modules.UserModule.Mapper;
 using smart_pet_care_api.Modules.UserModule.Repository;
+using smart_pet_care_api.Modules.PetModule.Domain;
+using smart_pet_care_api.Modules.PetModule.Repository;
 
 namespace smart_pet_care_api.Modules.UserModule.Domain
 {
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepo;
-        public UserService(IUserRepository userRepo)
+        private readonly IPetRepository _petRepo;
+        private readonly IPetPhotoCleanupService _petPhotoCleanupService;
+
+        public UserService(
+            IUserRepository userRepo,
+            IPetRepository petRepo,
+            IPetPhotoCleanupService petPhotoCleanupService)
         {
             _userRepo = userRepo;
+            _petRepo = petRepo;
+            _petPhotoCleanupService = petPhotoCleanupService;
         }
 
         public async Task<bool> DeleteAsync(Guid id)
@@ -18,8 +28,13 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
             var user = await _userRepo.GetByIdAsync(id);
             if (user == null) return false;
 
+            var photoPublicIds = await _petRepo.GetPhotoPublicIdsByUserIdAsync(id);
+
             await _userRepo.DeleteAsync(id);
             await _userRepo.SaveChangesAsync();
+
+            await _petPhotoCleanupService.DeletePetPhotosBestEffortAsync(photoPublicIds);
+
             return true;
         }
 
