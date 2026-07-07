@@ -34,8 +34,11 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> UploadAvatar(IFormFile file)
+        public async Task<IActionResult> UploadAvatar(IFormFile? file)
         {
+            if (file is null || file.Length == 0)
+                return BadRequest("Photo is required");
+
             if (file.Length > 1 * 1024 * 1024)
                 return BadRequest("Photo must be 1 MB or less");
 

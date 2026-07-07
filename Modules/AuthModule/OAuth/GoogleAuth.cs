@@ -42,15 +42,37 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
                     ["grant_type"] = "authorization_code"
                 }));
 
+            if (!tokenResponse.IsSuccessStatusCode)
+                throw new InvalidOperationException("Google authentication failed");
+
             var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
-            var idToken = tokenJson.GetProperty("id_token").GetString()!;
+            if (!tokenJson.TryGetProperty("id_token", out var idTokenElement)
+                || idTokenElement.GetString() is not { Length: > 0 } idToken)
+                throw new InvalidOperationException("Google authentication failed");
 
             return await ValidateIdTokenAsync(idToken);
         }
 
         public async Task<GoogleUserInfo> ValidateIdTokenAsync(string idToken)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                // Audience check: reject Google-signed tokens minted for other apps.
+                payload = await GoogleJsonWebSignature.ValidateAsync(idToken,
+                    new GoogleJsonWebSignature.ValidationSettings
+                    {
+                        Audience = _options.EffectiveAudiences
+                    });
+            }
+            catch (InvalidJwtException)
+            {
+                throw new InvalidOperationException("Google authentication failed");
+            }
+
+            // Tokens requested without the email scope can't be linked to an account.
+            if (string.IsNullOrWhiteSpace(payload.Email))
+                throw new InvalidOperationException("Google authentication failed");
 
             return new GoogleUserInfo
             {

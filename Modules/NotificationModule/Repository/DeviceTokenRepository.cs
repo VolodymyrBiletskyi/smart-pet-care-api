@@ -13,12 +13,6 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
             _dbContext = dbContext;
         }
 
-        public async Task<DeviceToken?> GetByUserAndTokenAsync(Guid userId, string token)
-        {
-            return await _dbContext.DeviceTokens
-                .FirstOrDefaultAsync(t => t.UserId == userId && t.Token == token);
-        }
-
         public async Task<IReadOnlyList<DeviceToken>> GetByUserIdAsync(Guid userId)
         {
             return await _dbContext.DeviceTokens
@@ -27,9 +21,16 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
                 .ToListAsync();
         }
 
-        public async Task AddAsync(DeviceToken token)
+        public async Task UpsertAsync(DeviceToken token)
         {
-            await _dbContext.DeviceTokens.AddAsync(token);
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "DeviceTokens" ("Id", "UserId", "Token", "Platform", "CreatedAt", "LastSeenAt")
+                VALUES ({token.Id}, {token.UserId}, {token.Token}, {(int)token.Platform}, {token.CreatedAt}, {token.LastSeenAt})
+                ON CONFLICT ("UserId", "Token")
+                DO UPDATE SET
+                    "LastSeenAt" = EXCLUDED."LastSeenAt",
+                    "Platform" = EXCLUDED."Platform"
+                """);
         }
 
         public async Task<bool> RemoveByUserAndTokenAsync(Guid userId, string token)

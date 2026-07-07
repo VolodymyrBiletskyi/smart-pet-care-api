@@ -111,19 +111,27 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GoogleCallback([FromQuery(Name = "code")] string? authCode)
         {
+            if (string.IsNullOrWhiteSpace(authCode))
+                return BadRequest(new { message = "Authorization code is required" });
+
             try
             {
                 var result = await _authService.GoogleLoginAsync(authCode);
                 return Ok(ToResponse(result));
             }
-            catch (Exception ex)
+            catch (InvalidOperationException)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return Unauthorized(new { message = "Google authentication failed" });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "OAuth login failed" });
             }
         }
 
         [HttpPost("oauth/google/mobile")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GoogleMobileLogin([FromBody] GoogleMobileRequest request)
         {
@@ -131,6 +139,10 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             {
                 var result = await _authService.GoogleMobileLoginAsync(request.IdToken);
                 return Ok(ToResponse(result));
+            }
+            catch (InvalidOperationException)
+            {
+                return Unauthorized(new { message = "Google authentication failed" });
             }
             catch (Exception)
             {

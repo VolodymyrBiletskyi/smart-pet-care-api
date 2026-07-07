@@ -8,6 +8,7 @@ using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
 namespace smart_pet_care_api.Modules.UserModule.Api
 {
     [ApiController]
+    [Authorize]
     [Route("api/users")]
     public class UserController : ControllerBase
     {
@@ -18,7 +19,6 @@ namespace smart_pet_care_api.Modules.UserModule.Api
             _userService = userService;
         }
 
-        [Authorize]
         [HttpPatch]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -33,28 +33,34 @@ namespace smart_pet_care_api.Modules.UserModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, new { message = "An error occurred while updating the user" });
             }
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
+            // Users may only delete their own account.
+            if (id != User.GetUserId())
+                return Forbid();
+
             try
             {
                 var deleted = await _userService.DeleteAsync(id);
                 if (!deleted) return NotFound();
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, new { message = "An error occurred while deleting the user" });
             }
         }
 

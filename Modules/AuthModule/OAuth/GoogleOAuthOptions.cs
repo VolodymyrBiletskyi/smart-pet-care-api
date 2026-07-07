@@ -5,5 +5,10 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
         public string ClientId { get; set; } = string.Empty;
         public string ClientSecret { get; set; } = string.Empty;
         public string RedirectUri { get; set; } = string.Empty;
+
+        public string[] AllowedAudiences { get; set; } = [];
+
+        public IReadOnlyList<string> EffectiveAudiences =>
+            AllowedAudiences.Length > 0 ? AllowedAudiences : [ClientId];
     }
 }
