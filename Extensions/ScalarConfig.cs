@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using smart_pet_care_api.Common.Patching;
 
 namespace smart_pet_care_api.Extensions
 {
@@ -13,6 +14,32 @@ namespace smart_pet_care_api.Extensions
 
             services.AddOpenApi(options =>
             {
+                // PatchField<T> is deserialized from a plain JSON value by
+                // PatchFieldJsonConverterFactory, so its schema must be the inner
+                // type's schema, not the struct's {isSet, value} shape.
+                options.AddSchemaTransformer(async (schema, context, cancellationToken) =>
+                {
+                    var type = context.JsonTypeInfo.Type;
+                    if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(PatchField<>))
+                        return;
+
+                    var valueType = type.GetGenericArguments()[0];
+                    var underlying = Nullable.GetUnderlyingType(valueType);
+                    var allowsNull = underlying is not null || !valueType.IsValueType;
+
+                    var valueSchema = await context.GetOrCreateSchemaAsync(underlying ?? valueType, cancellationToken: cancellationToken);
+
+                    schema.Type = valueSchema.Type;
+                    schema.Format = valueSchema.Format;
+                    schema.Items = valueSchema.Items;
+                    schema.Enum = valueSchema.Enum;
+                    schema.Properties = valueSchema.Properties;
+                    schema.Description = "Optional: omit to leave unchanged; null clears the value.";
+
+                    if (allowsNull)
+                        schema.Type |= JsonSchemaType.Null;
+                });
+
                 options.AddDocumentTransformer((document, context, cancellationToken) =>
                 {
                     document.Info = new OpenApiInfo

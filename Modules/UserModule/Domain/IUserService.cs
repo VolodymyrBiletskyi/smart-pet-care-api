@@ -8,7 +8,7 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
         Task<UserResponseDto?> GetByIdAsync(Guid id);
         Task<UserResponseDto> UpdateAsync(Guid id, PatchUserDto patchDto);
         Task<bool> DeleteAsync(Guid id);
-        Task<UserResponseDto> SaveAvatarAsync(Guid id, byte[] data, string contentType);
+        Task<UserResponseDto> SaveAvatarAsync(Guid id, IFormFile? file);
         Task<(byte[] Data, string ContentType)?> GetAvatarAsync(Guid id);
     }
 }

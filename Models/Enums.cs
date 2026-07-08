@@ -194,5 +194,16 @@ namespace smart_pet_care_api.Models
             iOS
         }
 
+        public enum HealthRecordType
+        {
+            Vaccination,
+            Deworming,
+            AntiParasiteTreatment,
+            Medication,
+            VetVisit,
+            Grooming,
+            HealthNote
+        }
+
     }
 }

@@ -31,27 +31,27 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
 
         [HttpPost("avatar")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UploadAvatar(IFormFile? file)
         {
-            if (file is null || file.Length == 0)
-                return BadRequest("Photo is required");
-
-            if (file.Length > 1 * 1024 * 1024)
-                return BadRequest("Photo must be 1 MB or less");
-
-            var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
-            if (!allowed.Contains(file.ContentType))
-                return BadRequest("Only JPEG, PNG, and WebP images are allowed");
-
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms);
-
-            var userId = User.GetUserId();
-            var user = await _userService.SaveAvatarAsync(userId, ms.ToArray(), file.ContentType);
-            return Ok(user);
+            try
+            {
+                var userId = User.GetUserId();
+                var user = await _userService.SaveAvatarAsync(userId, file);
+                return Ok(user);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [AllowAnonymous]

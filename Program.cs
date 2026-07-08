@@ -7,6 +7,7 @@ using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.FeedingModule;
+using smart_pet_care_api.Modules.HealthModule;
 using smart_pet_care_api.Modules.NotificationModule;
 using smart_pet_care_api.Modules.NotificationModule.Config;
 using smart_pet_care_api.Modules.PetModule;
@@ -27,6 +28,7 @@ builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
 builder.Services.AddFeedingModule();
+builder.Services.AddHealthModule();
 builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddScalarConfig();
 builder.Services.Configure<CloudinaryOptions>(options =>
