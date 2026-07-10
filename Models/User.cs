@@ -21,6 +21,9 @@ namespace smart_pet_care_api.Models
         public bool TermsAccepted { get; set; } = false;
         public DateTime? TermsAcceptedAt { get; set; }
 
+        public bool EmailConfirmed { get; set; } = false;
+        public DateTime? EmailConfirmedAt { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
