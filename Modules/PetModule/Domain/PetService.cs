@@ -1,3 +1,4 @@
+using smart_pet_care_api.Models;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.PetModule.DTOs;
 using smart_pet_care_api.Modules.PetModule.Mapper;
@@ -27,6 +28,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateCreate(dto);
 
             var entity = PetMapper.ToEntity(dto, userId);
+            AddInitialWeightLogIfNeeded(entity, dto.WeightKg);
 
             await _petRepo.AddAsync(entity);
             await _petRepo.SaveChangesAsync();
@@ -159,7 +161,6 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateOptionalText(dto.Name, "Name");
             ValidateOptionalText(dto.Species, "Species");
             ValidateBirthDate(dto.BirthDate);
-            ValidateWeight(dto.WeightKg);
             ValidateOptionalSex(dto.Sex);
             if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
             if (dto.PhotoPublicId.IsSet) ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId");
@@ -196,6 +197,24 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (weightKg.HasValue && weightKg.Value <= 0)
                 throw new ArgumentException("WeightKg must be greater than zero");
+
+            if (weightKg.HasValue && weightKg.Value > 230)
+                throw new ArgumentException("WeightKg cannot be greater than 230");
+        }
+
+        private static void AddInitialWeightLogIfNeeded(Pet pet, decimal? weightKg)
+        {
+            if (!weightKg.HasValue)
+                return;
+
+            var now = DateTime.UtcNow;
+            pet.WeightLogs.Add(new PetWeightLog
+            {
+                PetId = pet.Id,
+                WeightKg = weightKg.Value,
+                MeasuredAt = now,
+                CreatedAt = now
+            });
         }
 
         private static void ValidateOptionalSex(Sex? sex)

@@ -10,7 +10,7 @@ public class PetWeightLogConfiguration : IEntityTypeConfiguration<PetWeightLog>
         {
             t.HasCheckConstraint(
                 "CK_PetWeightLogs_WeightKg_Positive",
-                "\"WeightKg\" > 0");
+                "\"WeightKg\" > 0 AND \"WeightKg\" <= 230");
         });
 
         builder.HasKey(w => w.Id);
@@ -19,6 +19,7 @@ public class PetWeightLogConfiguration : IEntityTypeConfiguration<PetWeightLog>
         builder.Property(w => w.CreatedAt).HasDefaultValueSql("now()");
 
         builder.HasIndex(w => new { w.PetId, w.MeasuredAt })
+            .IsUnique()
             .IsDescending(false, true);
 
         builder.HasOne<Pet>()

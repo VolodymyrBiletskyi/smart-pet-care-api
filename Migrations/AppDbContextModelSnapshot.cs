@@ -326,6 +326,44 @@ namespace smart_pet_care_api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("smart_pet_care_api.Models.PetWeightLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTime>("MeasuredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightKg")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PetId", "MeasuredAt")
+                        .IsUnique()
+                        .IsDescending(false, true);
+
+                    b.ToTable("PetWeightLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PetWeightLogs_WeightKg_Positive", "\"WeightKg\" > 0 AND \"WeightKg\" <= 230");
+                        });
+                });
+
             modelBuilder.Entity("smart_pet_care_api.Models.PetCondition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -847,6 +885,15 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("smart_pet_care_api.Models.PetWeightLog", b =>
+                {
+                    b.HasOne("smart_pet_care_api.Models.Pet", null)
+                        .WithMany("WeightLogs")
+                        .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("smart_pet_care_api.Models.PetCondition", b =>
                 {
                     b.HasOne("smart_pet_care_api.Models.Pet", null)
@@ -947,6 +994,8 @@ namespace smart_pet_care_api.Migrations
                     b.Navigation("PetMedications");
 
                     b.Navigation("Reminders");
+
+                    b.Navigation("WeightLogs");
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.Reminder", b =>

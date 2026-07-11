@@ -10,7 +10,6 @@ public class UpdatePetDto
     public string? Breed { get; set; }
 
     public DateTime? BirthDate { get; set; }
-    public decimal? WeightKg { get; set; }
     public Sex? Sex { get; set; }
 
     public PatchField<string?> PhotoUrl { get; set; }

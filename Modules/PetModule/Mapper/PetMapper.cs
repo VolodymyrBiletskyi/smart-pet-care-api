@@ -68,9 +68,6 @@ public static class PetMapper
         if (dto.BirthDate is not null)
             pet.BirthDate = dto.BirthDate;
 
-        if (dto.WeightKg is not null)
-            pet.WeightKg = dto.WeightKg;
-
         if (dto.Sex is not null)
             pet.Sex = dto.Sex.Value;
 
