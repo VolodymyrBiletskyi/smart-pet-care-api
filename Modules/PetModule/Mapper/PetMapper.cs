@@ -11,18 +11,18 @@ public static class PetMapper
         {
             UserId = userId,
 
-            Name = dto.Name,
-            Species = dto.Species,
-            Breed = dto.Breed,
+            Name = NormalizeRequiredText(dto.Name),
+            Species = NormalizeRequiredText(dto.Species),
+            Breed = NormalizeOptionalText(dto.Breed),
             BirthDate = dto.BirthDate,
             WeightKg = dto.WeightKg,
             Sex = dto.Sex,
 
             PhotoUrl = dto.PhotoUrl,
             PhotoPublicId = dto.PhotoPublicId,
-            Allergies = dto.Allergies,
-            ChronicConditions = dto.ChronicConditions,
-            BehavioralNotes = dto.BehavioralNotes,
+            Allergies = NormalizeOptionalTextItems(dto.Allergies),
+            ChronicConditions = NormalizeOptionalTextItems(dto.ChronicConditions),
+            BehavioralNotes = NormalizeOptionalTextItems(dto.BehavioralNotes),
 
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = null
@@ -57,13 +57,13 @@ public static class PetMapper
     public static void UpdateEntity(Pet pet, UpdatePetDto dto)
     {
         if (dto.Name is not null)
-            pet.Name = dto.Name;
+            pet.Name = NormalizeRequiredText(dto.Name);
 
         if (dto.Species is not null)
-            pet.Species = dto.Species;
+            pet.Species = NormalizeRequiredText(dto.Species);
 
         if (dto.Breed is not null)
-            pet.Breed = dto.Breed;
+            pet.Breed = NormalizeOptionalText(dto.Breed);
 
         if (dto.BirthDate is not null)
             pet.BirthDate = dto.BirthDate;
@@ -78,15 +78,39 @@ public static class PetMapper
             pet.PhotoPublicId = dto.PhotoPublicId.Value;
 
         if (dto.Allergies.IsSet)
-            pet.Allergies = dto.Allergies.Value;
+            pet.Allergies = NormalizeOptionalTextItems(dto.Allergies.Value);
 
         if (dto.ChronicConditions.IsSet)
-            pet.ChronicConditions = dto.ChronicConditions.Value;
+            pet.ChronicConditions = NormalizeOptionalTextItems(dto.ChronicConditions.Value);
 
         if (dto.BehavioralNotes.IsSet)
-            pet.BehavioralNotes = dto.BehavioralNotes.Value;
+            pet.BehavioralNotes = NormalizeOptionalTextItems(dto.BehavioralNotes.Value);
 
         pet.UpdatedAt = DateTime.UtcNow;
+    }
+
+    private static string NormalizeRequiredText(string value) => value.Trim();
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        if (value is null)
+            return null;
+
+        var trimmed = value.Trim();
+        return trimmed.Length == 0 ? null : trimmed;
+    }
+
+    private static List<string>? NormalizeOptionalTextItems(IReadOnlyCollection<string>? values)
+    {
+        if (values is null)
+            return null;
+
+        var normalized = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .ToList();
+
+        return normalized.Count == 0 ? null : normalized;
     }
 
     private static int? CalculateAge(DateTime? birthDate)

@@ -9,6 +9,10 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 {
     public class PetService : IPetService
     {
+        private static readonly HashSet<string> AllowedSpecies = Enum
+            .GetNames<AnimalSpecies>()
+            .ToHashSet(StringComparer.Ordinal);
+
         private readonly IPetRepository _petRepo;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly ILogger<PetService> _logger;
@@ -147,26 +151,22 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             ValidateRequiredText(dto.Name, "Name");
             ValidateRequiredText(dto.Species, "Species");
+            ValidateSpecies(dto.Species);
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateSex(dto.Sex);
             ValidateOptionalText(dto.PhotoPublicId, "PhotoPublicId");
-            ValidateOptionalTextItems(dto.Allergies, "Allergies");
-            ValidateOptionalTextItems(dto.ChronicConditions, "ChronicConditions");
-            ValidateOptionalTextItems(dto.BehavioralNotes, "BehavioralNotes");
         }
 
         private static void ValidateUpdate(UpdatePetDto dto)
         {
             ValidateOptionalText(dto.Name, "Name");
             ValidateOptionalText(dto.Species, "Species");
+            if (!string.IsNullOrWhiteSpace(dto.Species)) ValidateSpecies(dto.Species);
             ValidateBirthDate(dto.BirthDate);
             ValidateOptionalSex(dto.Sex);
             if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
             if (dto.PhotoPublicId.IsSet) ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId");
-            if (dto.Allergies.IsSet) ValidateOptionalTextItems(dto.Allergies.Value, "Allergies");
-            if (dto.ChronicConditions.IsSet) ValidateOptionalTextItems(dto.ChronicConditions.Value, "ChronicConditions");
-            if (dto.BehavioralNotes.IsSet) ValidateOptionalTextItems(dto.BehavioralNotes.Value, "BehavioralNotes");
         }
 
         private static void ValidateRequiredText(string? value, string fieldName)
@@ -181,11 +181,6 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
                 throw new ArgumentException($"{fieldName} cannot be empty");
         }
 
-        private static void ValidateOptionalTextItems(IReadOnlyCollection<string>? values, string fieldName)
-        {
-            if (values is not null && values.Any(string.IsNullOrWhiteSpace))
-                throw new ArgumentException($"{fieldName} cannot contain empty values");
-        }
 
         private static void ValidateBirthDate(DateTime? birthDate)
         {
@@ -227,6 +222,15 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (!Enum.IsDefined(sex))
                 throw new ArgumentException("Sex is invalid");
+        }
+
+        private static void ValidateSpecies(string species)
+        {
+            if (!AllowedSpecies.Contains(species.Trim()))
+            {
+                throw new ArgumentException(
+                    $"Species is invalid. Allowed values: {string.Join(", ", AllowedSpecies.OrderBy(x => x, StringComparer.Ordinal))}");
+            }
         }
 
         private static void ValidatePhoto(IFormFile? photo)

@@ -194,5 +194,17 @@ namespace smart_pet_care_api.Models
             iOS
         }
 
+        public enum AnimalSpecies
+        {
+            Dog,
+            Cat,
+            Rabbit,
+            Hamster,
+            GuineaPig,
+            Bird,
+            Fish,
+            Turtle
+        }
+
     }
 }
