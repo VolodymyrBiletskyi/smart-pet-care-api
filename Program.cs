@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
+using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
@@ -28,6 +29,7 @@ builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
 builder.Services.AddFeedingModule();
 builder.Services.AddNotificationModule(builder.Configuration);
+builder.Services.AddClassifier(builder.Configuration);
 builder.Services.AddScalarConfig();
 builder.Services.Configure<CloudinaryOptions>(options =>
 {

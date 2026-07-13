@@ -21,6 +21,8 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - Firebase__ProjectId=${FIREBASE_PROJECT_ID}
       - Firebase__ServiceAccountJson=/app/secrets/firebase-sa.json
+      - Classifier__ApiKey=${CLASSIFIER_API_KEY}
+      - Classifier__BaseUrl=${CLASSIFIER_BASE_URL}
     volumes:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
     depends_on:
