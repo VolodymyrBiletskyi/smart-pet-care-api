@@ -11,6 +11,9 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
         Task<RefreshToken?> GetByHashAsync(string tokenHash);
         Task AddAsync(RefreshToken token);
         Task<List<RefreshToken>> GetActiveByUserAsync(Guid userId);
+        Task AddConfirmationCodeAsync(EmailConfirmationCode code);
+        Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId);
+        Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId);
         Task<int> SaveChangesAsync();
     }
 }
