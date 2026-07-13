@@ -172,7 +172,7 @@ public class PetWeightLogRepositoryTests
 
     private static Pet NewPet(Guid userId) => new()
     {
-        Id = Guid.NewGuid(), UserId = userId, Name = "Pet", Species = "Dog"
+        Id = Guid.NewGuid(), UserId = userId, Name = "Pet", Species = Enums.AnimalSpecies.Dog
     };
 
     private static PetWeightLog NewLog(Guid petId, DateTime measuredAt, DateTime? createdAt = null) => new()

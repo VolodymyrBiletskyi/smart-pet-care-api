@@ -9,10 +9,6 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 {
     public class PetService : IPetService
     {
-        private static readonly HashSet<string> AllowedSpecies = Enum
-            .GetNames<AnimalSpecies>()
-            .ToHashSet(StringComparer.Ordinal);
-
         private readonly IPetRepository _petRepo;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly ILogger<PetService> _logger;
@@ -150,8 +146,9 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         private static void ValidateCreate(CreatePetDto dto)
         {
             ValidateRequiredText(dto.Name, "Name");
-            ValidateRequiredText(dto.Species, "Species");
-            ValidateSpecies(dto.Species);
+            if (!dto.Species.HasValue)
+                throw new ArgumentException("Species is required");
+            ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateSex(dto.Sex);
@@ -161,8 +158,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         private static void ValidateUpdate(UpdatePetDto dto)
         {
             ValidateOptionalText(dto.Name, "Name");
-            ValidateOptionalText(dto.Species, "Species");
-            if (!string.IsNullOrWhiteSpace(dto.Species)) ValidateSpecies(dto.Species);
+            if (dto.Species.HasValue) ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
             ValidateOptionalSex(dto.Sex);
             if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
@@ -224,13 +220,10 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
                 throw new ArgumentException("Sex is invalid");
         }
 
-        private static void ValidateSpecies(string species)
+        private static void ValidateSpecies(AnimalSpecies species)
         {
-            if (!AllowedSpecies.Contains(species.Trim()))
-            {
-                throw new ArgumentException(
-                    $"Species is invalid. Allowed values: {string.Join(", ", AllowedSpecies.OrderBy(x => x, StringComparer.Ordinal))}");
-            }
+            if (species == AnimalSpecies.Unknown || !Enum.IsDefined(species))
+                throw new ArgumentException("Species is invalid");
         }
 
         private static void ValidatePhoto(IFormFile? photo)

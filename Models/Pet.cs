@@ -14,7 +14,7 @@ namespace smart_pet_care_api.Models
         public string? PhotoPublicId { get; set; }
 
         public string Name { get; set; } = null!;
-        public string Species { get; set; } = null!;
+        public AnimalSpecies Species { get; set; }
         public string? Breed { get; set; }
         public DateTime? BirthDate { get; set; }
         public Sex Sex { get; set; } = Sex.Unknown;

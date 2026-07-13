@@ -196,6 +196,7 @@ namespace smart_pet_care_api.Models
 
         public enum AnimalSpecies
         {
+            Unknown,
             Dog,
             Cat,
             Rabbit,
@@ -203,7 +204,8 @@ namespace smart_pet_care_api.Models
             GuineaPig,
             Bird,
             Fish,
-            Turtle
+            Turtle,
+            Other
         }
 
     }

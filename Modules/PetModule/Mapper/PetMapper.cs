@@ -12,7 +12,7 @@ public static class PetMapper
             UserId = userId,
 
             Name = NormalizeRequiredText(dto.Name),
-            Species = NormalizeRequiredText(dto.Species),
+            Species = dto.Species!.Value,
             Breed = NormalizeOptionalText(dto.Breed),
             BirthDate = dto.BirthDate,
             WeightKg = dto.WeightKg,
@@ -59,8 +59,8 @@ public static class PetMapper
         if (dto.Name is not null)
             pet.Name = NormalizeRequiredText(dto.Name);
 
-        if (dto.Species is not null)
-            pet.Species = NormalizeRequiredText(dto.Species);
+        if (dto.Species.HasValue)
+            pet.Species = dto.Species.Value;
 
         if (dto.Breed is not null)
             pet.Breed = NormalizeOptionalText(dto.Breed);
