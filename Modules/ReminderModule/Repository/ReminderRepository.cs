@@ -15,6 +15,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
         {
             return await _db.Reminders
                 .AsNoTracking()
+                .Include(r => r.Pet)
                 .Where(r => petIds.Contains(r.PetId))
                 .OrderBy(r => r.NextTriggerAt)
                 .ToListAsync();
@@ -24,6 +25,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
         {
             return await _db.Reminders
                 .AsNoTracking()
+                .Include(r => r.Pet)
                 .Where(r => r.PetId == petId)
                 .OrderBy(r => r.NextTriggerAt)
                 .ToListAsync();
@@ -32,6 +34,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
         public async Task<Reminder?> GetByIdAsync(Guid id)
         {
             return await _db.Reminders
+                .Include(r => r.Pet)
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 

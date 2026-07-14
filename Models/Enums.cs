@@ -201,7 +201,7 @@ namespace smart_pet_care_api.Models
             AntiParasiteTreatment,
             Medication,
             VetVisit,
-            Grooming,
+            Surgery,
             HealthNote
         }
 

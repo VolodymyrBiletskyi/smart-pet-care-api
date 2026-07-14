@@ -22,7 +22,7 @@ public class ReminderConfiguration : IEntityTypeConfiguration<Reminder>
         builder.HasIndex(r => new { r.Status, r.NextTriggerAt });
         builder.HasIndex(r => new { r.SourceType, r.SourceId });
 
-        builder.HasOne<Pet>()
+        builder.HasOne(r => r.Pet)
             .WithMany(p => p.Reminders)
             .HasForeignKey(r => r.PetId)
             .OnDelete(DeleteBehavior.Cascade);

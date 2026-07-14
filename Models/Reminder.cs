@@ -33,6 +33,7 @@ namespace smart_pet_care_api.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
+        public Pet? Pet { get; set; }
         public ICollection<ReminderRun> ReminderRuns { get; set; } = new List<ReminderRun>();
     }
 }

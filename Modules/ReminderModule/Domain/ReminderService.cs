@@ -45,8 +45,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
 
         public async Task<ReminderResponseDto> CreateAsync(CreateReminderDto dto, Guid userId)
         {
-            if (!await _petRepo.ExistsForUserAsync(dto.PetId, userId))
-                throw new InvalidOperationException("Pet not found");
+            var pet = await _petRepo.GetByIdAndUserIdAsync(dto.PetId, userId)
+                ?? throw new InvalidOperationException("Pet not found");
 
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
@@ -59,7 +59,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeOfDayUtc);
             await _reminderRepo.AddAsync(reminder);
             await _reminderRepo.SaveChangesAsync();
-            return reminder.ToDto();
+
+            var response = reminder.ToDto();
+            response.PetSpecies = pet.Species;
+            return response;
         }
 
         public async Task<ReminderResponseDto> UpdateAsync(Guid id, PatchReminderDto dto, Guid userId)
@@ -215,7 +218,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                     }
                 case RepeatType.Once:
                     {
-                        var trigger = date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes);
+                        var trigger = date!.Value.ToDateTime(localTime, DateTimeKind.Utc).AddMinutes(-offsetMinutes);
                         if (trigger <= nowUtc)
                             throw new InvalidOperationException("Date must be in the future.");
                         return (trigger, trigger.TimeOfDay);
@@ -270,7 +273,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 candidate = BuildMonthlyLocal(nextMonth.Year, nextMonth.Month, anchor.Day, localTime);
             }
 
-            return candidate.AddMinutes(-offsetMinutes);
+            return DateTime.SpecifyKind(candidate.AddMinutes(-offsetMinutes), DateTimeKind.Utc);
         }
 
         private static DateTime BuildMonthlyLocal(int year, int month, int dayOfMonth, TimeOnly localTime)
