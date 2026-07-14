@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.PetModule.Domain;
@@ -37,7 +38,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         {
             var userId = User.GetUserId();
             var pet = await _petService.GetByIdAsync(id, userId);
-            if (pet == null) return NotFound();
+            if (pet == null) return NotFound(Error("Pet not found."));
             return Ok(pet);
         }
 
@@ -55,7 +56,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message));
             }
         }
 
@@ -74,11 +75,11 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message));
             }
         }
 
@@ -104,15 +105,15 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (CloudinaryUploadException ex)
             {
-                return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
+                return StatusCode(StatusCodes.Status502BadGateway, Error(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message));
             }
         }
 
@@ -124,8 +125,13 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         {
             var userId = User.GetUserId();
             var deleted = await _petService.DeleteAsync(id, userId);
-            if (!deleted) return NotFound();
+            if (!deleted) return NotFound(Error("Pet not found."));
             return NoContent();
         }
+
+        private static ApiErrorResponse Error(string message) => new()
+        {
+            Message = message
+        };
     }
 }
