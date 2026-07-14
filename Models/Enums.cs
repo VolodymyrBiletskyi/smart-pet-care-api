@@ -203,6 +203,8 @@ namespace smart_pet_care_api.Models
             VetVisit,
             Surgery,
             HealthNote
+        }
+
         public enum AnimalSpecies
         {
             Unknown,
