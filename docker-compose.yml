@@ -21,6 +21,12 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - Firebase__ProjectId=${FIREBASE_PROJECT_ID}
       - Firebase__ServiceAccountJson=/app/secrets/firebase-sa.json
+      - Email__Host=${EMAIL_HOST}
+      - Email__Port=${EMAIL_PORT}
+      - Email__Username=${EMAIL_USERNAME}
+      - Email__Password=${EMAIL_PASSWORD}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS}
+      - Email__FromName=${EMAIL_FROM_NAME}
     volumes:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
     depends_on:

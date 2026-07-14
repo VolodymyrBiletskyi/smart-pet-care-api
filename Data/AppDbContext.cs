@@ -24,10 +24,12 @@ namespace smart_pet_care_api.Data
         public DbSet<PetEvent> PetEvents { get; set; }
         public DbSet<FeedingLog> FeedingLogs { get; set; }
         public DbSet<HealthRecord> HealthRecords { get; set; }
+        public DbSet<PetWeightLog> PetWeightLogs { get; set; }
         public DbSet<AiSession> AiSessions { get; set; }
         public DbSet<AiMessage> AiMessages { get; set; }
         public DbSet<ActivityDaily> ActivityDailies { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
+        public DbSet<EmailConfirmationCode> EmailConfirmationCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

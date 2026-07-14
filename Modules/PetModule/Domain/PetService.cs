@@ -1,3 +1,4 @@
+using smart_pet_care_api.Models;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.PetModule.DTOs;
 using smart_pet_care_api.Modules.PetModule.Mapper;
@@ -27,6 +28,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             ValidateCreate(dto);
 
             var entity = PetMapper.ToEntity(dto, userId);
+            AddInitialWeightLogIfNeeded(entity, dto.WeightKg);
 
             await _petRepo.AddAsync(entity);
             await _petRepo.SaveChangesAsync();
@@ -144,28 +146,23 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         private static void ValidateCreate(CreatePetDto dto)
         {
             ValidateRequiredText(dto.Name, "Name");
-            ValidateRequiredText(dto.Species, "Species");
+            if (!dto.Species.HasValue)
+                throw new ArgumentException("Species is required");
+            ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateSex(dto.Sex);
             ValidateOptionalText(dto.PhotoPublicId, "PhotoPublicId");
-            ValidateOptionalTextItems(dto.Allergies, "Allergies");
-            ValidateOptionalTextItems(dto.ChronicConditions, "ChronicConditions");
-            ValidateOptionalTextItems(dto.BehavioralNotes, "BehavioralNotes");
         }
 
         private static void ValidateUpdate(UpdatePetDto dto)
         {
             ValidateOptionalText(dto.Name, "Name");
-            ValidateOptionalText(dto.Species, "Species");
+            if (dto.Species.HasValue) ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
-            ValidateWeight(dto.WeightKg);
             ValidateOptionalSex(dto.Sex);
             if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
             if (dto.PhotoPublicId.IsSet) ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId");
-            if (dto.Allergies.IsSet) ValidateOptionalTextItems(dto.Allergies.Value, "Allergies");
-            if (dto.ChronicConditions.IsSet) ValidateOptionalTextItems(dto.ChronicConditions.Value, "ChronicConditions");
-            if (dto.BehavioralNotes.IsSet) ValidateOptionalTextItems(dto.BehavioralNotes.Value, "BehavioralNotes");
         }
 
         private static void ValidateRequiredText(string? value, string fieldName)
@@ -180,11 +177,6 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
                 throw new ArgumentException($"{fieldName} cannot be empty");
         }
 
-        private static void ValidateOptionalTextItems(IReadOnlyCollection<string>? values, string fieldName)
-        {
-            if (values is not null && values.Any(string.IsNullOrWhiteSpace))
-                throw new ArgumentException($"{fieldName} cannot contain empty values");
-        }
 
         private static void ValidateBirthDate(DateTime? birthDate)
         {
@@ -196,6 +188,24 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (weightKg.HasValue && weightKg.Value <= 0)
                 throw new ArgumentException("WeightKg must be greater than zero");
+
+            if (weightKg.HasValue && weightKg.Value > 230)
+                throw new ArgumentException("WeightKg cannot be greater than 230");
+        }
+
+        private static void AddInitialWeightLogIfNeeded(Pet pet, decimal? weightKg)
+        {
+            if (!weightKg.HasValue)
+                return;
+
+            var now = DateTime.UtcNow;
+            pet.WeightLogs.Add(new PetWeightLog
+            {
+                PetId = pet.Id,
+                WeightKg = weightKg.Value,
+                MeasuredAt = now,
+                CreatedAt = now
+            });
         }
 
         private static void ValidateOptionalSex(Sex? sex)
@@ -208,6 +218,12 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         {
             if (!Enum.IsDefined(sex))
                 throw new ArgumentException("Sex is invalid");
+        }
+
+        private static void ValidateSpecies(AnimalSpecies species)
+        {
+            if (species == AnimalSpecies.Unknown || !Enum.IsDefined(species))
+                throw new ArgumentException("Species is invalid");
         }
 
         private static void ValidatePhoto(IFormFile? photo)

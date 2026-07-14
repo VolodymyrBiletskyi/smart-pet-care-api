@@ -6,11 +6,10 @@ namespace smart_pet_care_api.Modules.PetModule.DTOs;
 public class UpdatePetDto
 {
     public string? Name { get; set; }
-    public string? Species { get; set; }
+    public AnimalSpecies? Species { get; set; }
     public string? Breed { get; set; }
 
     public DateTime? BirthDate { get; set; }
-    public decimal? WeightKg { get; set; }
     public Sex? Sex { get; set; }
 
     public PatchField<string?> PhotoUrl { get; set; }

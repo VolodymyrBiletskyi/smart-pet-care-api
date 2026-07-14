@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -25,6 +26,8 @@ namespace smart_pet_care_api.Modules.AuthModule
             services.AddTransient<AuthMiddleware>();
             services.Configure<GoogleOAuthOptions>(configuration.GetSection("GoogleOAuth"));
             services.AddHttpClient<IGoogleOAuth, GoogleOAuth>();
+            services.Configure<EmailOptions>(configuration.GetSection("Email"));
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
             services.AddMemoryCache();
 
             // jwt auth

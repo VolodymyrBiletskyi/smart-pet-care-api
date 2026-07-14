@@ -218,7 +218,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                     }
                 case RepeatType.Once:
                     {
-                        var trigger = date!.Value.ToDateTime(localTime, DateTimeKind.Utc).AddMinutes(-offsetMinutes);
+                        var trigger = DateTime.SpecifyKind(
+                            date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes), DateTimeKind.Utc);
                         if (trigger <= nowUtc)
                             throw new InvalidOperationException("Date must be in the future.");
                         return (trigger, trigger.TimeOfDay);
@@ -273,6 +274,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 candidate = BuildMonthlyLocal(nextMonth.Year, nextMonth.Month, anchor.Day, localTime);
             }
 
+            // Candidate is built with new DateTime(...) (Kind=Unspecified); after removing the
+            // offset it is UTC, and Npgsql rejects non-UTC kinds for timestamptz columns.
             return DateTime.SpecifyKind(candidate.AddMinutes(-offsetMinutes), DateTimeKind.Utc);
         }
 

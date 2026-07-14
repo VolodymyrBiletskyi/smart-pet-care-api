@@ -5,7 +5,7 @@ public class PetResponseDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = null!;
-    public string Species { get; set; } = null!;
+    public AnimalSpecies Species { get; set; }
     public string? Breed { get; set; }
     public DateTime? BirthDate { get; set; }
     public int? Age { get; set; }

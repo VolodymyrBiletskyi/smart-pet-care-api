@@ -22,14 +22,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("register")]
-        [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
             {
-                var result = await _authService.RegisterAsync(request);
-                return StatusCode(StatusCodes.Status201Created, ToResponse(result));
+                await _authService.RegisterAsync(request);
+                return StatusCode(StatusCodes.Status201Created,
+                    new { message = "Confirmation code sent, check your email" });
+            }
+            catch (EmailConfirmationException ex)
+            {
+                return ConfirmationError(ex);
             }
             catch (InvalidOperationException ex)
             {
@@ -41,15 +47,69 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             }
         }
 
+        [HttpPost("confirm-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status410Gone)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+        {
+            try
+            {
+                await _authService.ConfirmEmailAsync(request);
+                return Ok(new { message = "Email confirmed, you can now log in" });
+            }
+            catch (EmailConfirmationException ex)
+            {
+                return ConfirmationError(ex);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while confirming the email" });
+            }
+        }
+
+        [HttpPost("resend-confirmation")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationRequest request)
+        {
+            try
+            {
+                await _authService.ResendConfirmationAsync(request.Email);
+                return NoContent();
+            }
+            catch (EmailConfirmationException ex)
+            {
+                return ConfirmationError(ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while resending the code" });
+            }
+        }
+
         [HttpPost("login")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
                 var result = await _authService.LoginAsync(request);
                 return Ok(ToResponse(result));
+            }
+            catch (EmailConfirmationException ex)
+            {
+                return ConfirmationError(ex);
             }
             catch (InvalidOperationException ex)
             {
@@ -59,6 +119,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             {
                 return StatusCode(500, new { message = "An error occurred while logging in" });
             }
+        }
+
+        private ObjectResult ConfirmationError(EmailConfirmationException ex)
+        {
+            var status = ex.Error switch
+            {
+                EmailConfirmationError.AlreadyConfirmed => StatusCodes.Status409Conflict,
+                EmailConfirmationError.CodeExpired => StatusCodes.Status410Gone,
+                EmailConfirmationError.TooManyAttempts => StatusCodes.Status429TooManyRequests,
+                EmailConfirmationError.ResendTooSoon => StatusCodes.Status429TooManyRequests,
+                EmailConfirmationError.EmailNotConfirmed => StatusCodes.Status403Forbidden,
+                _ => StatusCodes.Status400BadRequest
+            };
+            return StatusCode(status, new { code = ex.ErrorCode, message = ex.Message });
         }
 
         [HttpPost("refresh")]

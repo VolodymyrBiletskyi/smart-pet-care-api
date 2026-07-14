@@ -16,7 +16,9 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Name).IsRequired();
-        builder.Property(p => p.Species).IsRequired();
+        builder.Property(p => p.Species)
+            .HasConversion<string>()
+            .IsRequired();
         builder.Property(p => p.BirthDate).HasColumnType("date");
         builder.Property(p => p.WeightKg).HasColumnType("numeric");
         builder.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
