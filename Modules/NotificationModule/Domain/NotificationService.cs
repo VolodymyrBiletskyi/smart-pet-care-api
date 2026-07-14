@@ -57,7 +57,7 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             {
                 ["reminderId"] = reminder.Id.ToString(),
                 ["petId"] = reminder.PetId.ToString(),
-                ["petSpecies"] = pet.Species,
+                ["petSpecies"] = pet.Species.ToString(),
                 ["reminderType"] = reminder.Type.ToString(),
                 ["scheduledAt"] = scheduledFor.ToString("o")
             };
