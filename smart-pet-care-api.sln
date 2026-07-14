@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "smart-pet-care-api", "smart-pet-care-api.csproj", "{3DE7B3BC-205F-F299-ED05-C0B881D389CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PetWeightHistoryModule.Tests", "Modules\PetWeightHistoryModule.Tests\PetWeightHistoryModule.Tests.csproj", "{04AF1656-C5D5-4F1F-8498-4486C973EC15}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PetWeightHistoryModule.Tests", "Tests\PetWeightHistoryModule.Tests\PetWeightHistoryModule.Tests.csproj", "{04AF1656-C5D5-4F1F-8498-4486C973EC15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
