@@ -45,8 +45,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
 
         public async Task<ReminderResponseDto> CreateAsync(CreateReminderDto dto, Guid userId)
         {
-            if (!await _petRepo.ExistsForUserAsync(dto.PetId, userId))
-                throw new InvalidOperationException("Pet not found");
+            var pet = await _petRepo.GetByIdAndUserIdAsync(dto.PetId, userId)
+                ?? throw new InvalidOperationException("Pet not found");
 
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
@@ -59,7 +59,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeOfDayUtc);
             await _reminderRepo.AddAsync(reminder);
             await _reminderRepo.SaveChangesAsync();
-            return reminder.ToDto();
+
+            var response = reminder.ToDto();
+            response.PetSpecies = pet.Species;
+            return response;
         }
 
         public async Task<ReminderResponseDto> UpdateAsync(Guid id, PatchReminderDto dto, Guid userId)

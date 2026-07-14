@@ -48,7 +48,6 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
-            // Users may only delete their own account.
             if (id != User.GetUserId())
                 return Forbid();
 

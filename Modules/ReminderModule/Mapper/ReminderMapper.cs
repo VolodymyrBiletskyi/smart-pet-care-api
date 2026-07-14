@@ -11,6 +11,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
         {
             Id = r.Id,
             PetId = r.PetId,
+            PetSpecies = r.Pet?.Species,
             Title = r.Title,
             Description = r.Description,
             Type = r.Type,
@@ -52,7 +53,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             UtcOffsetMinutes = dto.UtcOffsetMinutes,
             StartAt = firstTrigger,
             NextTriggerAt = firstTrigger,
-            EndAt = dto.EndAt,
+            EndAt = dto.EndAt is { } endAt ? NormalizeToUtc(endAt) : null,
             SourceType = SourceType.Manual
         };
 
@@ -60,9 +61,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
         {
             if (dto.Title != null) reminder.Title = dto.Title;
             if (dto.Description != null) reminder.Description = dto.Description;
-            if (dto.EndAt.HasValue) reminder.EndAt = dto.EndAt;
+            if (dto.EndAt.HasValue) reminder.EndAt = NormalizeToUtc(dto.EndAt.Value);
             if (dto.Status.HasValue) reminder.Status = dto.Status.Value;
             reminder.UpdatedAt = DateTime.UtcNow;
         }
+
+        public static DateTime NormalizeToUtc(DateTime dateTime) =>
+            dateTime.Kind switch
+            {
+                DateTimeKind.Utc => dateTime,
+                DateTimeKind.Local => dateTime.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+            };
     }
 }

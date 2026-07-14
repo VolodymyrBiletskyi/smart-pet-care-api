@@ -6,6 +6,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Responses
     {
         public Guid Id { get; set; }
         public Guid PetId { get; set; }
+        public string? PetSpecies { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public ReminderType Type { get; set; }
