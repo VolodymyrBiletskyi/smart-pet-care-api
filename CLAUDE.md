@@ -8,6 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Restore dependencies
 dotnet restore
 
+# Run chat module tests
+dotnet test Modules/ChatModule.Tests/ChatModule.Tests.csproj --configuration Debug
+
 # Run the application (dev)
 dotnet run
 
@@ -23,7 +26,14 @@ docker-compose up --build
 
 API docs (Scalar UI): `http://localhost:8080/scalar/v1`
 
-No test project exists in this repo.
+Chat module tests are in
+`Modules/ChatModule.Tests/ChatModule.Tests.csproj`. They cover the
+classifier client and configuration, session replacement, eight-message
+history replay, ownership checks, response mapping, and relational persistence.
+
+Chat integration documentation:
+
+- `docs/chat-classifier-contract-v1.md`
 
 ## Architecture
 

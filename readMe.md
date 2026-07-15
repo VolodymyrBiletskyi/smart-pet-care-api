@@ -45,6 +45,10 @@ Project uses **modular Clean Architecture (lightweight)**.
 
 Structure is based on **features (modules)**.
 
+Assistant documentation:
+
+- [Chat-classifier contract v1](docs/chat-classifier-contract-v1.md)
+
 ---
 
 ## 🧱 Flow

@@ -4,7 +4,7 @@ namespace smart_pet_care_api.Infrastructure.Classifier;
 
 public static class ClassifierServiceCollectionExtensions
 {
-    private const int MaximumTimeoutSeconds = 2_147_483;
+    private const int MaximumTimeoutSeconds = 300;
 
     public static IServiceCollection AddClassifier(
         this IServiceCollection services,
@@ -20,7 +20,7 @@ public static class ClassifierServiceCollectionExtensions
                 $"{ClassifierOptions.SectionName}:ApiKey is required.")
             .Validate(
                 options => options.TimeoutSeconds is > 0 and <= MaximumTimeoutSeconds,
-                $"{ClassifierOptions.SectionName}:TimeoutSeconds must be greater than zero.")
+                $"{ClassifierOptions.SectionName}:TimeoutSeconds must be between 1 and {MaximumTimeoutSeconds} seconds.")
             .ValidateOnStart();
 
         services.AddHttpClient<IClassifierClient, ClassifierClient>((serviceProvider, client) =>

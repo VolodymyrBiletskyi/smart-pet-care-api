@@ -116,26 +116,6 @@ namespace smart_pet_care_api.Models
             High,
             Urgent
         }
-        public enum AiSessionType
-        {
-            Health,
-            PetQuestions,
-            General
-        }
-
-        public enum AiSessionStatus
-        {
-            Active,
-            Closed,
-            Archived
-        }
-
-        public enum AiMessageRole
-        {
-            User,
-            Assistant,
-            System
-        }
         public enum FoodType
         {
             DryFood,
