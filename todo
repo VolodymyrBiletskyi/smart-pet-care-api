@@ -41,3 +41,8 @@ not sure yet:
   Scalar, and confirm that the same user messageId is reused.
 - Upgrade or replace Microsoft.OpenApi 2.0.0 to resolve NU1903
   (GHSA-v5pm-xwqc-g5wc), then run the full test suite.
+My todo:
+Do the feeding schedule 
+Split repository responsibilities in v2: move pet ownership/current-pet access out of PetWeightLogRepository into a pet-focused repository, and apply the same split to FeedingLogRepository.
+Add species/breed-specific weight guidance in v2 as soft warnings, not hard validation limits.
+Create a project guide that documents architecture decisions, module conventions, tradeoffs, and implementation nuances such as repository boundaries, indexing choices, validation rules, and migration patterns.

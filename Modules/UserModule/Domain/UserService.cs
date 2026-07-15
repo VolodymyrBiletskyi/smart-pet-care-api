@@ -56,11 +56,20 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
             return existingUser.ToDto();
         }
 
-        public async Task<UserResponseDto> SaveAvatarAsync(Guid id, byte[] data, string contentType)
+        public async Task<UserResponseDto> SaveAvatarAsync(Guid id, IFormFile? file)
         {
+            ValidateAvatar(file);
+
             var user = await _userRepo.GetByIdAsync(id);
             if (user is null)
                 throw new InvalidOperationException("User does not exist");
+
+            using var ms = new MemoryStream();
+            await file!.CopyToAsync(ms);
+            var data = ms.ToArray();
+
+            var contentType = ResolveImageContentType(data)
+                ?? throw new ArgumentException("File content is not a valid JPEG, PNG, or WebP image");
 
             user.AvatarData = data;
             user.AvatarContentType = contentType;
@@ -68,6 +77,34 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
 
             await _userRepo.SaveChangesAsync();
             return user.ToDto();
+        }
+
+        private static void ValidateAvatar(IFormFile? file)
+        {
+            if (file is null || file.Length == 0)
+                throw new ArgumentException("Photo is required");
+
+            const long maxBytes = 1 * 1024 * 1024;
+            if (file.Length > maxBytes)
+                throw new ArgumentException("Photo must be 1 MB or less");
+        }
+
+        // The stored content type is derived from the file signature, not the
+        // client-supplied Content-Type header, which cannot be trusted.
+        private static string? ResolveImageContentType(byte[] data)
+        {
+            if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+                return "image/jpeg";
+
+            if (data.Length >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+                return "image/png";
+
+            if (data.Length >= 12
+                && data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F'
+                && data[8] == 'W' && data[9] == 'E' && data[10] == 'B' && data[11] == 'P')
+                return "image/webp";
+
+            return null;
         }
 
         public async Task<(byte[] Data, string ContentType)?> GetAvatarAsync(Guid id)

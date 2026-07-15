@@ -1,29 +1,23 @@
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
+using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.ChatModule.Domain;
 
 public static class PetTypeMapper
 {
-    public static PetType Map(string species)
+    public static PetType Map(AnimalSpecies species)
     {
-        var normalized = species
-            .Trim()
-            .Replace("_", string.Empty, StringComparison.Ordinal)
-            .Replace("-", string.Empty, StringComparison.Ordinal)
-            .Replace(" ", string.Empty, StringComparison.Ordinal)
-            .ToLowerInvariant();
-
-        return normalized switch
+        return species switch
         {
-            "dog" => PetType.Dog,
-            "cat" => PetType.Cat,
-            "rabbit" => PetType.Rabbit,
-            "hamster" => PetType.Hamster,
-            "guineapig" => PetType.GuineaPig,
-            "bird" => PetType.Bird,
-            "fish" => PetType.Fish,
-            "turtle" => PetType.Turtle,
+            AnimalSpecies.Dog => PetType.Dog,
+            AnimalSpecies.Cat => PetType.Cat,
+            AnimalSpecies.Rabbit => PetType.Rabbit,
+            AnimalSpecies.Hamster => PetType.Hamster,
+            AnimalSpecies.GuineaPig => PetType.GuineaPig,
+            AnimalSpecies.Bird => PetType.Bird,
+            AnimalSpecies.Fish => PetType.Fish,
+            AnimalSpecies.Turtle => PetType.Turtle,
             _ => PetType.Other
         };
     }

@@ -174,5 +174,30 @@ namespace smart_pet_care_api.Models
             iOS
         }
 
+        public enum HealthRecordType
+        {
+            Vaccination,
+            Deworming,
+            AntiParasiteTreatment,
+            Medication,
+            VetVisit,
+            Surgery,
+            HealthNote
+        }
+
+        public enum AnimalSpecies
+        {
+            Unknown,
+            Dog,
+            Cat,
+            Rabbit,
+            Hamster,
+            GuineaPig,
+            Bird,
+            Fish,
+            Turtle,
+            Other
+        }
+
     }
 }

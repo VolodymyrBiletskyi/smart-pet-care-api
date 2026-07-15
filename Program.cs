@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
@@ -9,9 +11,11 @@ using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.ChatModule;
 using smart_pet_care_api.Modules.FeedingModule;
+using smart_pet_care_api.Modules.HealthModule;
 using smart_pet_care_api.Modules.NotificationModule;
 using smart_pet_care_api.Modules.NotificationModule.Config;
 using smart_pet_care_api.Modules.PetModule;
+using smart_pet_care_api.Modules.PetWeightHistoryModule;
 using smart_pet_care_api.Modules.ReminderModule;
 using smart_pet_care_api.Modules.UserModule;
 
@@ -29,6 +33,8 @@ builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
 builder.Services.AddReminderModule();
 builder.Services.AddFeedingModule();
+builder.Services.AddHealthModule();
+builder.Services.AddPetWeightHistoryModule();
 builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddClassifier(builder.Configuration);
 builder.Services.AddChatModule();
@@ -47,6 +53,26 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(new PatchFieldJsonConverterFactory());
         o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(x => x.Value?.Errors.Count > 0)
+            .ToDictionary(
+                x => x.Key,
+                x => x.Value!.Errors
+                    .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? "Invalid value." : error.ErrorMessage)
+                    .ToArray());
+
+        return new BadRequestObjectResult(new ApiErrorResponse
+        {
+            Message = "Request validation failed.",
+            Errors = errors
+        });
+    };
+});
 
 var app = builder.Build();
 

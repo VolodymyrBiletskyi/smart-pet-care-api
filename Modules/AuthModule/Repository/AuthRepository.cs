@@ -36,6 +36,28 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
             return await _dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
         }
 
+        public async Task AddConfirmationCodeAsync(EmailConfirmationCode code)
+        {
+            await _dbContext.EmailConfirmationCodes.AddAsync(code);
+        }
+
+        public async Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId)
+        {
+            return await _dbContext.EmailConfirmationCodes
+                .Where(c => c.UserId == userId)
+                .OrderByDescending(c => c.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _dbContext.EmailConfirmationCodes
+                .Where(c => c.UserId == userId && c.UsedAt == null && c.ExpiresAt > now)
+                .ToListAsync();
+        }
+
         public async Task<int> SaveChangesAsync()
         {
             return await _dbContext.SaveChangesAsync();

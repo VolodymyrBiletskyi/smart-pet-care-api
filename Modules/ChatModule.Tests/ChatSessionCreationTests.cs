@@ -14,7 +14,7 @@ public sealed class ChatSessionCreationTests
     {
         await using var dbContext = CreateContext();
         var userId = Guid.NewGuid();
-        var pet = SeedPet(dbContext, userId, "Guinea Pig");
+        var pet = SeedPet(dbContext, userId, Enums.AnimalSpecies.GuineaPig);
         var service = new ChatService(dbContext, new UnusedClassifierClient());
 
         var first = await service.CreateSessionAsync(
@@ -51,7 +51,7 @@ public sealed class ChatSessionCreationTests
     {
         await using var dbContext = CreateContext();
         var ownerId = Guid.NewGuid();
-        var pet = SeedPet(dbContext, ownerId, "Dog");
+        var pet = SeedPet(dbContext, ownerId, Enums.AnimalSpecies.Dog);
         var service = new ChatService(dbContext, new UnusedClassifierClient());
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
@@ -69,7 +69,7 @@ public sealed class ChatSessionCreationTests
     {
         await using var dbContext = CreateContext();
         var userId = Guid.NewGuid();
-        var pet = SeedPet(dbContext, userId, "Dog");
+        var pet = SeedPet(dbContext, userId, Enums.AnimalSpecies.Dog);
         var session = new ChatSession
         {
             UserId = userId,
@@ -125,7 +125,7 @@ public sealed class ChatSessionCreationTests
     private static Pet SeedPet(
         AppDbContext dbContext,
         Guid userId,
-        string species)
+        Enums.AnimalSpecies species)
     {
         var pet = new Pet
         {

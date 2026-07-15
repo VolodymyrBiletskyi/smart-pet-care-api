@@ -10,7 +10,9 @@
       "Bash(dotnet ef *)",
       "Bash(git add *)",
       "PowerShell(dotnet add package *)",
-      "Bash(grep -rn --include=\"*.cs\" -E \"\\(^|[^:\\\\\"]\\)//|/\\\\*\" Modules Extensions Infrastructure Data Models Program.cs)"
+      "Bash(grep -rn --include=\"*.cs\" -E \"\\(^|[^:\\\\\"]\\)//|/\\\\*\" Modules Extensions Infrastructure Data Models Program.cs)",
+      "PowerShell(dotnet run *)",
+      "Bash(docker compose *)"
     ]
   },
   "disabledMcpjsonServers": [

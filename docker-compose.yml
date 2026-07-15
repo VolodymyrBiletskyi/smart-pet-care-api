@@ -24,6 +24,12 @@ services:
       - Classifier__ApiKey=${CLASSIFIER_API_KEY}
       - Classifier__BaseUrl=${CLASSIFIER_BASE_URL}
       - Classifier__TimeoutSeconds=${CLASSIFIER_TIMEOUT_SECONDS:-30}
+      - Email__Host=${EMAIL_HOST}
+      - Email__Port=${EMAIL_PORT}
+      - Email__Username=${EMAIL_USERNAME}
+      - Email__Password=${EMAIL_PASSWORD}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS}
+      - Email__FromName=${EMAIL_FROM_NAME}
     volumes:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
     depends_on:

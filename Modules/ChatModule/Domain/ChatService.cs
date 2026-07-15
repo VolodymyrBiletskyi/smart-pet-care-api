@@ -127,7 +127,7 @@ public sealed class ChatService(
         var species = await dbContext.Pets
             .AsNoTracking()
             .Where(pet => pet.Id == petId && pet.UserId == userId)
-            .Select(pet => pet.Species)
+            .Select(pet => (Enums.AnimalSpecies?)pet.Species)
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("The pet was not found.");
         var petType = PetTypeMapper.Map(species);

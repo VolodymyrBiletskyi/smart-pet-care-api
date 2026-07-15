@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.PetModule.DTOs;
@@ -5,7 +6,8 @@ namespace smart_pet_care_api.Modules.PetModule.DTOs;
 public class CreatePetDto
 {
     public string Name { get; set; } = null!;
-    public string Species { get; set; } = null!;
+    [Required]
+    public AnimalSpecies? Species { get; set; }
     public string? Breed { get; set; }
     public DateTime? BirthDate { get; set; }
     public decimal? WeightKg { get; set; }

@@ -31,7 +31,7 @@ public sealed class ChatSessionFlowIntegrationTests
         {
             UserId = user.Id,
             Name = "Buddy",
-            Species = "Dog"
+            Species = Enums.AnimalSpecies.Dog
         };
         dbContext.AddRange(user, pet);
         await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -103,7 +103,7 @@ public sealed class ChatSessionFlowIntegrationTests
         {
             UserId = user.Id,
             Name = "Buddy",
-            Species = "Dog"
+            Species = Enums.AnimalSpecies.Dog
         };
         var session = new ChatSession
         {

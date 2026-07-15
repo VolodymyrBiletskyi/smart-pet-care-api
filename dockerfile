@@ -7,7 +7,7 @@ WORKDIR /src
 COPY ["smart-pet-care-api.csproj", "."]
 RUN dotnet restore
 COPY . .
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish "smart-pet-care-api.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
