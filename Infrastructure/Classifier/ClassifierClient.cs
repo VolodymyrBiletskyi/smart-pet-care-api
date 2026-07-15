@@ -16,15 +16,10 @@ public sealed class ClassifierClient : IClassifierClient
     private readonly ClassifierMetrics? metrics;
     private readonly ClassifierCircuitBreaker? circuitBreaker;
 
-    public ClassifierClient(HttpClient httpClient)
-    {
-        this.httpClient = httpClient;
-    }
-
     public ClassifierClient(
         HttpClient httpClient,
-        ClassifierMetrics metrics,
-        ClassifierCircuitBreaker circuitBreaker)
+        ClassifierMetrics? metrics = null,
+        ClassifierCircuitBreaker? circuitBreaker = null)
     {
         this.httpClient = httpClient;
         this.metrics = metrics;
