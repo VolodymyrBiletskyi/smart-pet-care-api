@@ -21,6 +21,9 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - Firebase__ProjectId=${FIREBASE_PROJECT_ID}
       - Firebase__ServiceAccountJson=/app/secrets/firebase-sa.json
+      - Classifier__ApiKey=${CLASSIFIER_API_KEY}
+      - Classifier__BaseUrl=${CLASSIFIER_BASE_URL}
+      - Classifier__TimeoutSeconds=${CLASSIFIER_TIMEOUT_SECONDS:-30}
       - Email__Host=${EMAIL_HOST}
       - Email__Port=${EMAIL_PORT}
       - Email__Username=${EMAIL_USERNAME}

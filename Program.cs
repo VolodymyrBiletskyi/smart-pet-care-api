@@ -5,9 +5,11 @@ using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
+using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
+using smart_pet_care_api.Modules.ChatModule;
 using smart_pet_care_api.Modules.FeedingModule;
 using smart_pet_care_api.Modules.HealthModule;
 using smart_pet_care_api.Modules.NotificationModule;
@@ -34,6 +36,8 @@ builder.Services.AddFeedingModule();
 builder.Services.AddHealthModule();
 builder.Services.AddPetWeightHistoryModule();
 builder.Services.AddNotificationModule(builder.Configuration);
+builder.Services.AddClassifier(builder.Configuration);
+builder.Services.AddChatModule();
 builder.Services.AddScalarConfig();
 builder.Services.Configure<CloudinaryOptions>(options =>
 {

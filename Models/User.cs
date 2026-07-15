@@ -30,8 +30,5 @@ namespace smart_pet_care_api.Models
         public ICollection<Pet> Pets { get; set; } = new List<Pet>();
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
-        public ICollection<AiSession> AiSessions { get; set; } = new List<AiSession>();
-
-
     }
 }

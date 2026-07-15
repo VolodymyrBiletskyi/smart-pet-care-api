@@ -5,11 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>smart_pet_care_api</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Modules/ChatModule.Tests/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Modules/ChatModule.Tests/**/*.cs" />
     <Compile Remove="Tests\**\*.cs" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.25.3" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />

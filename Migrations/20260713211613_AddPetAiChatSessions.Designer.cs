@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using smart_pet_care_api.Data;
@@ -12,9 +13,11 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713211613_AddPetAiChatSessions")]
+    partial class AddPetAiChatSessions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -70,6 +73,82 @@ namespace smart_pet_care_api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("smart_pet_care_api.Models.AiMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClassifierPayload")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "CreatedAt");
+
+                    b.ToTable("AiMessages", (string)null);
+                });
+
+            modelBuilder.Entity("smart_pet_care_api.Models.AiSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("PetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SymptomSummary")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PetId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("AiSessions", (string)null);
+                });
+
             modelBuilder.Entity("smart_pet_care_api.Models.ChatMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -90,9 +169,6 @@ namespace smart_pet_care_api.Migrations
 
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
-
-                    b.Property<int?>("Status")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -115,7 +191,7 @@ namespace smart_pet_care_api.Migrations
                     b.Property<Guid>("PetId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("PetType")
+                    b.Property<int?>("PetType")
                         .HasColumnType("integer");
 
                     b.Property<string>("SymptomSummary")
@@ -173,40 +249,6 @@ namespace smart_pet_care_api.Migrations
                         .IsUnique();
 
                     b.ToTable("DeviceTokens", (string)null);
-                });
-
-            modelBuilder.Entity("smart_pet_care_api.Models.EmailConfirmationCode", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("EmailConfirmationCodes", (string)null);
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.ExternalLogin", b =>
@@ -292,62 +334,6 @@ namespace smart_pet_care_api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("smart_pet_care_api.Models.HealthRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("Dosage")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("NextDueAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("PerformedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Provider")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PetId", "PerformedAt")
-                        .IsDescending(false, true);
-
-                    b.HasIndex("PetId", "Type");
-
-                    b.ToTable("HealthRecords", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_HealthRecords_NextDueAfterPerformed", "(\"NextDueAt\" IS NULL OR \"NextDueAt\" >= \"PerformedAt\")");
-                        });
-                });
-
             modelBuilder.Entity("smart_pet_care_api.Models.Pet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -407,44 +393,6 @@ namespace smart_pet_care_api.Migrations
                     b.ToTable("Pets", null, t =>
                         {
                             t.HasCheckConstraint("CK_Pets_WeightKg_Positive", "\"WeightKg\" IS NULL OR \"WeightKg\" > 0");
-                        });
-                });
-
-            modelBuilder.Entity("smart_pet_care_api.Models.PetWeightLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTime>("MeasuredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("WeightKg")
-                        .HasColumnType("numeric");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PetId", "MeasuredAt")
-                        .IsUnique()
-                        .IsDescending(false, true);
-
-                    b.ToTable("PetWeightLogs", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_PetWeightLogs_WeightKg_Positive", "\"WeightKg\" > 0 AND \"WeightKg\" <= 230");
                         });
                 });
 
@@ -879,12 +827,6 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("EmailConfirmedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
@@ -913,6 +855,29 @@ namespace smart_pet_care_api.Migrations
                     b.HasOne("smart_pet_care_api.Models.Pet", null)
                         .WithMany("ActivityDailies")
                         .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("smart_pet_care_api.Models.AiMessage", b =>
+                {
+                    b.HasOne("smart_pet_care_api.Models.AiSession", null)
+                        .WithMany("Messages")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("smart_pet_care_api.Models.AiSession", b =>
+                {
+                    b.HasOne("smart_pet_care_api.Models.Pet", null)
+                        .WithMany("AiSessions")
+                        .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("smart_pet_care_api.Models.User", null)
+                        .WithMany("AiSessions")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -950,15 +915,6 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("smart_pet_care_api.Models.EmailConfirmationCode", b =>
-                {
-                    b.HasOne("smart_pet_care_api.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("smart_pet_care_api.Models.ExternalLogin", b =>
                 {
                     b.HasOne("smart_pet_care_api.Models.User", null)
@@ -977,29 +933,11 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("smart_pet_care_api.Models.HealthRecord", b =>
-                {
-                    b.HasOne("smart_pet_care_api.Models.Pet", null)
-                        .WithMany("HealthRecords")
-                        .HasForeignKey("PetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("smart_pet_care_api.Models.Pet", b =>
                 {
                     b.HasOne("smart_pet_care_api.Models.User", null)
                         .WithMany("Pets")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("smart_pet_care_api.Models.PetWeightLog", b =>
-                {
-                    b.HasOne("smart_pet_care_api.Models.Pet", null)
-                        .WithMany("WeightLogs")
-                        .HasForeignKey("PetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -1082,6 +1020,11 @@ namespace smart_pet_care_api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("smart_pet_care_api.Models.AiSession", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
             modelBuilder.Entity("smart_pet_care_api.Models.ChatSession", b =>
                 {
                     b.Navigation("Messages");
@@ -1091,9 +1034,9 @@ namespace smart_pet_care_api.Migrations
                 {
                     b.Navigation("ActivityDailies");
 
-                    b.Navigation("FeedingLogs");
+                    b.Navigation("AiSessions");
 
-                    b.Navigation("HealthRecords");
+                    b.Navigation("FeedingLogs");
 
                     b.Navigation("PetConditions");
 
@@ -1104,8 +1047,6 @@ namespace smart_pet_care_api.Migrations
                     b.Navigation("PetMedications");
 
                     b.Navigation("Reminders");
-
-                    b.Navigation("WeightLogs");
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.Reminder", b =>
@@ -1115,6 +1056,8 @@ namespace smart_pet_care_api.Migrations
 
             modelBuilder.Entity("smart_pet_care_api.Models.User", b =>
                 {
+                    b.Navigation("AiSessions");
+
                     b.Navigation("ExternalLogins");
 
                     b.Navigation("Pets");

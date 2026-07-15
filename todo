@@ -19,6 +19,28 @@ Ask about health assessment on the start
 Further dev
 Expand score system
 
+
+Classifier/session production follow-ups
+for sure:
+- Make message retry atomic. Use a conditional database update from
+  FailedRetryable to Pending and continue only when exactly one row was
+  updated; otherwise return 409 Conflict. This prevents concurrent retry
+  requests from creating duplicate assistant responses.
+- Recover stale Pending user messages after a backend crash. Add a background
+  cleanup/recovery job that changes Pending messages older than an agreed
+  timeout to FailedRetryable.
+not sure yet:
+- Export SmartPetCare.Classifier metrics through OpenTelemetry/Prometheus. Add
+  dashboards and alerts for 429, 503, timeout, quota_exhausted, circuit_open,
+  and retry failures.
+- If the backend runs in multiple instances, decide whether the circuit
+  breaker must have shared state. Use Redis or another distributed store when
+  a global circuit is required; otherwise document per-instance behavior.
+- Run a pre-deployment smoke test with PostgreSQL and the real Python
+  Classifier: apply the migration, verify 429/503 and Retry-After, retry through
+  Scalar, and confirm that the same user messageId is reused.
+- Upgrade or replace Microsoft.OpenApi 2.0.0 to resolve NU1903
+  (GHSA-v5pm-xwqc-g5wc), then run the full test suite.
 My todo:
 Do the feeding schedule 
 Split repository responsibilities in v2: move pet ownership/current-pet access out of PetWeightLogRepository into a pet-focused repository, and apply the same split to FeedingLogRepository.
