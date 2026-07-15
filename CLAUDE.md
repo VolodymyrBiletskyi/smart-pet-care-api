@@ -29,7 +29,8 @@ API docs (Scalar UI): `http://localhost:8080/scalar/v1`
 Chat module tests are in
 `Modules/ChatModule.Tests/ChatModule.Tests.csproj`. They cover the
 classifier client and configuration, session replacement, eight-message
-history replay, ownership checks, response mapping, and relational persistence.
+history replay and pagination, ownership checks, response mapping, and
+relational persistence.
 
 Chat integration documentation:
 

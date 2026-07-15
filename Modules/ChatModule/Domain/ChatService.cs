@@ -209,6 +209,7 @@ public sealed class ChatService(
         {
             SessionId = session.Id,
             Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.Pending,
             Content = userText,
             CreatedAt = DateTime.UtcNow
         };
@@ -220,10 +221,61 @@ public sealed class ChatService(
         // temporarily unavailable so the session history remains auditable.
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        return await ProcessUserMessageAsync(
+            session,
+            userMessage,
+            cancellationToken);
+    }
+
+    public async Task<ClassifierChatResponse> RetryUserMessageAsync(
+        Guid sessionId,
+        Guid userId,
+        Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await dbContext.ChatSessions
+            .SingleOrDefaultAsync(
+                candidate => candidate.Id == sessionId
+                    && candidate.UserId == userId,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("The chat session was not found.");
+
+        var userMessage = await dbContext.ChatMessages
+            .SingleOrDefaultAsync(
+                message => message.Id == messageId
+                    && message.SessionId == session.Id
+                    && message.Role == ChatMessageRole.User,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("The chat message was not found.");
+
+        if (userMessage.Status != ChatMessageStatus.FailedRetryable)
+        {
+            throw new InvalidOperationException(
+                "Only a failed retryable user message can be retried.");
+        }
+
+        userMessage.Status = ChatMessageStatus.Pending;
+        session.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return await ProcessUserMessageAsync(
+            session,
+            userMessage,
+            cancellationToken);
+    }
+
+    private async Task<ClassifierChatResponse> ProcessUserMessageAsync(
+        ChatSession session,
+        ChatMessage userMessage,
+        CancellationToken cancellationToken)
+    {
+
         var priorMessages = await dbContext.ChatMessages
             .AsNoTracking()
             .Where(message => message.SessionId == session.Id
-                && message.Id != userMessage.Id)
+                && (message.CreatedAt < userMessage.CreatedAt
+                    || (message.CreatedAt == userMessage.CreatedAt
+                        && message.Id.CompareTo(userMessage.Id) < 0)))
             .OrderByDescending(message => message.CreatedAt)
             .ThenByDescending(message => message.Id)
             .Take(MessageWindowSize - 1)
@@ -243,15 +295,44 @@ public sealed class ChatService(
             Content = userMessage.Content
         });
 
-        var response = await classifierClient.ChatAsync(
-            new ClassifierChatRequest
-            {
-                SessionId = session.Id.ToString("D"),
-                Messages = priorMessages,
-                SymptomSummary = session.SymptomSummary,
-                PetType = PetTypeMapper.ToClassifierPetType(session.PetType)
-            },
-            cancellationToken);
+        ClassifierChatResponse response;
+        try
+        {
+            response = await classifierClient.ChatAsync(
+                new ClassifierChatRequest
+                {
+                    SessionId = session.Id.ToString("D"),
+                    Messages = priorMessages,
+                    SymptomSummary = session.SymptomSummary,
+                    PetType = PetTypeMapper.ToClassifierPetType(session.PetType)
+                },
+                cancellationToken);
+        }
+        catch (ClassifierRateLimitedException exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedRetryable;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            throw new ClassifierRateLimitedException(
+                exception.Message,
+                exception.Code,
+                exception.RetryAfterSeconds,
+                exception,
+                userMessage.Id);
+        }
+        catch (ClassifierUnavailableException exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedRetryable;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            throw new ClassifierUnavailableException(
+                exception.Message,
+                exception.StatusCode,
+                exception,
+                exception.Code,
+                exception.RetryAfterSeconds,
+                userMessage.Id);
+        }
 
         var assistantMessage = new ChatMessage
         {
@@ -262,6 +343,7 @@ public sealed class ChatService(
         };
 
         dbContext.ChatMessages.Add(assistantMessage);
+        userMessage.Status = ChatMessageStatus.Completed;
         session.SymptomSummary = response.SymptomSummary;
         session.UpdatedAt = assistantMessage.CreatedAt;
         await dbContext.SaveChangesAsync(cancellationToken);

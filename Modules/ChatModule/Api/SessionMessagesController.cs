@@ -1,6 +1,8 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Infrastructure.Classifier;
+using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.ChatModule.Domain;
 using smart_pet_care_api.Modules.ChatModule.DTOs;
@@ -53,20 +55,66 @@ public sealed class SessionMessagesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status502BadGateway)]
-    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> PostMessage(
         Guid sessionId,
         [FromBody] PostSessionMessageRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var response = await chatService.HandleUserMessageAsync(
+        return await ExecuteMessageOperationAsync(
+            sessionId,
+            () => chatService.HandleUserMessageAsync(
                 sessionId,
                 User.GetUserId(),
                 request.Text,
-                cancellationToken);
+                cancellationToken));
+    }
+
+    [HttpPost("{messageId:guid}/retry")]
+    [ProducesResponseType(typeof(SessionMessageResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(
+        typeof(ClassifierServiceErrorResponseDto),
+        StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> RetryMessage(
+        Guid sessionId,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        return await ExecuteMessageOperationAsync(
+            sessionId,
+            () => chatService.RetryUserMessageAsync(
+                sessionId,
+                User.GetUserId(),
+                messageId,
+                cancellationToken),
+            mapInvalidStateToConflict: true);
+    }
+
+    private async Task<IActionResult> ExecuteMessageOperationAsync(
+        Guid sessionId,
+        Func<Task<ClassifierChatResponse>> operation,
+        bool mapInvalidStateToConflict = false)
+    {
+        try
+        {
+            var response = await operation();
 
             return Ok(SessionMessageResponseDto.FromClassifier(response));
         }
@@ -78,6 +126,26 @@ public sealed class SessionMessagesController(
         {
             return BadRequest(new { message = exception.Message });
         }
+        catch (InvalidOperationException exception) when (mapInvalidStateToConflict)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (ClassifierRateLimitedException exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Classifier rate limit was exceeded for chat session {SessionId}. Trace: {TraceIdentifier}",
+                sessionId,
+                HttpContext.TraceIdentifier);
+
+            return ClassifierError(
+                StatusCodes.Status429TooManyRequests,
+                exception.Code,
+                "The pet-care assistant is busy. Please try again later.",
+                retryable: true,
+                exception.RetryAfterSeconds,
+                exception.MessageId);
+        }
         catch (ClassifierInvalidResponseException exception)
         {
             logger.LogError(
@@ -88,7 +156,12 @@ public sealed class SessionMessagesController(
 
             return StatusCode(
                 StatusCodes.Status502BadGateway,
-                new { message = "The pet-care assistant returned an invalid response." });
+                new ClassifierServiceErrorResponseDto
+                {
+                    Code = "classifier_invalid_response",
+                    Message = "The pet-care assistant returned an invalid response.",
+                    Retryable = false
+                });
         }
         catch (ClassifierUnavailableException exception)
         {
@@ -98,13 +171,39 @@ public sealed class SessionMessagesController(
                 sessionId,
                 HttpContext.TraceIdentifier);
 
-            return StatusCode(
+            return ClassifierError(
                 StatusCodes.Status503ServiceUnavailable,
-                new
-                {
-                    message = "The pet-care assistant is temporarily unavailable. Please retry.",
-                    retryable = true
-                });
+                exception.Code ?? "service_unavailable",
+                "The pet-care assistant is temporarily unavailable. Please try again later.",
+                retryable: true,
+                exception.RetryAfterSeconds,
+                exception.MessageId);
         }
+    }
+
+    private ObjectResult ClassifierError(
+        int statusCode,
+        string code,
+        string message,
+        bool retryable,
+        int? retryAfterSeconds,
+        Guid? messageId)
+    {
+        if (retryAfterSeconds is >= 0)
+        {
+            Response.Headers.RetryAfter = retryAfterSeconds.Value.ToString(
+                CultureInfo.InvariantCulture);
+        }
+
+        return StatusCode(
+            statusCode,
+            new ClassifierServiceErrorResponseDto
+            {
+                MessageId = messageId,
+                Code = code,
+                Message = message,
+                Retryable = retryable,
+                RetryAfterSeconds = retryAfterSeconds
+            });
     }
 }

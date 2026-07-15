@@ -57,7 +57,9 @@ public sealed class ChatSessionFlowIntegrationTests
         Assert.Equal("updated summary", details.SymptomSummary);
         Assert.Equal(2, details.Messages.Count);
         Assert.Equal(ChatMessageRole.User, details.Messages[0].Role);
+        Assert.Equal(ChatMessageStatus.Completed, details.Messages[0].Status);
         Assert.Equal(ChatMessageRole.Assistant, details.Messages[1].Role);
+        Assert.Null(details.Messages[1].Status);
 
         var request = Assert.Single(classifier.Requests);
         Assert.Equal(created.SessionId.ToString("D"), request.SessionId);

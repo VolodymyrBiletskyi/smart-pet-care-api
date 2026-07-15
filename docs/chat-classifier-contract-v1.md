@@ -135,18 +135,56 @@ backend replaces the previously persisted summary with this value.
 | Classifier outcome | C# interpretation | Public session-message API |
 |---|---|---|
 | Valid 2xx response | Successful turn | `200 OK` |
+| `429 Too Many Requests` | Classifier rate limit reached | `429 Too Many Requests` with retry metadata |
 | `422 Unprocessable Entity` | Generated classifier request was rejected | `502 Bad Gateway` |
 | Other 4xx response | Unexpected classifier contract failure | `502 Bad Gateway` |
-| 5xx response | Classifier temporarily unavailable | `503 Service Unavailable` |
+| 5xx response | Classifier temporarily unavailable | `503 Service Unavailable` with retry metadata when supplied |
 | Network or response-read failure | Classifier unavailable | `503 Service Unavailable` |
 | Configured HTTP timeout | Classifier unavailable | `503 Service Unavailable` |
 | Malformed or contract-invalid 2xx body | Invalid classifier response | `502 Bad Gateway` |
 | Caller cancellation | Request is cancelled | No classifier-specific remapping |
 
-The C# backend persists the user's source message before calling the
-classifier. When the classifier call fails, it does not add an assistant
-message or overwrite the last valid symptom summary. Transport failures are not
-retried automatically.
+For `429` and `503`, the C# backend prefers the HTTP `Retry-After` header
+and falls back to `retryAfterSeconds` from the classifier JSON error. It
+returns a public error object containing `code`, a safe user-facing
+`message`, `retryable`, and `retryAfterSeconds`; internal classifier
+messages are not forwarded to clients.
+
+The C# backend persists the user's source message with status `Pending` before
+calling the classifier. After a successful response it changes the status to
+`Completed`. For a retryable `429`, `503`, timeout, or network failure it keeps
+the message, changes its status to `FailedRetryable`, and returns that
+`messageId` in the public error object. It does not add an assistant message or
+overwrite the last valid symptom summary for a failed call. Transport failures
+are not retried automatically.
+
+The client retries a failed turn with
+`POST /api/sessions/{sessionId}/messages/{messageId}/retry`. The backend accepts
+only an owned user message in `FailedRetryable`, moves that same record to
+`Pending`, and does not create another user message. A successful retry changes
+it to `Completed` and adds the assistant response. Retrying a `Pending` or
+`Completed` message returns `409 Conflict`.
+
+## Resilience and monitoring
+
+The C# backend publishes the .NET meter `SmartPetCare.Classifier`. Counter
+`smart_pet_care.classifier.failures` records failures with these tags:
+
+- `kind`: `rate_limited`, `quota_exhausted`, `service_unavailable`, `timeout`,
+  `network_error`, `response_read_error`, or `circuit_open`;
+- `status_code`: the public-equivalent HTTP status (`429` or `503` for the
+  retryable cases);
+- `code`: the classifier or backend error code;
+- `source`: `classifier`, `transport`, or `circuit_breaker`.
+
+The in-process circuit breaker opens after
+`Classifier:CircuitBreakerFailureThreshold` consecutive availability failures
+(default `5`) and remains open for `Classifier:CircuitBreakerBreakSeconds`
+(default `30`). While open, calls do not reach Python and return retryable
+`503` with `code: circuit_open` and `retryAfterSeconds`. After the break period,
+one half-open probe is allowed. A successful probe closes the circuit; an
+availability failure opens it again. `429` and `quota_exhausted` do not open the
+circuit because they prove that the classifier is reachable.
 
 ## Persistence and privacy
 

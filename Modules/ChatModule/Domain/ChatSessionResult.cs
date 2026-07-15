@@ -51,6 +51,7 @@ public sealed record ChatSessionDetailsResult(
 public sealed record ChatMessageResult(
     Guid MessageId,
     ChatMessageRole Role,
+    ChatMessageStatus? Status,
     string Content,
     DateTime CreatedAt)
 {
@@ -59,6 +60,7 @@ public sealed record ChatMessageResult(
         return new ChatMessageResult(
             message.Id,
             message.Role,
+            message.Status,
             message.Content,
             message.CreatedAt);
     }

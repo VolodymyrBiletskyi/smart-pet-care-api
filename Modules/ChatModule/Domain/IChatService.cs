@@ -30,4 +30,10 @@ public interface IChatService
         Guid userId,
         string userText,
         CancellationToken cancellationToken = default);
+
+    Task<ClassifierChatResponse> RetryUserMessageAsync(
+        Guid sessionId,
+        Guid userId,
+        Guid messageId,
+        CancellationToken cancellationToken = default);
 }

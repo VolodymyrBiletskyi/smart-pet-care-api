@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
@@ -73,10 +74,74 @@ public sealed class ClassifierClientTests
     }
 
     [Fact]
-    public async Task ChatAsync_MapsServerErrorToUnavailable()
+    public async Task ChatAsync_Maps429AndPrefersRetryAfterHeader()
     {
         var handler = new StubHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        {
+            var response = JsonResponse(
+                HttpStatusCode.TooManyRequests,
+                """
+                {
+                  "code": "rate_limit_exceeded",
+                  "message": "Classifier rate limit exceeded",
+                  "retryable": true,
+                  "retryAfterSeconds": 30
+                }
+                """);
+            response.Headers.RetryAfter =
+                new RetryConditionHeaderValue(TimeSpan.FromSeconds(45));
+            return response;
+        });
+        using var httpClient = CreateHttpClient(handler);
+        var client = new ClassifierClient(httpClient);
+
+        var exception = await Assert.ThrowsAsync<ClassifierRateLimitedException>(
+            () => client.ChatAsync(
+                CreateRequest(),
+                TestContext.Current.CancellationToken));
+
+        Assert.Equal("rate_limit_exceeded", exception.Code);
+        Assert.Equal(45, exception.RetryAfterSeconds);
+    }
+
+    [Fact]
+    public async Task ChatAsync_Maps429AndFallsBackToJsonRetryDelay()
+    {
+        var handler = new StubHttpMessageHandler(_ => JsonResponse(
+            HttpStatusCode.TooManyRequests,
+            """
+            {
+              "code": "rate_limit_exceeded",
+              "message": "Classifier rate limit exceeded",
+              "retryable": true,
+              "retryAfterSeconds": 30
+            }
+            """));
+        using var httpClient = CreateHttpClient(handler);
+        var client = new ClassifierClient(httpClient);
+
+        var exception = await Assert.ThrowsAsync<ClassifierRateLimitedException>(
+            () => client.ChatAsync(
+                CreateRequest(),
+                TestContext.Current.CancellationToken));
+
+        Assert.Equal("rate_limit_exceeded", exception.Code);
+        Assert.Equal(30, exception.RetryAfterSeconds);
+    }
+
+    [Fact]
+    public async Task ChatAsync_Maps503PayloadToUnavailable()
+    {
+        var handler = new StubHttpMessageHandler(_ => JsonResponse(
+            HttpStatusCode.ServiceUnavailable,
+            """
+            {
+              "code": "service_overloaded",
+              "message": "Classifier is overloaded",
+              "retryable": true,
+              "retryAfterSeconds": 20
+            }
+            """));
         using var httpClient = CreateHttpClient(handler);
         var client = new ClassifierClient(httpClient);
 
@@ -86,6 +151,8 @@ public sealed class ClassifierClientTests
                 TestContext.Current.CancellationToken));
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, exception.StatusCode);
+        Assert.Equal("service_overloaded", exception.Code);
+        Assert.Equal(20, exception.RetryAfterSeconds);
     }
 
     private static HttpClient CreateHttpClient(HttpMessageHandler handler)

@@ -29,3 +29,11 @@ public enum ChatMessageRole
     [JsonStringEnumMemberName("assistant")]
     Assistant
 }
+
+[JsonConverter(typeof(JsonStringEnumConverter<ChatMessageStatus>))]
+public enum ChatMessageStatus
+{
+    Pending,
+    Completed,
+    FailedRetryable
+}

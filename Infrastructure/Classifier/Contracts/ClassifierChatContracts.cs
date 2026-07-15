@@ -27,6 +27,14 @@ public sealed record ClassifierChatResponse
     public required string Disclaimer { get; init; }
 }
 
+public sealed record ClassifierErrorResponse
+{
+    public required string Code { get; init; }
+    public required string Message { get; init; }
+    public required bool Retryable { get; init; }
+    public int? RetryAfterSeconds { get; init; }
+}
+
 public sealed record ClassifierChatPrediction
 {
     public required string PredictedCondition { get; init; }

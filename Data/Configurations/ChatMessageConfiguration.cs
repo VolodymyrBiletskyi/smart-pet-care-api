@@ -12,6 +12,7 @@ public sealed class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMess
         builder.HasKey(message => message.Id);
 
         builder.Property(message => message.Content).IsRequired().HasColumnType("text");
+        builder.Property(message => message.Status).HasColumnType("integer");
         builder.Property(message => message.CreatedAt).HasDefaultValueSql("now()");
 
         builder.HasIndex(message => new { message.SessionId, message.CreatedAt });

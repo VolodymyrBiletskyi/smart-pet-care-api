@@ -35,6 +35,7 @@ public sealed record ChatMessageResponseDto
 {
     public required Guid MessageId { get; init; }
     public required ChatMessageRole Role { get; init; }
+    public ChatMessageStatus? Status { get; init; }
     public required string Content { get; init; }
     public required DateTime CreatedAt { get; init; }
 
@@ -44,6 +45,7 @@ public sealed record ChatMessageResponseDto
         {
             MessageId = result.MessageId,
             Role = result.Role,
+            Status = result.Status,
             Content = result.Content,
             CreatedAt = result.CreatedAt
         };

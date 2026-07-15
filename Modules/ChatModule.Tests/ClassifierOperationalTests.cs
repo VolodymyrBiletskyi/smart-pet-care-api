@@ -27,6 +27,7 @@ public sealed class ClassifierOperationalTests
             "timed out",
             exception.Message,
             StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("request_timeout", exception.Code);
     }
 
     [Fact]
@@ -63,6 +64,22 @@ public sealed class ClassifierOperationalTests
         Assert.Equal(
             "secret-key",
             client.DefaultRequestHeaders.GetValues("X-API-Key").Single());
+    }
+
+    [Fact]
+    public void AddClassifier_RegistersSharedMetricsAndCircuitBreaker()
+    {
+        using var provider = BuildProvider(
+            "https://classifier.example/",
+            "secret-key",
+            "30");
+
+        Assert.Same(
+            provider.GetRequiredService<ClassifierMetrics>(),
+            provider.GetRequiredService<ClassifierMetrics>());
+        Assert.Same(
+            provider.GetRequiredService<ClassifierCircuitBreaker>(),
+            provider.GetRequiredService<ClassifierCircuitBreaker>());
     }
 
     [Fact]
@@ -106,16 +123,54 @@ public sealed class ClassifierOperationalTests
         Assert.Contains("TimeoutSeconds", exception.Message);
     }
 
+    [Theory]
+    [InlineData("0")]
+    [InlineData("101")]
+    public void AddClassifier_RejectsInvalidCircuitFailureThreshold(string threshold)
+    {
+        using var provider = BuildProvider(
+            "https://classifier.example/",
+            "secret-key",
+            "30",
+            circuitFailureThreshold: threshold);
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<ClassifierOptions>>().Value);
+
+        Assert.Contains("CircuitBreakerFailureThreshold", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("3601")]
+    public void AddClassifier_RejectsInvalidCircuitBreakDuration(string breakSeconds)
+    {
+        using var provider = BuildProvider(
+            "https://classifier.example/",
+            "secret-key",
+            "30",
+            circuitBreakSeconds: breakSeconds);
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            _ = provider.GetRequiredService<IOptions<ClassifierOptions>>().Value);
+
+        Assert.Contains("CircuitBreakerBreakSeconds", exception.Message);
+    }
+
     private static ServiceProvider BuildProvider(
         string baseUrl,
         string apiKey,
-        string timeoutSeconds)
+        string timeoutSeconds,
+        string circuitFailureThreshold = "5",
+        string circuitBreakSeconds = "30")
     {
         var values = new Dictionary<string, string?>
         {
             ["Classifier:BaseUrl"] = baseUrl,
             ["Classifier:ApiKey"] = apiKey,
-            ["Classifier:TimeoutSeconds"] = timeoutSeconds
+            ["Classifier:TimeoutSeconds"] = timeoutSeconds,
+            ["Classifier:CircuitBreakerFailureThreshold"] = circuitFailureThreshold,
+            ["Classifier:CircuitBreakerBreakSeconds"] = circuitBreakSeconds
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(values)

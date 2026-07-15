@@ -10,6 +10,33 @@ namespace smart_pet_care_api.Modules.ChatModule.Tests;
 public sealed class ChatServiceTests
 {
     [Fact]
+    public async Task HandleUserMessageAsync_WhileClassifierIsRunning_KeepsUserPending()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "initial summary");
+        var client = new ControlledClassifierClient();
+        var service = new ChatService(dbContext, client);
+
+        var call = service.HandleUserMessageAsync(
+            session.Id,
+            session.UserId,
+            "new symptom",
+            TestContext.Current.CancellationToken);
+        await client.RequestStarted.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken);
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ChatMessageStatus.Pending, message.Status);
+
+        client.Complete(CreateResponse("answer", "updated summary"));
+        await call;
+
+        Assert.Equal(ChatMessageStatus.Completed, message.Status);
+    }
+
+    [Fact]
     public async Task HandleUserMessageAsync_AppendsAssistantAndOverwritesSummaryEveryTurn()
     {
         await using var dbContext = CreateContext();
@@ -47,6 +74,10 @@ public sealed class ChatServiceTests
             messages.Select(message => message.Role));
         Assert.Equal("first answer", messages[1].Content);
         Assert.Equal("second answer", messages[3].Content);
+        Assert.Equal(ChatMessageStatus.Completed, messages[0].Status);
+        Assert.Null(messages[1].Status);
+        Assert.Equal(ChatMessageStatus.Completed, messages[2].Status);
+        Assert.Null(messages[3].Status);
         Assert.Equal("second summary", persistedSession.SymptomSummary);
     }
 
@@ -59,7 +90,7 @@ public sealed class ChatServiceTests
             dbContext,
             new ThrowingClassifierClient());
 
-        await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+        var exception = await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
             service.HandleUserMessageAsync(
                 session.Id,
                 session.UserId,
@@ -73,7 +104,138 @@ public sealed class ChatServiceTests
 
         Assert.Equal(ChatMessageRole.User, message.Role);
         Assert.Equal("new symptom", message.Content);
+        Assert.Equal(ChatMessageStatus.FailedRetryable, message.Status);
+        Assert.Equal(message.Id, exception.MessageId);
         Assert.Equal("last good summary", persistedSession.SymptomSummary);
+    }
+
+    [Fact]
+    public async Task HandleUserMessageAsync_WhenClassifierIsRateLimited_MarksUserRetryableAndReturnsMessageId()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var service = new ChatService(
+            dbContext,
+            new ThrowingClassifierClient(
+                new ClassifierRateLimitedException(
+                    "Classifier rate limit exceeded.",
+                    "rate_limit_exceeded",
+                    retryAfterSeconds: 30)));
+
+        var exception = await Assert.ThrowsAsync<ClassifierRateLimitedException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "new symptom",
+                TestContext.Current.CancellationToken));
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ChatMessageStatus.FailedRetryable, message.Status);
+        Assert.Equal(message.Id, exception.MessageId);
+        Assert.Equal(30, exception.RetryAfterSeconds);
+    }
+
+    [Fact]
+    public async Task RetryUserMessageAsync_ReusesFailedMessageWithoutCreatingUserDuplicate()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var failedMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.FailedRetryable,
+            Content = "new symptom",
+            CreatedAt = DateTime.UtcNow.AddMinutes(-1)
+        };
+        dbContext.ChatMessages.Add(failedMessage);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var client = new QueueClassifierClient(
+            CreateResponse("answer", "updated summary"));
+        var service = new ChatService(dbContext, client);
+
+        var response = await service.RetryUserMessageAsync(
+            session.Id,
+            session.UserId,
+            failedMessage.Id,
+            TestContext.Current.CancellationToken);
+
+        var messages = await dbContext.ChatMessages
+            .OrderBy(message => message.CreatedAt)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        var persistedUserMessage = Assert.Single(
+            messages,
+            message => message.Role == ChatMessageRole.User);
+        var assistantMessage = Assert.Single(
+            messages,
+            message => message.Role == ChatMessageRole.Assistant);
+
+        Assert.Equal("answer", response.Answer);
+        Assert.Equal(failedMessage.Id, persistedUserMessage.Id);
+        Assert.Equal(ChatMessageStatus.Completed, persistedUserMessage.Status);
+        Assert.Equal("answer", assistantMessage.Content);
+        Assert.Equal("new symptom", Assert.Single(client.Requests).Messages[^1].Content);
+    }
+
+    [Fact]
+    public async Task RetryUserMessageAsync_WhenClassifierStillUnavailable_KeepsSameFailedMessage()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var failedMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.FailedRetryable,
+            Content = "new symptom"
+        };
+        dbContext.ChatMessages.Add(failedMessage);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var service = new ChatService(dbContext, new ThrowingClassifierClient());
+
+        var exception = await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+            service.RetryUserMessageAsync(
+                session.Id,
+                session.UserId,
+                failedMessage.Id,
+                TestContext.Current.CancellationToken));
+
+        var persistedMessage = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(failedMessage.Id, persistedMessage.Id);
+        Assert.Equal(ChatMessageStatus.FailedRetryable, persistedMessage.Status);
+        Assert.Equal(failedMessage.Id, exception.MessageId);
+    }
+
+    [Fact]
+    public async Task RetryUserMessageAsync_WhenMessageIsCompleted_RejectsRetry()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var completedMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.Completed,
+            Content = "completed symptom"
+        };
+        dbContext.ChatMessages.Add(completedMessage);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var service = new ChatService(
+            dbContext,
+            new QueueClassifierClient(CreateResponse("unused", "unused")));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RetryUserMessageAsync(
+                session.Id,
+                session.UserId,
+                completedMessage.Id,
+                TestContext.Current.CancellationToken));
+
+        Assert.Single(await dbContext.ChatMessages.ToListAsync(
+            TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -280,14 +442,40 @@ public sealed class ChatServiceTests
         }
     }
 
-    private sealed class ThrowingClassifierClient : IClassifierClient
+    private sealed class ControlledClassifierClient : IClassifierClient
     {
+        private readonly TaskCompletionSource requestStarted = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<ClassifierChatResponse> response = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task RequestStarted => requestStarted.Task;
+
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
         {
-            throw new ClassifierUnavailableException(
-                "Classifier is unavailable.");
+            requestStarted.TrySetResult();
+            return response.Task.WaitAsync(cancellationToken);
+        }
+
+        public void Complete(ClassifierChatResponse classifierResponse)
+        {
+            response.TrySetResult(classifierResponse);
+        }
+    }
+
+    private sealed class ThrowingClassifierClient(Exception? exception = null)
+        : IClassifierClient
+    {
+        private readonly Exception exception = exception
+            ?? new ClassifierUnavailableException("Classifier is unavailable.");
+
+        public Task<ClassifierChatResponse> ChatAsync(
+            ClassifierChatRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw exception;
         }
     }
 }

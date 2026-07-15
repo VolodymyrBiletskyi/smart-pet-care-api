@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -13,6 +14,74 @@ namespace smart_pet_care_api.Modules.ChatModule.Tests;
 
 public sealed class ChatControllersTests
 {
+    [Fact]
+    public void PostMessage_Declares429And503OpenApiResponses()
+    {
+        var method = typeof(SessionMessagesController).GetMethod(
+            nameof(SessionMessagesController.PostMessage));
+
+        var responses = Assert.IsAssignableFrom<IEnumerable<ProducesResponseTypeAttribute>>(
+            method!.GetCustomAttributes<ProducesResponseTypeAttribute>());
+
+        Assert.Contains(
+            responses,
+            response => response.StatusCode == StatusCodes.Status429TooManyRequests
+                && response.Type == typeof(ClassifierServiceErrorResponseDto));
+        Assert.Contains(
+            responses,
+            response => response.StatusCode == StatusCodes.Status503ServiceUnavailable
+                && response.Type == typeof(ClassifierServiceErrorResponseDto));
+    }
+
+    [Fact]
+    public void RetryMessage_DeclaresExpectedRoute()
+    {
+        var method = typeof(SessionMessagesController).GetMethod(
+            nameof(SessionMessagesController.RetryMessage));
+
+        var route = Assert.Single(method!.GetCustomAttributes<HttpPostAttribute>());
+        Assert.Equal("{messageId:guid}/retry", route.Template);
+    }
+
+    [Fact]
+    public async Task RetryMessage_ReturnsResponseForExistingMessageId()
+    {
+        var messageId = Guid.NewGuid();
+        var service = new StubChatService
+        {
+            MessageResult = new ClassifierChatResponse
+            {
+                Mode = ClassifierChatMode.General,
+                Answer = "answer",
+                SymptomSummary = "summary",
+                Disclaimer = "disclaimer"
+            }
+        };
+        var controller = CreateMessagesController(service);
+
+        var action = await controller.RetryMessage(
+            Guid.NewGuid(),
+            messageId,
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<OkObjectResult>(action);
+        Assert.Equal(messageId, service.RetriedMessageId);
+    }
+
+    [Fact]
+    public async Task RetryMessage_WhenMessageCannotBeRetried_Returns409()
+    {
+        var controller = CreateMessagesController(
+            new StubChatService { ThrowInvalidRetryState = true });
+
+        var action = await controller.RetryMessage(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<ConflictObjectResult>(action);
+    }
+
     [Fact]
     public async Task CreateSession_Returns201WithLocation()
     {
@@ -110,10 +179,49 @@ public sealed class ChatControllersTests
     }
 
     [Fact]
-    public async Task PostMessage_WhenClassifierUnavailable_Returns503()
+    public async Task PostMessage_WhenClassifierRateLimited_Returns429AndRetryMetadata()
     {
+        var messageId = Guid.NewGuid();
         var controller = CreateMessagesController(
-            new StubChatService { ThrowClassifierUnavailable = true });
+            new StubChatService
+            {
+                RateLimitedException = new ClassifierRateLimitedException(
+                    "Internal classifier rate-limit details",
+                    "rate_limit_exceeded",
+                    retryAfterSeconds: 30,
+                    messageId: messageId)
+            });
+
+        var action = await controller.PostMessage(
+            Guid.NewGuid(),
+            new PostSessionMessageRequest { Text = "question" },
+            TestContext.Current.CancellationToken);
+
+        var result = Assert.IsType<ObjectResult>(action);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, result.StatusCode);
+        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        Assert.Equal(messageId, response.MessageId);
+        Assert.Equal("rate_limit_exceeded", response.Code);
+        Assert.True(response.Retryable);
+        Assert.Equal(30, response.RetryAfterSeconds);
+        Assert.Equal("30", controller.Response.Headers.RetryAfter.ToString());
+        Assert.DoesNotContain("Internal", response.Message);
+    }
+
+    [Fact]
+    public async Task PostMessage_WhenClassifierUnavailable_Returns503AndRetryMetadata()
+    {
+        var messageId = Guid.NewGuid();
+        var controller = CreateMessagesController(
+            new StubChatService
+            {
+                UnavailableException = new ClassifierUnavailableException(
+                    "Internal classifier overload details",
+                    System.Net.HttpStatusCode.ServiceUnavailable,
+                    code: "service_overloaded",
+                    retryAfterSeconds: 20,
+                    messageId: messageId)
+            });
 
         var action = await controller.PostMessage(
             Guid.NewGuid(),
@@ -122,6 +230,37 @@ public sealed class ChatControllersTests
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
+        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        Assert.Equal(messageId, response.MessageId);
+        Assert.Equal("service_overloaded", response.Code);
+        Assert.True(response.Retryable);
+        Assert.Equal(20, response.RetryAfterSeconds);
+        Assert.Equal("20", controller.Response.Headers.RetryAfter.ToString());
+        Assert.DoesNotContain("Internal", response.Message);
+    }
+
+    [Fact]
+    public async Task PostMessage_WhenClassifierTimesOut_Returns503()
+    {
+        var controller = CreateMessagesController(
+            new StubChatService
+            {
+                UnavailableException = new ClassifierUnavailableException(
+                    "Internal timeout details",
+                    code: "request_timeout")
+            });
+
+        var action = await controller.PostMessage(
+            Guid.NewGuid(),
+            new PostSessionMessageRequest { Text = "question" },
+            TestContext.Current.CancellationToken);
+
+        var result = Assert.IsType<ObjectResult>(action);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
+        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        Assert.Equal("request_timeout", response.Code);
+        Assert.True(response.Retryable);
+        Assert.DoesNotContain("Internal timeout details", response.Message);
     }
 
     private static ChatSessionsController CreateSessionsController(
@@ -173,7 +312,10 @@ public sealed class ChatControllersTests
         public ClassifierChatResponse? MessageResult { get; init; }
         public ChatMessagePageResult? MessagePageResult { get; init; }
         public bool ThrowSessionNotFound { get; init; }
-        public bool ThrowClassifierUnavailable { get; init; }
+        public ClassifierRateLimitedException? RateLimitedException { get; init; }
+        public ClassifierUnavailableException? UnavailableException { get; init; }
+        public bool ThrowInvalidRetryState { get; init; }
+        public Guid? RetriedMessageId { get; private set; }
 
         public Task<IReadOnlyList<ChatSessionResult>> GetSessionsAsync(
             Guid userId,
@@ -234,10 +376,40 @@ public sealed class ChatControllersTests
             string userText,
             CancellationToken cancellationToken = default)
         {
-            if (ThrowClassifierUnavailable)
+            if (RateLimitedException is not null)
             {
-                throw new ClassifierUnavailableException(
-                    "Classifier is unavailable.");
+                throw RateLimitedException;
+            }
+
+            if (UnavailableException is not null)
+            {
+                throw UnavailableException;
+            }
+
+            return Task.FromResult(MessageResult ?? throw new InvalidOperationException());
+        }
+
+        public Task<ClassifierChatResponse> RetryUserMessageAsync(
+            Guid sessionId,
+            Guid userId,
+            Guid messageId,
+            CancellationToken cancellationToken = default)
+        {
+            RetriedMessageId = messageId;
+            if (ThrowInvalidRetryState)
+            {
+                throw new InvalidOperationException(
+                    "Only a failed retryable user message can be retried.");
+            }
+
+            if (RateLimitedException is not null)
+            {
+                throw RateLimitedException;
+            }
+
+            if (UnavailableException is not null)
+            {
+                throw UnavailableException;
             }
 
             return Task.FromResult(MessageResult ?? throw new InvalidOperationException());
