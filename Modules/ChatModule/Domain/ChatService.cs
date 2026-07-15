@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Globalization;
+using System.Text;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
@@ -12,6 +14,8 @@ public sealed class ChatService(
     IClassifierClient classifierClient) : IChatService
 {
     public const int MessageWindowSize = 8;
+    public const int DefaultMessagePageSize = 8;
+    public const int MaximumMessagePageSize = 8;
     private const int MaximumMessageLength = 4000;
 
     public async Task<IReadOnlyList<ChatSessionResult>> GetSessionsAsync(
@@ -45,6 +49,69 @@ public sealed class ChatService(
             ?? throw new KeyNotFoundException("The chat session was not found.");
 
         return ChatSessionDetailsResult.FromSession(session);
+    }
+
+    public async Task<ChatMessagePageResult> GetMessagesAsync(
+        Guid sessionId,
+        Guid userId,
+        int limit,
+        string? cursor,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > MaximumMessagePageSize)
+        {
+            throw new ArgumentException(
+                $"Limit must be between 1 and {MaximumMessagePageSize}.",
+                nameof(limit));
+        }
+
+        var sessionExists = await dbContext.ChatSessions
+            .AsNoTracking()
+            .AnyAsync(
+                session => session.Id == sessionId
+                    && session.UserId == userId,
+                cancellationToken);
+        if (!sessionExists)
+        {
+            throw new KeyNotFoundException("The chat session was not found.");
+        }
+
+        var position = DecodeCursor(cursor);
+        var query = dbContext.ChatMessages
+            .AsNoTracking()
+            .Where(message => message.SessionId == sessionId);
+
+        if (position is not null)
+        {
+            query = query.Where(message =>
+                message.CreatedAt < position.CreatedAt
+                || (message.CreatedAt == position.CreatedAt
+                    && message.Id.CompareTo(position.MessageId) < 0));
+        }
+
+        var messages = await query
+            .OrderByDescending(message => message.CreatedAt)
+            .ThenByDescending(message => message.Id)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = messages.Count > limit;
+        if (hasMore)
+        {
+            messages.RemoveAt(messages.Count - 1);
+        }
+
+        var nextCursor = hasMore && messages.Count > 0
+            ? EncodeCursor(messages[^1])
+            : null;
+
+        messages.Reverse();
+        return new ChatMessagePageResult(
+            sessionId,
+            messages.Select(ChatMessageResult.FromMessage).ToList(),
+            limit,
+            hasMore,
+            nextCursor);
     }
 
     public async Task<ChatSessionResult> CreateSessionAsync(
@@ -216,4 +283,67 @@ public sealed class ChatService(
                 nameof(userText));
         }
     }
+
+    private static string EncodeCursor(ChatMessage message)
+    {
+        var value = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{message.CreatedAt.Ticks}|{message.Id:D}");
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(value))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+    }
+
+    private static MessageCursor? DecodeCursor(string? cursor)
+    {
+        if (string.IsNullOrWhiteSpace(cursor))
+        {
+            return null;
+        }
+
+        try
+        {
+            var normalized = cursor
+                .Replace('-', '+')
+                .Replace('_', '/');
+            normalized += (normalized.Length % 4) switch
+            {
+                2 => "==",
+                3 => "=",
+                0 => string.Empty,
+                _ => throw new FormatException()
+            };
+
+            var value = Encoding.UTF8.GetString(
+                Convert.FromBase64String(normalized));
+            var separatorIndex = value.IndexOf('|');
+            if (separatorIndex <= 0
+                || !long.TryParse(
+                    value.AsSpan(0, separatorIndex),
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out var ticks)
+                || !Guid.TryParse(
+                    value.AsSpan(separatorIndex + 1),
+                    out var messageId))
+            {
+                throw new FormatException();
+            }
+
+            return new MessageCursor(
+                new DateTime(ticks, DateTimeKind.Utc),
+                messageId);
+        }
+        catch (Exception exception) when (
+            exception is FormatException or ArgumentOutOfRangeException)
+        {
+            throw new ArgumentException(
+                "The message cursor is invalid.",
+                nameof(cursor),
+                exception);
+        }
+    }
+
+    private sealed record MessageCursor(DateTime CreatedAt, Guid MessageId);
 }

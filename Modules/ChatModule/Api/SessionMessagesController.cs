@@ -14,6 +14,40 @@ public sealed class SessionMessagesController(
     IChatService chatService,
     ILogger<SessionMessagesController> logger) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(
+        typeof(SessionMessagesPageResponseDto),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMessages(
+        Guid sessionId,
+        CancellationToken cancellationToken,
+        [FromQuery] int limit = ChatService.DefaultMessagePageSize,
+        [FromQuery] string? cursor = null)
+    {
+        try
+        {
+            var result = await chatService.GetMessagesAsync(
+                sessionId,
+                User.GetUserId(),
+                limit,
+                cursor,
+                cancellationToken);
+
+            return Ok(SessionMessagesPageResponseDto.FromResult(result));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(SessionMessageResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

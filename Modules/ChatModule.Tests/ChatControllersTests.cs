@@ -85,6 +85,31 @@ public sealed class ChatControllersTests
     }
 
     [Fact]
+    public async Task GetMessages_ReturnsPageWithMaximumEightItems()
+    {
+        var sessionId = Guid.NewGuid();
+        var service = new StubChatService
+        {
+            MessagePageResult = new ChatMessagePageResult(
+                sessionId,
+                [],
+                8,
+                HasMore: false,
+                NextCursor: null)
+        };
+        var controller = CreateMessagesController(service);
+
+        var action = await controller.GetMessages(
+            sessionId,
+            TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<OkObjectResult>(action);
+        var response = Assert.IsType<SessionMessagesPageResponseDto>(ok.Value);
+        Assert.Equal(8, response.Pagination.Limit);
+        Assert.False(response.Pagination.HasMore);
+    }
+
+    [Fact]
     public async Task PostMessage_WhenClassifierUnavailable_Returns503()
     {
         var controller = CreateMessagesController(
@@ -146,6 +171,7 @@ public sealed class ChatControllersTests
         public IReadOnlyList<ChatSessionResult> Sessions { get; init; } = [];
         public ChatSessionResult? CreateResult { get; init; }
         public ClassifierChatResponse? MessageResult { get; init; }
+        public ChatMessagePageResult? MessagePageResult { get; init; }
         public bool ThrowSessionNotFound { get; init; }
         public bool ThrowClassifierUnavailable { get; init; }
 
@@ -183,6 +209,23 @@ public sealed class ChatControllersTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(CreateResult ?? CreateSessionResult());
+        }
+
+        public Task<ChatMessagePageResult> GetMessagesAsync(
+            Guid sessionId,
+            Guid userId,
+            int limit,
+            string? cursor,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                MessagePageResult
+                ?? new ChatMessagePageResult(
+                    sessionId,
+                    [],
+                    limit,
+                    HasMore: false,
+                    NextCursor: null));
         }
 
         public Task<ClassifierChatResponse> HandleUserMessageAsync(

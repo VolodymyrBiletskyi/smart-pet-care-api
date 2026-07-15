@@ -13,6 +13,13 @@ public interface IChatService
         Guid userId,
         CancellationToken cancellationToken = default);
 
+    Task<ChatMessagePageResult> GetMessagesAsync(
+        Guid sessionId,
+        Guid userId,
+        int limit,
+        string? cursor,
+        CancellationToken cancellationToken = default);
+
     Task<ChatSessionResult> CreateSessionAsync(
         Guid userId,
         Guid petId,

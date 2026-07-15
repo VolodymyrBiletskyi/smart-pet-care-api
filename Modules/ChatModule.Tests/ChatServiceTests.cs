@@ -137,6 +137,94 @@ public sealed class ChatServiceTests
             TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task GetMessagesAsync_ReturnsEightThenOlderPageWithoutDuplicates()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var start = DateTime.UtcNow.AddHours(-1);
+        for (var index = 0; index < 12; index++)
+        {
+            dbContext.ChatMessages.Add(new ChatMessage
+            {
+                SessionId = session.Id,
+                Role = index % 2 == 0
+                    ? ChatMessageRole.User
+                    : ChatMessageRole.Assistant,
+                Content = $"message-{index}",
+                CreatedAt = start.AddMinutes(index)
+            });
+        }
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var service = new ChatService(
+            dbContext,
+            new QueueClassifierClient(CreateResponse("unused", "unused")));
+
+        var first = await service.GetMessagesAsync(
+            session.Id,
+            session.UserId,
+            limit: 8,
+            cursor: null,
+            TestContext.Current.CancellationToken);
+        var second = await service.GetMessagesAsync(
+            session.Id,
+            session.UserId,
+            limit: 8,
+            first.NextCursor,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            Enumerable.Range(4, 8).Select(index => $"message-{index}"),
+            first.Items.Select(message => message.Content));
+        Assert.True(first.HasMore);
+        Assert.NotNull(first.NextCursor);
+        Assert.Equal(
+            Enumerable.Range(0, 4).Select(index => $"message-{index}"),
+            second.Items.Select(message => message.Content));
+        Assert.False(second.HasMore);
+        Assert.Null(second.NextCursor);
+        Assert.Empty(first.Items.Select(message => message.MessageId)
+            .Intersect(second.Items.Select(message => message.MessageId)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    public async Task GetMessagesAsync_RejectsLimitOutsideOneToEight(int limit)
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var service = new ChatService(
+            dbContext,
+            new QueueClassifierClient(CreateResponse("unused", "unused")));
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetMessagesAsync(
+                session.Id,
+                session.UserId,
+                limit,
+                cursor: null,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetMessagesAsync_RejectsMalformedCursor()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var service = new ChatService(
+            dbContext,
+            new QueueClassifierClient(CreateResponse("unused", "unused")));
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetMessagesAsync(
+                session.Id,
+                session.UserId,
+                limit: 8,
+                cursor: "not-a-cursor",
+                TestContext.Current.CancellationToken));
+    }
+
     private static AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

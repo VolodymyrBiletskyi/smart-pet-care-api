@@ -63,3 +63,10 @@ public sealed record ChatMessageResult(
             message.CreatedAt);
     }
 }
+
+public sealed record ChatMessagePageResult(
+    Guid SessionId,
+    IReadOnlyList<ChatMessageResult> Items,
+    int Limit,
+    bool HasMore,
+    string? NextCursor);

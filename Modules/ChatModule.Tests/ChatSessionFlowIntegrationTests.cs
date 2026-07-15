@@ -80,6 +80,71 @@ public sealed class ChatSessionFlowIntegrationTests
                 TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task GetMessages_WithCursor_ExecutesAsRelationalQuery()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AppDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync(
+            TestContext.Current.CancellationToken);
+
+        var user = new User
+        {
+            Email = "history-flow@example.com",
+            PasswordHash = "hash"
+        };
+        var pet = new Pet
+        {
+            UserId = user.Id,
+            Name = "Buddy",
+            Species = "Dog"
+        };
+        var session = new ChatSession
+        {
+            UserId = user.Id,
+            PetId = pet.Id,
+            PetType = PetType.Dog
+        };
+        dbContext.AddRange(user, pet, session);
+        var start = DateTime.UtcNow.AddHours(-1);
+        for (var index = 0; index < 10; index++)
+        {
+            dbContext.ChatMessages.Add(new ChatMessage
+            {
+                SessionId = session.Id,
+                Role = ChatMessageRole.User,
+                Content = $"message-{index}",
+                CreatedAt = start.AddMinutes(index)
+            });
+        }
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var service = new ChatService(
+            dbContext,
+            new RecordingClassifierClient());
+
+        var first = await service.GetMessagesAsync(
+            session.Id,
+            user.Id,
+            limit: 8,
+            cursor: null,
+            TestContext.Current.CancellationToken);
+        var second = await service.GetMessagesAsync(
+            session.Id,
+            user.Id,
+            limit: 8,
+            first.NextCursor,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(8, first.Items.Count);
+        Assert.Equal(2, second.Items.Count);
+        Assert.Equal("message-0", second.Items[0].Content);
+        Assert.Equal("message-1", second.Items[1].Content);
+    }
+
     private sealed class RecordingClassifierClient : IClassifierClient
     {
         public List<ClassifierChatRequest> Requests { get; } = [];
