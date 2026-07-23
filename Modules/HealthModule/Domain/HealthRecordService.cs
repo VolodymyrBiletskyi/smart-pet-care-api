@@ -16,11 +16,12 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             _repo = repo;
         }
 
-        public async Task<IReadOnlyList<HealthRecordResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, HealthRecordType? type, DateTime? from, DateTime? to)
+        public async Task<IReadOnlyList<HealthRecordResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, HealthRecordType? type, SymptomType? symptom, DateTime? from, DateTime? to)
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
 
             if (type.HasValue) ValidateType(type.Value);
+            if (symptom.HasValue) ValidateSymptom(symptom.Value);
 
             var fromUtc = from is { } f ? HealthRecordMapper.NormalizeToUtc(f) : (DateTime?)null;
             var toUtc = to is { } t ? HealthRecordMapper.NormalizeToUtc(t) : (DateTime?)null;
@@ -28,7 +29,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc.Value > toUtc.Value)
                 throw new ArgumentException("From cannot be later than To");
 
-            var records = await _repo.GetByPetIdAsync(petId, type, fromUtc, toUtc);
+            var records = await _repo.GetByPetIdAsync(petId, type, symptom, fromUtc, toUtc);
             return records.Select(r => r.ToDto()).ToList();
         }
 
@@ -99,6 +100,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             ValidateTitle(dto.Title);
             ValidatePerformedAt(dto.PerformedAt);
             ValidateDescription(dto.Description);
+            ValidateSymptoms(dto.Symptoms);
             ValidateDosage(dto.Dosage);
             ValidateProvider(dto.Provider);
         }
@@ -109,6 +111,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             if (dto.Title.IsSet) ValidateTitle(dto.Title.Value);
             if (dto.PerformedAt.IsSet) ValidatePerformedAt(dto.PerformedAt.Value);
             if (dto.Description.IsSet) ValidateDescription(dto.Description.Value);
+            if (dto.Symptoms.IsSet) ValidateSymptoms(dto.Symptoms.Value);
             if (dto.Dosage.IsSet) ValidateDosage(dto.Dosage.Value);
             if (dto.Provider.IsSet) ValidateProvider(dto.Provider.Value);
         }
@@ -138,6 +141,19 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
         {
             if (HealthRecordMapper.NormalizeToUtc(performedAt) > DateTime.UtcNow.AddMinutes(10))
                 throw new ArgumentException("PerformedAt cannot be in the future");
+        }
+
+        private static void ValidateSymptoms(List<SymptomType>? symptoms)
+        {
+            if (symptoms is null) return;
+            foreach (var symptom in symptoms)
+                ValidateSymptom(symptom);
+        }
+
+        private static void ValidateSymptom(SymptomType symptom)
+        {
+            if (!Enum.IsDefined(symptom))
+                throw new ArgumentException("Symptom is invalid");
         }
 
         private static void ValidateDescription(string? description)

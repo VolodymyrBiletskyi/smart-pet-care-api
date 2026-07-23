@@ -12,7 +12,11 @@
       "PowerShell(dotnet add package *)",
       "Bash(grep -rn --include=\"*.cs\" -E \"\\(^|[^:\\\\\"]\\)//|/\\\\*\" Modules Extensions Infrastructure Data Models Program.cs)",
       "PowerShell(dotnet run *)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "PowerShell(git push *)",
+      "PowerShell(git *)",
+      "PowerShell(dotnet test *)",
+      "Bash(dotnet test *)"
     ]
   },
   "disabledMcpjsonServers": [

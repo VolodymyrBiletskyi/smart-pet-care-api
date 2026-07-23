@@ -19,7 +19,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Repository
             return await _dbContext.Pets.AnyAsync(p => p.Id == petId && p.UserId == userId);
         }
 
-        public async Task<IReadOnlyList<HealthRecord>> GetByPetIdAsync(Guid petId, HealthRecordType? type, DateTime? from, DateTime? to)
+        public async Task<IReadOnlyList<HealthRecord>> GetByPetIdAsync(Guid petId, HealthRecordType? type, SymptomType? symptom, DateTime? from, DateTime? to)
         {
             var query = _dbContext.HealthRecords
                 .AsNoTracking()
@@ -27,6 +27,9 @@ namespace smart_pet_care_api.Modules.HealthModule.Repository
 
             if (type.HasValue)
                 query = query.Where(r => r.Type == type.Value);
+
+            if (symptom.HasValue)
+                query = query.Where(r => r.Symptoms != null && r.Symptoms.Contains(symptom.Value));
 
             if (from.HasValue)
                 query = query.Where(r => r.PerformedAt >= from.Value);

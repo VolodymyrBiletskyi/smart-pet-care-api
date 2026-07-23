@@ -182,7 +182,70 @@ namespace smart_pet_care_api.Models
             Medication,
             VetVisit,
             Surgery,
-            HealthNote
+            HealthNote,
+            Symptom
+        }
+
+        public enum JournalEntryType
+        {
+            Observation,
+            Symptom,
+            BehaviorChange,
+            AppetiteChange,
+            PreVetNote,
+            Other
+        }
+
+        public enum JournalEntrySeverity
+        {
+            Mild,
+            Moderate,
+            Severe
+        }
+
+        public enum SymptomType
+        {
+            // General
+            Fever,
+            Lethargy,
+            WeightLoss,
+            WeightGain,
+            Dehydration,
+            Pain,
+
+            // Digestive
+            Vomiting,
+            Diarrhea,
+            Constipation,
+            LossOfAppetite,
+            IncreasedAppetite,
+
+            // Respiratory
+            Coughing,
+            Sneezing,
+            NasalDischarge,
+            DifficultyBreathing,
+
+            // Skin & coat
+            Itching,
+            HairLoss,
+            Swelling,
+
+            // Urinary
+            IncreasedThirst,
+            FrequentUrination,
+
+            // Eyes & ears
+            EyeDischarge,
+            EarDischarge,
+
+            // Neurological & mobility
+            Seizure,
+            Limping,
+
+            // Other
+            Bleeding,
+            Other
         }
 
         public enum AnimalSpecies

@@ -1,33 +1,34 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
-using smart_pet_care_api.Modules.HealthModule.Domain;
-using smart_pet_care_api.Modules.HealthModule.DTOs.Requests;
-using smart_pet_care_api.Modules.HealthModule.DTOs.Responses;
+using smart_pet_care_api.Modules.JournalModule.Domain;
+using smart_pet_care_api.Modules.JournalModule.DTOs.Requests;
+using smart_pet_care_api.Modules.JournalModule.DTOs.Responses;
 using static smart_pet_care_api.Models.Enums;
 
-namespace smart_pet_care_api.Modules.HealthModule.Api
+namespace smart_pet_care_api.Modules.JournalModule.Api
 {
     [ApiController]
     [Authorize]
-    [Route("api/pets/{petId:guid}/health-records")]
-    public class HealthRecordController : ControllerBase
+    [Route("api/pets/{petId:guid}/journal")]
+    public class JournalEntryController : ControllerBase
     {
-        private readonly IHealthRecordService _service;
+        private readonly IJournalEntryService _service;
 
-        public HealthRecordController(IHealthRecordService service)
+        public JournalEntryController(IJournalEntryService service)
         {
             _service = service;
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<HealthRecordResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<JournalEntryResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAll(
             Guid petId,
-            [FromQuery] HealthRecordType? type,
+            [FromQuery] JournalEntryType? type,
+            [FromQuery] JournalEntrySeverity? severity,
             [FromQuery] SymptomType? symptom,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
@@ -35,8 +36,8 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
             try
             {
                 var userId = User.GetUserId();
-                var records = await _service.GetByPetIdAsync(petId, userId, type, symptom, from, to);
-                return Ok(records);
+                var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, symptom, from, to);
+                return Ok(entries);
             }
             catch (InvalidOperationException ex)
             {
@@ -48,18 +49,18 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
             }
         }
 
-        [HttpGet("{recordId:guid}")]
-        [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status200OK)]
+        [HttpGet("{entryId:guid}")]
+        [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetById(Guid petId, Guid recordId)
+        public async Task<IActionResult> GetById(Guid petId, Guid entryId)
         {
             try
             {
                 var userId = User.GetUserId();
-                var record = await _service.GetByIdAsync(petId, recordId, userId);
-                if (record is null) return NotFound();
-                return Ok(record);
+                var entry = await _service.GetByIdAsync(petId, entryId, userId);
+                if (entry is null) return NotFound();
+                return Ok(entry);
             }
             catch (InvalidOperationException ex)
             {
@@ -68,17 +69,17 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Create(Guid petId, [FromBody] CreateHealthRecordDto dto)
+        public async Task<IActionResult> Create(Guid petId, [FromBody] CreateJournalEntryDto dto)
         {
             try
             {
                 var userId = User.GetUserId();
                 var created = await _service.CreateAsync(petId, userId, dto);
-                return CreatedAtAction(nameof(GetById), new { petId, recordId = created.Id }, created);
+                return CreatedAtAction(nameof(GetById), new { petId, entryId = created.Id }, created);
             }
             catch (InvalidOperationException ex)
             {
@@ -90,17 +91,17 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
             }
         }
 
-        [HttpPatch("{recordId:guid}")]
-        [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status200OK)]
+        [HttpPatch("{entryId:guid}")]
+        [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Update(Guid petId, Guid recordId, [FromBody] PatchHealthRecordDto dto)
+        public async Task<IActionResult> Update(Guid petId, Guid entryId, [FromBody] PatchJournalEntryDto dto)
         {
             try
             {
                 var userId = User.GetUserId();
-                var updated = await _service.UpdateAsync(petId, recordId, userId, dto);
+                var updated = await _service.UpdateAsync(petId, entryId, userId, dto);
                 return Ok(updated);
             }
             catch (InvalidOperationException ex)
@@ -113,16 +114,16 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
             }
         }
 
-        [HttpDelete("{recordId:guid}")]
+        [HttpDelete("{entryId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Delete(Guid petId, Guid recordId)
+        public async Task<IActionResult> Delete(Guid petId, Guid entryId)
         {
             try
             {
                 var userId = User.GetUserId();
-                var deleted = await _service.DeleteAsync(petId, recordId, userId);
+                var deleted = await _service.DeleteAsync(petId, entryId, userId);
                 if (!deleted) return NotFound();
                 return NoContent();
             }
