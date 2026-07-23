@@ -19,7 +19,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Repository
             return await _dbContext.Pets.AnyAsync(p => p.Id == petId && p.UserId == userId);
         }
 
-        public async Task<IReadOnlyList<JournalEntry>> GetByPetIdAsync(Guid petId, JournalEntryType? type, JournalEntrySeverity? severity, DateTime? from, DateTime? to)
+        public async Task<IReadOnlyList<JournalEntry>> GetByPetIdAsync(Guid petId, JournalEntryType? type, JournalEntrySeverity? severity, SymptomType? symptom, DateTime? from, DateTime? to)
         {
             var query = _dbContext.JournalEntries
                 .AsNoTracking()
@@ -30,6 +30,9 @@ namespace smart_pet_care_api.Modules.JournalModule.Repository
 
             if (severity.HasValue)
                 query = query.Where(e => e.Severity == severity.Value);
+
+            if (symptom.HasValue)
+                query = query.Where(e => e.Symptoms != null && e.Symptoms.Contains(symptom.Value));
 
             if (from.HasValue)
                 query = query.Where(e => e.ObservedAt >= from.Value);

@@ -28,13 +28,14 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         public async Task<IActionResult> GetAll(
             Guid petId,
             [FromQuery] HealthRecordType? type,
+            [FromQuery] SymptomType? symptom,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
         {
             try
             {
                 var userId = User.GetUserId();
-                var records = await _service.GetByPetIdAsync(petId, userId, type, from, to);
+                var records = await _service.GetByPetIdAsync(petId, userId, type, symptom, from, to);
                 return Ok(records);
             }
             catch (InvalidOperationException ex)

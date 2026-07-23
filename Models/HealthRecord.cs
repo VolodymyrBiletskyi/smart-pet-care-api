@@ -14,6 +14,8 @@ namespace smart_pet_care_api.Models
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
 
+        public List<SymptomType>? Symptoms { get; set; }
+
         public DateTime PerformedAt { get; set; }
         public DateTime? NextDueAt { get; set; }
 

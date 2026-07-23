@@ -203,6 +203,51 @@ namespace smart_pet_care_api.Models
             Severe
         }
 
+        public enum SymptomType
+        {
+            // General
+            Fever,
+            Lethargy,
+            WeightLoss,
+            WeightGain,
+            Dehydration,
+            Pain,
+
+            // Digestive
+            Vomiting,
+            Diarrhea,
+            Constipation,
+            LossOfAppetite,
+            IncreasedAppetite,
+
+            // Respiratory
+            Coughing,
+            Sneezing,
+            NasalDischarge,
+            DifficultyBreathing,
+
+            // Skin & coat
+            Itching,
+            HairLoss,
+            Swelling,
+
+            // Urinary
+            IncreasedThirst,
+            FrequentUrination,
+
+            // Eyes & ears
+            EyeDischarge,
+            EarDischarge,
+
+            // Neurological & mobility
+            Seizure,
+            Limping,
+
+            // Other
+            Bleeding,
+            Other
+        }
+
         public enum AnimalSpecies
         {
             Unknown,

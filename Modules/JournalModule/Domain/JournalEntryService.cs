@@ -16,12 +16,13 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
             _repo = repo;
         }
 
-        public async Task<IReadOnlyList<JournalEntryResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, JournalEntryType? type, JournalEntrySeverity? severity, DateTime? from, DateTime? to)
+        public async Task<IReadOnlyList<JournalEntryResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, JournalEntryType? type, JournalEntrySeverity? severity, SymptomType? symptom, DateTime? from, DateTime? to)
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
 
             if (type.HasValue) ValidateType(type.Value);
             if (severity.HasValue) ValidateSeverity(severity.Value);
+            if (symptom.HasValue) ValidateSymptom(symptom.Value);
 
             var fromUtc = from is { } f ? JournalEntryMapper.NormalizeToUtc(f) : (DateTime?)null;
             var toUtc = to is { } t ? JournalEntryMapper.NormalizeToUtc(t) : (DateTime?)null;
@@ -29,7 +30,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc.Value > toUtc.Value)
                 throw new ArgumentException("From cannot be later than To");
 
-            var entries = await _repo.GetByPetIdAsync(petId, type, severity, fromUtc, toUtc);
+            var entries = await _repo.GetByPetIdAsync(petId, type, severity, symptom, fromUtc, toUtc);
             return entries.Select(e => e.ToDto()).ToList();
         }
 
@@ -96,6 +97,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         {
             ValidateType(dto.Type);
             if (dto.Severity.HasValue) ValidateSeverity(dto.Severity.Value);
+            ValidateSymptoms(dto.Symptoms);
             ValidateTitle(dto.Title);
             ValidateObservedAt(dto.ObservedAt);
             ValidateNotes(dto.Notes);
@@ -105,6 +107,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         {
             if (dto.Type.IsSet) ValidateType(dto.Type.Value);
             if (dto.Severity.IsSet && dto.Severity.Value.HasValue) ValidateSeverity(dto.Severity.Value.Value);
+            if (dto.Symptoms.IsSet) ValidateSymptoms(dto.Symptoms.Value);
             if (dto.Title.IsSet) ValidateTitle(dto.Title.Value);
             if (dto.ObservedAt.IsSet) ValidateObservedAt(dto.ObservedAt.Value);
             if (dto.Notes.IsSet) ValidateNotes(dto.Notes.Value);
@@ -120,6 +123,19 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         {
             if (!Enum.IsDefined(severity))
                 throw new ArgumentException("Severity is invalid");
+        }
+
+        private static void ValidateSymptoms(List<SymptomType>? symptoms)
+        {
+            if (symptoms is null) return;
+            foreach (var symptom in symptoms)
+                ValidateSymptom(symptom);
+        }
+
+        private static void ValidateSymptom(SymptomType symptom)
+        {
+            if (!Enum.IsDefined(symptom))
+                throw new ArgumentException("Symptom is invalid");
         }
 
         private static void ValidateTitle(string? title)

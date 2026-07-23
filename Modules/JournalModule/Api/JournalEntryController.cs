@@ -29,13 +29,14 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
             Guid petId,
             [FromQuery] JournalEntryType? type,
             [FromQuery] JournalEntrySeverity? severity,
+            [FromQuery] SymptomType? symptom,
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
         {
             try
             {
                 var userId = User.GetUserId();
-                var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, from, to);
+                var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, symptom, from, to);
                 return Ok(entries);
             }
             catch (InvalidOperationException ex)

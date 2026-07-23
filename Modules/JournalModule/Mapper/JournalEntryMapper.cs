@@ -1,6 +1,7 @@
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.JournalModule.DTOs.Requests;
 using smart_pet_care_api.Modules.JournalModule.DTOs.Responses;
+using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.JournalModule.Mapper
 {
@@ -12,6 +13,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Mapper
             Type = dto.Type,
             Title = dto.Title.Trim(),
             Notes = dto.Notes,
+            Symptoms = NormalizeSymptoms(dto.Symptoms),
             Severity = dto.Severity,
             ObservedAt = NormalizeToUtc(dto.ObservedAt),
             CreatedAt = DateTime.UtcNow
@@ -24,6 +26,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Mapper
             Type = entry.Type,
             Title = entry.Title,
             Notes = entry.Notes,
+            Symptoms = entry.Symptoms,
             Severity = entry.Severity,
             ObservedAt = entry.ObservedAt,
             CreatedAt = entry.CreatedAt,
@@ -35,9 +38,16 @@ namespace smart_pet_care_api.Modules.JournalModule.Mapper
             if (dto.Type.IsSet) entry.Type = dto.Type.Value;
             if (dto.Title.IsSet) entry.Title = dto.Title.Value!.Trim();
             if (dto.Notes.IsSet) entry.Notes = dto.Notes.Value;
+            if (dto.Symptoms.IsSet) entry.Symptoms = NormalizeSymptoms(dto.Symptoms.Value);
             if (dto.Severity.IsSet) entry.Severity = dto.Severity.Value;
             if (dto.ObservedAt.IsSet) entry.ObservedAt = NormalizeToUtc(dto.ObservedAt.Value);
             entry.UpdatedAt = DateTime.UtcNow;
+        }
+
+        public static List<SymptomType>? NormalizeSymptoms(List<SymptomType>? symptoms)
+        {
+            if (symptoms is null || symptoms.Count == 0) return null;
+            return symptoms.Distinct().ToList();
         }
 
         public static DateTime NormalizeToUtc(DateTime dateTime) =>

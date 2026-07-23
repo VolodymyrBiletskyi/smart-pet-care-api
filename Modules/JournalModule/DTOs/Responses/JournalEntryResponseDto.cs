@@ -9,6 +9,7 @@ namespace smart_pet_care_api.Modules.JournalModule.DTOs.Responses
         public JournalEntryType Type { get; set; }
         public string Title { get; set; } = null!;
         public string? Notes { get; set; }
+        public List<SymptomType>? Symptoms { get; set; }
         public JournalEntrySeverity? Severity { get; set; }
         public DateTime ObservedAt { get; set; }
         public DateTime CreatedAt { get; set; }
