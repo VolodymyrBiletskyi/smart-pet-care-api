@@ -182,7 +182,25 @@ namespace smart_pet_care_api.Models
             Medication,
             VetVisit,
             Surgery,
-            HealthNote
+            HealthNote,
+            Symptom
+        }
+
+        public enum JournalEntryType
+        {
+            Observation,
+            Symptom,
+            BehaviorChange,
+            AppetiteChange,
+            PreVetNote,
+            Other
+        }
+
+        public enum JournalEntrySeverity
+        {
+            Mild,
+            Moderate,
+            Severe
         }
 
         public enum AnimalSpecies

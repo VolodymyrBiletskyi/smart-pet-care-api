@@ -26,6 +26,7 @@ namespace smart_pet_care_api.Data
         public DbSet<ChatSession> ChatSessions { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<HealthRecord> HealthRecords { get; set; }
+        public DbSet<JournalEntry> JournalEntries { get; set; }
         public DbSet<PetWeightLog> PetWeightLogs { get; set; }
         public DbSet<ActivityDaily> ActivityDailies { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
