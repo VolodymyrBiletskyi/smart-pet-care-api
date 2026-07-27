@@ -27,6 +27,15 @@ namespace smart_pet_care_api.Modules.FeedingModule.Repository
                 .ToListAsync();
         }
 
+        public async Task<IReadOnlyList<FeedingLog>> GetByPetIdAndRangeAsync(Guid petId, DateTime startUtc, DateTime endUtc)
+        {
+            return await _dbContext.FeedingLogs
+                .AsNoTracking()
+                .Where(f => f.PetId == petId && f.FedAt >= startUtc && f.FedAt < endUtc)
+                .OrderBy(f => f.FedAt)
+                .ToListAsync();
+        }
+
         public async Task<FeedingLog?> GetByIdAsync(Guid id)
         {
             return await _dbContext.FeedingLogs
