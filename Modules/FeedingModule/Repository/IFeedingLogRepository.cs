@@ -6,6 +6,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Repository
     {
         Task<bool> PetBelongsToUserAsync(Guid petId, Guid userId);
         Task<IReadOnlyList<FeedingLog>> GetByPetIdAsync(Guid petId);
+        Task<IReadOnlyList<FeedingLog>> GetByPetIdAndRangeAsync(Guid petId, DateTime startUtc, DateTime endUtc);
         Task<FeedingLog?> GetByIdAsync(Guid id);
         Task<FeedingLog?> GetTrackedByIdAsync(Guid id);
         Task<FeedingLog> AddAsync(FeedingLog entity);
