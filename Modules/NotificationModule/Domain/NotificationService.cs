@@ -9,6 +9,21 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
 {
     public class NotificationService : INotificationService
     {
+        // Channel ids are versioned (-v1) because Android freezes a channel's sound at creation
+        // time; changing a sound later requires shipping a new channel id, not editing this one.
+        private static readonly Dictionary<AnimalSpecies, (string ChannelId, string Sound)> SpeciesChannels = new()
+        {
+            [AnimalSpecies.Dog] = ("pet-reminders-dog-v1", "dog.wav"),
+            [AnimalSpecies.Cat] = ("pet-reminders-cat-v1", "cat.wav"),
+            [AnimalSpecies.GuineaPig] = ("pet-reminders-guinea-pig-v1", "guinea_pig.wav"),
+            [AnimalSpecies.Bird] = ("pet-reminders-bird-v1", "bird.wav"),
+            [AnimalSpecies.Fish] = ("pet-reminders-fish-v1", "fish.wav")
+        };
+
+        // Unknown, Rabbit, Hamster, Turtle and Other fall through to this, as does any species
+        // added to the enum later without a bundled sound.
+        private static readonly (string ChannelId, string Sound) DefaultChannel = ("default", "default");
+
         private readonly IDeviceTokenRepository _tokenRepo;
         private readonly IPetRepository _petRepo;
         private readonly FcmRetryPolicy _retry;
@@ -53,25 +68,35 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             }
 
             var (title, body) = BuildContent(reminder, pet.Name);
+
+            // Resolved once per reminder rather than per token: every device for this user is
+            // being notified about the same pet, so the channel cannot differ between messages.
+            var channel = ResolveChannel(pet.Species);
+
             var data = new Dictionary<string, string>
             {
                 ["reminderId"] = reminder.Id.ToString(),
                 ["petId"] = reminder.PetId.ToString(),
                 ["petSpecies"] = pet.Species.ToString(),
                 ["reminderType"] = reminder.Type.ToString(),
-                ["scheduledAt"] = scheduledFor.ToString("o")
+                ["scheduledAt"] = scheduledFor.ToString("o"),
+                ["channelId"] = channel.ChannelId
             };
 
             return tokens.Count == 1
-                ? await SendSingleAsync(tokens[0], title, body, data, ct)
-                : await SendBatchAsync(tokens, title, body, data, ct);
+                ? await SendSingleAsync(tokens[0], title, body, data, channel, ct)
+                : await SendBatchAsync(tokens, title, body, data, channel, ct);
         }
+
+        private static (string ChannelId, string Sound) ResolveChannel(AnimalSpecies species) =>
+            SpeciesChannels.TryGetValue(species, out var channel) ? channel : DefaultChannel;
 
         private async Task<bool> SendSingleAsync(
             DeviceToken token, string title, string body,
-            IReadOnlyDictionary<string, string> data, CancellationToken ct)
+            IReadOnlyDictionary<string, string> data,
+            (string ChannelId, string Sound) channel, CancellationToken ct)
         {
-            var message = BuildMessage(token.Token, title, body, data);
+            var message = BuildMessage(token.Token, title, body, data, channel);
 
             try
             {
@@ -94,10 +119,11 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
 
         private async Task<bool> SendBatchAsync(
             IReadOnlyList<DeviceToken> tokens, string title, string body,
-            IReadOnlyDictionary<string, string> data, CancellationToken ct)
+            IReadOnlyDictionary<string, string> data,
+            (string ChannelId, string Sound) channel, CancellationToken ct)
         {
             var messages = tokens
-                .Select(t => BuildMessage(t.Token, title, body, data))
+                .Select(t => BuildMessage(t.Token, title, body, data, channel))
                 .ToList();
 
             BatchResponse response;
@@ -134,14 +160,23 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
         }
 
         private static Message BuildMessage(
-            string token, string title, string body, IReadOnlyDictionary<string, string> data)
+            string token, string title, string body, IReadOnlyDictionary<string, string> data,
+            (string ChannelId, string Sound) channel)
         {
             return new Message
             {
                 Token = token,
                 Notification = new Notification { Title = title, Body = body },
                 Data = new Dictionary<string, string>(data),
-                Android = new AndroidConfig { Priority = Priority.High },
+                Android = new AndroidConfig
+                {
+                    Priority = Priority.High,
+                    Notification = new AndroidNotification
+                    {
+                        ChannelId = channel.ChannelId,
+                        Sound = channel.Sound
+                    }
+                },
                 Apns = new ApnsConfig
                 {
                     Aps = new Aps { Sound = "default" }
