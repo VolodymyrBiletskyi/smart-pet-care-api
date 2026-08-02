@@ -1,8 +1,17 @@
 **/bin/
 **/obj/
+**/TestResults/
 .vs/
 .vscode/
+.git/
+.github/
 appsettings.json
 appsettings.*.json
 .env
 *.md
+*.log
+secrets/
+certbot/
+nginx/
+dockerfile
+docker-compose*.yml

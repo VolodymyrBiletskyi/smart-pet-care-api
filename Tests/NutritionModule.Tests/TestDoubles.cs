@@ -143,55 +143,45 @@ internal sealed class FakeNutritionAnalysisRepository : INutritionAnalysisReposi
 }
 
 /// <summary>
-/// Stands in for the two routes the analysis currently uses — <c>wellness</c>
-/// for the graded figures and <c>chat</c> for the prose — plus the dedicated
-/// <c>nutrition-analysis</c> route for whenever the classifier implements it.
+/// Stands in for the classifier's <c>feeding-summary</c> route. The response is
+/// echoed back for whichever pet the request asked about, so tests only have to
+/// state the grading they care about.
 /// </summary>
 internal sealed class FakeClassifierClient : IClassifierClient
 {
     private readonly Exception? _exception;
 
     public FakeClassifierClient(
-        ClassifierNutritionResponse? response = null,
-        Exception? exception = null,
-        ClassifierWellnessResponse? wellness = null,
-        ClassifierChatResponse? chat = null)
+        ClassifierFeedingSummaryResponse? response = null,
+        Exception? exception = null)
     {
-        Response = response ?? Default();
-        WellnessResponse = wellness ?? DefaultWellness();
-        ChatResponse = chat ?? DefaultChat();
+        Response = response;
         _exception = exception;
     }
 
-    public ClassifierNutritionResponse Response { get; set; }
-    public ClassifierWellnessResponse WellnessResponse { get; set; }
-    public ClassifierChatResponse ChatResponse { get; set; }
+    /// <summary>When null, the request's own pet is graded with <see cref="DefaultResult"/>.</summary>
+    public ClassifierFeedingSummaryResponse? Response { get; set; }
 
-    public List<ClassifierNutritionRequest> Requests { get; } = [];
-    public List<ClassifierWellnessRequest> WellnessRequests { get; } = [];
+    public string Disclaimer { get; set; } = "This guidance does not replace a veterinary examination.";
+
+    public List<ClassifierFeedingSummaryRequest> Requests { get; } = [];
     public List<ClassifierChatRequest> ChatRequests { get; } = [];
 
-    public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-        ClassifierNutritionRequest request,
+    public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+        ClassifierFeedingSummaryRequest request,
         CancellationToken cancellationToken = default)
     {
         Requests.Add(request);
         if (_exception is not null)
         {
-            throw _exception;
+            return Task.FromException<ClassifierFeedingSummaryResponse>(_exception);
         }
 
-        return Task.FromResult(Response);
-    }
-
-    public Task<ClassifierWellnessResponse> AnalyzeWellnessAsync(
-        ClassifierWellnessRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        WellnessRequests.Add(request);
-        return _exception is not null
-            ? Task.FromException<ClassifierWellnessResponse>(_exception)
-            : Task.FromResult(WellnessResponse);
+        return Task.FromResult(Response ?? new ClassifierFeedingSummaryResponse
+        {
+            Results = [.. request.Pets.Select(pet => DefaultResult(pet.PetId))],
+            Disclaimer = Disclaimer
+        });
     }
 
     public Task<ClassifierChatResponse> ChatAsync(
@@ -201,44 +191,24 @@ internal sealed class FakeClassifierClient : IClassifierClient
         ChatRequests.Add(request);
         return _exception is not null
             ? Task.FromException<ClassifierChatResponse>(_exception)
-            : Task.FromResult(ChatResponse);
+            : Task.FromResult(DefaultChat());
     }
 
-    public static ClassifierNutritionResponse Default() => new()
-    {
-        Grade = ClassifierNutritionGrade.B,
-        Score = 78,
-        Summary = "Slightly under the calorie target.",
-        Advice = ["Add a small evening meal."],
-        Disclaimer = "This guidance does not replace a veterinary examination."
-    };
-
-    /// <summary>On target, so it grades A.</summary>
-    public static ClassifierWellnessResponse DefaultWellness(double calorieRatio = 1.0) => new()
-    {
-        Breakdown = new ClassifierWellnessBreakdown
+    public static ClassifierFeedingSummaryResult DefaultResult(
+        string petId,
+        ClassifierFeedingStatus status = ClassifierFeedingStatus.UnderTarget) => new()
         {
-            Diet = new ClassifierWellnessBreakdownItem
-            {
-                Score = 14.3,
-                MaxScore = 20.0,
-                Availability = "AVAILABLE",
-                Included = true,
-                ReasonCodes = ["DIET_TRACKING_NEEDS_ATTENTION"],
-                Evidence = new ClassifierWellnessDietEvidence
-                {
-                    CalorieTargetPerDay = 434,
-                    CalorieRatio = calorieRatio
-                }
-            }
-        },
-        Disclaimer = "Wellness disclaimer."
-    };
+            PetId = petId,
+            Status = status,
+            TargetCalories = 600m,
+            ActualCalories = 480m,
+            DeviationPct = -20m
+        };
 
     public static ClassifierChatResponse DefaultChat(string? answer = null) => new()
     {
         Mode = ClassifierChatMode.General,
-        Answer = answer ?? "Buddy came in under target today.\n- Add a small evening meal.\n- Keep portions consistent.",
+        Answer = answer ?? "Buddy came in under target today.",
         SymptomSummary = string.Empty,
         RelatedTopics = ["dog nutrition"],
         Disclaimer = "This guidance does not replace a veterinary examination."

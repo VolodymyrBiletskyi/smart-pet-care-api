@@ -5,7 +5,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>smart_pet_care_api</RootNamespace>
-    <DefaultItemExcludes>$(DefaultItemExcludes);Modules/ChatModule.Tests/**</DefaultItemExcludes>
+    <!--
+      This is a Web SDK project, so Content is globbed as **\* from the repo
+      root. Test projects live underneath it, and their bin/obj are not covered
+      by the default bin/obj exclusion (that only applies at the project root).
+      Without these, the web project copies each test project's output into its
+      own, the test projects copy that back via ProjectReference, and every
+      build nests the tree one level deeper.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Modules/ChatModule.Tests/**;Tests/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

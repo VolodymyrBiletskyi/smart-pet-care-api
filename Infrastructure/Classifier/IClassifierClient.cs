@@ -8,11 +8,7 @@ public interface IClassifierClient
         ClassifierChatRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-        ClassifierNutritionRequest request,
-        CancellationToken cancellationToken = default);
-
-    Task<ClassifierWellnessResponse> AnalyzeWellnessAsync(
-        ClassifierWellnessRequest request,
+    Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+        ClassifierFeedingSummaryRequest request,
         CancellationToken cancellationToken = default);
 }

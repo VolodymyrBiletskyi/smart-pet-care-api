@@ -441,10 +441,10 @@ public sealed class ChatServiceTests
             return Task.FromResult(responses.Dequeue());
         }
 
-        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-            ClassifierNutritionRequest request,
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
             CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not analyse nutrition.");
+            throw new NotSupportedException("Chat tests do not summarise feeding.");
     }
 
     private sealed class ControlledClassifierClient : IClassifierClient
@@ -464,10 +464,10 @@ public sealed class ChatServiceTests
             return response.Task.WaitAsync(cancellationToken);
         }
 
-        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-            ClassifierNutritionRequest request,
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
             CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not analyse nutrition.");
+            throw new NotSupportedException("Chat tests do not summarise feeding.");
 
         public void Complete(ClassifierChatResponse classifierResponse)
         {
@@ -488,8 +488,8 @@ public sealed class ChatServiceTests
             throw exception;
         }
 
-        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-            ClassifierNutritionRequest request,
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
             CancellationToken cancellationToken = default) =>
             throw exception;
     }

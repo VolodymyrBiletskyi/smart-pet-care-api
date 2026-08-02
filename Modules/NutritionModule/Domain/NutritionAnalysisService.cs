@@ -1,9 +1,9 @@
-using System.Globalization;
-using System.Text;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ChatModule.Domain;
+using smart_pet_care_api.Modules.FeedingModule.Repository;
+using smart_pet_care_api.Modules.NutritionModule.DTOs.Requests;
 using smart_pet_care_api.Modules.NutritionModule.DTOs.Responses;
 using smart_pet_care_api.Modules.NutritionModule.Mapper;
 using smart_pet_care_api.Modules.NutritionModule.Repository;
@@ -18,20 +18,39 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
 
         private const int AverageDaysPerMonth = 30;
 
-        private readonly INutritionService _nutritionService;
+        // Limits the classifier enforces on `feeding-summary`. Breaking one is
+        // a 422, which surfaces to the client as a 502, so the request is
+        // shaped to fit rather than sent optimistically.
+        private const decimal MaxWeightKg = 500m;
+        private const int MaxAgeMonths = 600;
+        private const int MaxProducts = 100;
+        private const int MaxProductNameLength = 200;
+        private const decimal MaxProductCalories = 20000m;
+
+        // Status bands used when a goal replaces the classifier's target. They
+        // reproduce every classifier result observed on the live route: -35.1%
+        // is UNDER_TARGET, -100% is EXTREME_UNDER_TARGET, +981.2% is
+        // EXTREME_OVER_TARGET.
+        private const decimal OnTargetDeviationPct = 10m;
+        private const decimal ExtremeDeviationPct = 50m;
+
         private readonly INutritionAnalysisRepository _analysisRepo;
         private readonly IPetRepository _petRepo;
+        private readonly IFeedingLogRepository _feedingRepo;
+        private readonly INutritionGoalRepository _goalRepo;
         private readonly IClassifierClient _classifier;
 
         public NutritionAnalysisService(
-            INutritionService nutritionService,
             INutritionAnalysisRepository analysisRepo,
             IPetRepository petRepo,
+            IFeedingLogRepository feedingRepo,
+            INutritionGoalRepository goalRepo,
             IClassifierClient classifier)
         {
-            _nutritionService = nutritionService;
             _analysisRepo = analysisRepo;
             _petRepo = petRepo;
+            _feedingRepo = feedingRepo;
+            _goalRepo = goalRepo;
             _classifier = classifier;
         }
 
@@ -40,30 +59,43 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
             Guid userId,
             DateOnly? date,
             int utcOffsetMinutes,
+            NutritionAnalysisRequestDto? request = null,
             CancellationToken cancellationToken = default)
         {
             var pet = await _petRepo.GetByIdAndUserIdAsync(petId, userId)
                 ?? throw new InvalidOperationException("Pet not found");
 
-            // Ownership and offset validation live in the summary service; this
-            // keeps the analysed figures identical to what GET returns.
-            var summary = await _nutritionService.GetDailySummaryAsync(
-                petId, userId, date, utcOffsetMinutes);
+            // Rejected before the day's logs are read — neither the weight nor
+            // the offset check depends on them.
+            var weightKg = RequireWeight(request?.WeightKg ?? pet.WeightKg);
 
-            // The classifier has no single nutrition route yet, so the graded
-            // figures come from `wellness` and the prose from `chat`. Both are
-            // issued together because neither depends on the other's result.
-            var wellnessTask = _classifier.AnalyzeWellnessAsync(
-                BuildWellnessRequest(pet, summary),
-                cancellationToken);
-            var chatTask = _classifier.ChatAsync(
-                BuildChatRequest(pet, summary),
+            // The same window the daily summary reads, so an analysis always
+            // grades the day the client is looking at. It is resolved even when
+            // the caller supplies products, because the stored analysis is
+            // still filed under a local date.
+            var (localDate, startUtc, endUtc) = NutritionService.ResolveDayWindow(date, utcOffsetMinutes);
+
+            // Supplied products replace the day's logs outright; the logs are
+            // not even read, so a caller can grade a meal plan that was never
+            // recorded. An empty array is a deliberate "ate nothing".
+            var (products, mealCount) = request?.Products is { } supplied
+                ? (BuildProducts(supplied), supplied.Count)
+                : await ReadLoggedProductsAsync(petId, startUtc, endUtc);
+
+            var response = await _classifier.SummarizeFeedingAsync(
+                BuildRequest(pet, weightKg, products, request),
                 cancellationToken);
 
-            await Task.WhenAll(wellnessTask, chatTask);
+            var result = FindResult(response, petId);
+
+            // A user-set calorie goal outranks the target the classifier
+            // derived from body weight. Read after the call so a classifier
+            // failure costs no query.
+            var goal = await _goalRepo.GetByPetIdAsync(petId);
+            result = ApplyGoalTarget(result, goal);
 
             var analysis = NutritionAnalysisMapper.ToEntity(
-                wellnessTask.Result, chatTask.Result, summary);
+                result, response.Disclaimer, petId, localDate, utcOffsetMinutes, mealCount);
             await _analysisRepo.AddAsync(analysis);
             await _analysisRepo.SaveChangesAsync();
 
@@ -87,164 +119,176 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         }
 
         /// <summary>
-        /// Asks the wellness route to score the day's feeding. Only the pet and
-        /// feeding dimensions are supplied, so the overall wellness score comes
-        /// back null — the analysis reads the diet dimension alone.
+        /// Asks the classifier to grade one pet. The route takes a batch, so the
+        /// pet list holds a single entry and the matching result is picked out
+        /// of the response by <c>petId</c>.
         /// </summary>
-        private static ClassifierWellnessRequest BuildWellnessRequest(
-            Pet pet, DailyNutritionSummaryResponseDto summary)
+        private static ClassifierFeedingSummaryRequest BuildRequest(
+            Pet pet,
+            decimal weightKg,
+            IReadOnlyList<ClassifierFeedingProduct> products,
+            NutritionAnalysisRequestDto? request)
         {
-            var date = summary.Date.ToString("yyyy-MM-dd");
+            var species = request?.Species ?? pet.Species;
 
-            return new ClassifierWellnessRequest
+            return new ClassifierFeedingSummaryRequest
             {
-                Pet = new ClassifierWellnessPet
-                {
-                    Species = PetTypeMapper.ToClassifierPetType(PetTypeMapper.Map(pet.Species)),
-                    Breed = pet.Breed,
-                    AgeMonths = ToAgeMonths(pet.BirthDate),
-                    WeightKg = pet.WeightKg
-                },
-                Feeding = new ClassifierWellnessFeeding
-                {
-                    AvgMealsPerDay = summary.MealCount,
-                    AvgCaloriesPerDay = summary.TotalCalories,
-
-                    // One analysed day is one day of history. The diet dimension
-                    // scores tracking consistency too, which is why the grade is
-                    // taken from the calorie ratio rather than that score.
-                    ConsistencyDays = 1
-                },
-                EvaluationWindow = new ClassifierWellnessEvaluationWindow
-                {
-                    StartDate = date,
-                    EndDate = date
-                }
-            };
-        }
-
-        /// <summary>
-        /// Puts the day's figures to the chat route as a single user turn and
-        /// asks for a bulleted reply, which the mapper splits into the summary
-        /// and the advice list. No session is created — this is a one-shot turn.
-        /// </summary>
-        private static ClassifierChatRequest BuildChatRequest(
-            Pet pet, DailyNutritionSummaryResponseDto summary)
-        {
-            return new ClassifierChatRequest
-            {
-                PetType = PetTypeMapper.ToClassifierPetType(PetTypeMapper.Map(pet.Species)),
-                Messages =
+                Pets =
                 [
-                    new ClassifierChatMessage
+                    new ClassifierFeedingSummaryPet
                     {
-                        Role = ClassifierChatRole.User,
-                        Content = BuildChatPrompt(pet, summary)
+                        PetId = pet.Id.ToString("D"),
+                        Species = PetTypeMapper.ToClassifierPetType(PetTypeMapper.Map(species)),
+                        Breed = request?.Breed ?? pet.Breed,
+                        WeightKg = weightKg,
+                        AgeMonths = request?.AgeMonths ?? ToAgeMonths(pet.BirthDate),
+                        Products = products
                     }
                 ]
             };
         }
 
-        private static string BuildChatPrompt(Pet pet, DailyNutritionSummaryResponseDto summary)
+        /// <summary>
+        /// The classifier derives the calorie target from body weight, so it has
+        /// no way to grade a pet that has none — whether the caller supplied one
+        /// or the pet has one recorded.
+        /// </summary>
+        private static decimal RequireWeight(decimal? weightKg)
         {
-            var prompt = new StringBuilder();
-            prompt.Append("Review my ").Append(pet.Species);
+            if (weightKg is not { } weight || weight <= 0 || weight > MaxWeightKg)
+                throw new ArgumentException(
+                    $"A weight above 0 and at most {MaxWeightKg:0} kg is needed before feeding "
+                    + "can be analysed — send weightKg or record one on the pet");
 
-            if (!string.IsNullOrWhiteSpace(pet.Breed))
-                prompt.Append(" (").Append(pet.Breed).Append(')');
-
-            var ageMonths = ToAgeMonths(pet.BirthDate);
-            if (pet.WeightKg is { } weight)
-                prompt.Append(", ").Append(weight.ToString("0.#", CultureInfo.InvariantCulture)).Append(" kg");
-            if (ageMonths is { } age)
-                prompt.Append(", ").Append(age).Append(" months old");
-
-            prompt.Append("'s feeding for ").Append(summary.Date.ToString("yyyy-MM-dd")).AppendLine(".");
-            prompt.Append("Meals logged: ").Append(summary.MealCount).AppendLine();
-            prompt.Append("Total calories: ").Append(summary.TotalCalories).AppendLine();
-
-            foreach (var portion in summary.PortionTotalsByUnit)
-            {
-                prompt.Append("Portions: ")
-                    .Append(portion.TotalAmount.ToString("0.#", CultureInfo.InvariantCulture))
-                    .Append(' ').Append(portion.Unit).AppendLine();
-            }
-
-            prompt.Append("Scheduled feedings: ").Append(summary.ScheduledFeedings).AppendLine();
-
-            if (summary.Goal is { } goal)
-            {
-                prompt.Append("Daily goal:");
-                if (goal.DailyCalorieTarget is { } calories)
-                    prompt.Append(' ').Append(calories).Append(" kcal;");
-                if (goal.DailyPortionTarget is { } portion)
-                    prompt.Append(' ').Append(portion.ToString("0.#", CultureInfo.InvariantCulture))
-                        .Append(' ').Append(goal.PortionUnit).Append(';');
-                if (goal.MealsPerDay is { } meals)
-                    prompt.Append(' ').Append(meals).Append(" meals;");
-                prompt.AppendLine();
-            }
-
-            if (summary.Comparison is { } comparison)
-            {
-                if (comparison.CaloriesRemaining is { } caloriesLeft)
-                    prompt.Append("Calories remaining against the goal: ").Append(caloriesLeft).AppendLine();
-                if (comparison.MealsRemaining is { } mealsLeft)
-                    prompt.Append("Meals remaining against the goal: ").Append(mealsLeft).AppendLine();
-                if (comparison.PortionRemaining is { } portionLeft)
-                    prompt.Append("Portion remaining against the goal: ")
-                        .Append(portionLeft.ToString("0.#", CultureInfo.InvariantCulture)).AppendLine();
-            }
-
-            prompt.AppendLine()
-                .AppendLine("Summarise the day in one or two sentences, then give up to three short, "
-                    + "actionable feeding tips. Put each tip on its own line beginning with a dash.");
-
-            return prompt.ToString();
+            return weight;
         }
 
-        private static ClassifierNutritionRequest BuildRequest(
-            Pet pet, DailyNutritionSummaryResponseDto summary)
+        private async Task<(List<ClassifierFeedingProduct> Products, int MealCount)>
+            ReadLoggedProductsAsync(Guid petId, DateTime startUtc, DateTime endUtc)
         {
-            var goal = summary.Goal;
+            var logs = await _feedingRepo.GetByPetIdAndRangeAsync(petId, startUtc, endUtc);
+            return (BuildProducts(logs), logs.Count);
+        }
 
-            return new ClassifierNutritionRequest
+        /// <summary>
+        /// Maps caller-supplied products onto the wire contract. Model
+        /// validation has already enforced the classifier's limits; the clamp
+        /// and truncation here keep a service-level caller from bypassing them.
+        /// Entries are passed through in the order given rather than merged,
+        /// because the caller chose that list.
+        /// </summary>
+        private static List<ClassifierFeedingProduct> BuildProducts(
+            IReadOnlyList<NutritionAnalysisProductDto> products)
+        {
+            return products
+                .Take(MaxProducts)
+                .Select(product => new ClassifierFeedingProduct
+                {
+                    Name = TruncateName(product.Name.Trim()),
+                    Calories = ToProductCalories(product.Calories)
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Collapses the day's feeding logs into the product list the classifier
+        /// grades. Logs of the same food are merged so the list stays inside the
+        /// route's limits without losing calories.
+        /// </summary>
+        private static List<ClassifierFeedingProduct> BuildProducts(IReadOnlyList<FeedingLog> logs)
+        {
+            var products = logs
+                .GroupBy(ProductName)
+                .Select(group => new ClassifierFeedingProduct
+                {
+                    Name = group.Key,
+                    Calories = ToProductCalories(group.Sum(log => (decimal)(log.ApproxCalories ?? 0)))
+                })
+                .OrderByDescending(product => product.Calories)
+                .ThenBy(product => product.Name, StringComparer.Ordinal)
+                .ToList();
+
+            if (products.Count <= MaxProducts)
+                return products;
+
+            // Over the route's cap the smallest entries are merged rather than
+            // dropped, because the calorie total is what gets graded.
+            var kept = products.Take(MaxProducts - 1).ToList();
+            kept.Add(new ClassifierFeedingProduct
             {
-                RequestId = Guid.NewGuid().ToString("D"),
-                PetType = PetTypeMapper.ToClassifierPetType(PetTypeMapper.Map(pet.Species)),
-                Breed = pet.Breed,
-                WeightKg = pet.WeightKg,
-                AgeMonths = ToAgeMonths(pet.BirthDate),
-                Date = summary.Date.ToString("yyyy-MM-dd"),
-                MealCount = summary.MealCount,
-                TotalCalories = summary.TotalCalories,
-                PortionTotals = summary.PortionTotalsByUnit
-                    .Select(total => new ClassifierNutritionPortionTotal
-                    {
-                        Unit = NutritionAnalysisMapper.ToClassifierPortionUnit(total.Unit),
-                        TotalAmount = total.TotalAmount
-                    })
-                    .ToList(),
-                ScheduledFeedings = summary.ScheduledFeedings,
-                Goal = goal is null ? null : new ClassifierNutritionGoal
-                {
-                    DailyCalorieTarget = goal.DailyCalorieTarget,
-                    DailyPortionTarget = goal.DailyPortionTarget,
-                    PortionUnit = goal.PortionUnit is null
-                        ? null
-                        : NutritionAnalysisMapper.ToClassifierPortionUnit(goal.PortionUnit.Value),
-                    MealsPerDay = goal.MealsPerDay
-                },
-                Comparison = summary.Comparison is null ? null : new ClassifierNutritionComparison
-                {
-                    CaloriesRemaining = summary.Comparison.CaloriesRemaining,
-                    CalorieTargetMet = summary.Comparison.CalorieTargetMet,
-                    MealsRemaining = summary.Comparison.MealsRemaining,
-                    MealsTargetMet = summary.Comparison.MealsTargetMet,
-                    PortionRemaining = summary.Comparison.PortionRemaining,
-                    PortionTargetMet = summary.Comparison.PortionTargetMet
-                }
+                Name = "Other foods",
+                Calories = ToProductCalories(
+                    products.Skip(MaxProducts - 1).Sum(product => product.Calories))
+            });
+
+            return kept;
+        }
+
+        /// <summary>The food's own name, falling back to its type when unnamed.</summary>
+        private static string ProductName(FeedingLog log)
+        {
+            var name = log.FoodName?.Trim();
+            if (string.IsNullOrEmpty(name))
+                name = log.FoodType.ToString();
+
+            return TruncateName(name);
+        }
+
+        private static string TruncateName(string name) =>
+            name.Length <= MaxProductNameLength ? name : name[..MaxProductNameLength];
+
+        private static decimal ToProductCalories(decimal calories) =>
+            Math.Clamp(calories, 0m, MaxProductCalories);
+
+        /// <summary>
+        /// Re-grades the classifier's verdict against the pet's own calorie
+        /// goal. The <c>feeding-summary</c> route accepts no target input — it
+        /// always derives one from body weight — so a user-set goal can only be
+        /// applied here, after the response. Deviation and status are
+        /// recomputed alongside the target, because a stored row whose
+        /// deviation was measured against a different target contradicts
+        /// itself.
+        /// </summary>
+        private static ClassifierFeedingSummaryResult ApplyGoalTarget(
+            ClassifierFeedingSummaryResult result, NutritionGoal? goal)
+        {
+            // A goal of zero has no meaningful deviation to express (and no
+            // division), so the classifier's body-weight target stands.
+            if (goal?.DailyCalorieTarget is not > 0)
+                return result;
+
+            var target = (decimal)goal.DailyCalorieTarget.Value;
+            var deviationPct = Math.Round(
+                (result.ActualCalories - target) / target * 100m,
+                2,
+                MidpointRounding.AwayFromZero);
+
+            return result with
+            {
+                TargetCalories = target,
+                DeviationPct = deviationPct,
+                Status = ToStatus(deviationPct)
             };
+        }
+
+        private static ClassifierFeedingStatus ToStatus(decimal deviationPct) => deviationPct switch
+        {
+            <= -ExtremeDeviationPct => ClassifierFeedingStatus.ExtremeUnderTarget,
+            < -OnTargetDeviationPct => ClassifierFeedingStatus.UnderTarget,
+            <= OnTargetDeviationPct => ClassifierFeedingStatus.OnTarget,
+            < ExtremeDeviationPct => ClassifierFeedingStatus.OverTarget,
+            _ => ClassifierFeedingStatus.ExtremeOverTarget
+        };
+
+        private static ClassifierFeedingSummaryResult FindResult(
+            ClassifierFeedingSummaryResponse response, Guid petId)
+        {
+            var petIdText = petId.ToString("D");
+            return response.Results.FirstOrDefault(result =>
+                    string.Equals(result.PetId, petIdText, StringComparison.OrdinalIgnoreCase))
+                ?? throw new ClassifierInvalidResponseException(
+                    "The classifier returned a malformed response.",
+                    validationReason: "results holds no entry for the requested petId");
         }
 
         private static int? ToAgeMonths(DateTime? birthDate)
@@ -253,7 +297,12 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
                 return null;
 
             var days = (DateTime.UtcNow - birthDate.Value).TotalDays;
-            return days < 0 ? null : (int)(days / AverageDaysPerMonth);
+            if (days < 0)
+                return null;
+
+            // The route caps age at 600 months; anything older is treated as
+            // fully grown either way.
+            return Math.Min((int)(days / AverageDaysPerMonth), MaxAgeMonths);
         }
 
         private async Task TrimToRetainedAsync(Guid petId)

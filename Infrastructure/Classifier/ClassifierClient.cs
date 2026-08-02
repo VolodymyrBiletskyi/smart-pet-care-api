@@ -37,25 +37,14 @@ public sealed class ClassifierClient : IClassifierClient
             cancellationToken);
     }
 
-    public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-        ClassifierNutritionRequest request,
+    public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+        ClassifierFeedingSummaryRequest request,
         CancellationToken cancellationToken = default)
     {
-        return SendAsync<ClassifierNutritionRequest, ClassifierNutritionResponse>(
-            "nutrition-analysis",
+        return SendAsync<ClassifierFeedingSummaryRequest, ClassifierFeedingSummaryResponse>(
+            "feeding-summary",
             request,
-            ValidateNutritionResponse,
-            cancellationToken);
-    }
-
-    public Task<ClassifierWellnessResponse> AnalyzeWellnessAsync(
-        ClassifierWellnessRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        return SendAsync<ClassifierWellnessRequest, ClassifierWellnessResponse>(
-            "wellness",
-            request,
-            ValidateWellnessResponse,
+            ValidateFeedingSummaryResponse,
             cancellationToken);
     }
 
@@ -410,81 +399,47 @@ public sealed class ClassifierClient : IClassifierClient
     }
 
     /// <summary>Returns null when valid, otherwise why the contract was broken.</summary>
-    private static string? ValidateNutritionResponse(ClassifierNutritionResponse? response)
+    private static string? ValidateFeedingSummaryResponse(ClassifierFeedingSummaryResponse? response)
     {
         if (response is null)
         {
             return "body was null or empty";
         }
 
-        if (!Enum.IsDefined(response.Grade))
+        if (response.Results is null)
         {
-            return "grade is missing or not one of A/B/C/D/F";
+            return "results is missing";
         }
 
-        if (response.Score is < 0 or > 100)
+        // Every request carries at least one pet, so an empty result set never
+        // answers the question that was asked.
+        if (response.Results.Count == 0)
         {
-            return "score is outside 0-100";
+            return "results is empty";
         }
 
-        if (response.Summary is null)
+        foreach (var result in response.Results)
         {
-            return "summary is missing";
-        }
+            if (result is null)
+            {
+                return "results contains a null entry";
+            }
 
-        if (response.Advice is null)
-        {
-            return "advice is missing";
-        }
+            if (string.IsNullOrEmpty(result.PetId))
+            {
+                return "results contains an entry without a petId";
+            }
 
-        if (response.Advice.Any(advice => advice is null))
-        {
-            return "advice contains a null entry";
+            if (!Enum.IsDefined(result.Status))
+            {
+                return "results contains an entry whose status is missing or not one of "
+                    + "EXTREME_UNDER_TARGET/UNDER_TARGET/ON_TARGET/OVER_TARGET/EXTREME_OVER_TARGET";
+            }
         }
 
         return response.Disclaimer is null
             ? "disclaimer is missing"
             : null;
-    }
-
-    /// <summary>
-    /// Returns null when valid, otherwise why the contract was broken. Only the
-    /// diet dimension is checked — the nutrition analysis ignores the other five
-    /// and the overall wellness score, which is null whenever the pet has no
-    /// activity or preventive-care data.
-    /// </summary>
-    private static string? ValidateWellnessResponse(ClassifierWellnessResponse? response)
-    {
-        if (response is null)
-        {
-            return "body was null or empty";
-        }
-
-        var diet = response.Breakdown?.Diet;
-        if (diet is null)
-        {
-            return "breakdown.diet is missing";
-        }
-
-        if (!double.IsFinite(diet.Score) || !double.IsFinite(diet.MaxScore))
-        {
-            return "breakdown.diet score is not a finite number";
-        }
-
-        if (diet.MaxScore <= 0)
-        {
-            return "breakdown.diet.maxScore is not positive";
-        }
-
-        var ratio = diet.Evidence?.CalorieRatio;
-        if (ratio is null)
-        {
-            return "breakdown.diet.evidence.calorieRatio is missing";
-        }
-
-        return double.IsFinite(ratio.Value) && ratio.Value >= 0
-            ? null
-            : "breakdown.diet.evidence.calorieRatio is not a non-negative finite number";
     }
 
     private static ClassifierInvalidResponseException MalformedResponse(

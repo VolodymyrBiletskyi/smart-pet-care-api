@@ -174,9 +174,9 @@ public sealed class ChatSessionFlowIntegrationTests
             });
         }
 
-        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
-            ClassifierNutritionRequest request,
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
             CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not analyse nutrition.");
+            throw new NotSupportedException("Chat tests do not summarise feeding.");
     }
 }

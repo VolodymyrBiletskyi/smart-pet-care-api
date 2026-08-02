@@ -405,9 +405,9 @@ namespace smart_pet_care_api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<List<string>>("Advice")
-                        .IsRequired()
-                        .HasColumnType("text[]");
+                    b.Property<decimal>("ActualCalories")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -417,13 +417,14 @@ namespace smart_pet_care_api.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<decimal>("DeviationPct")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<string>("Disclaimer")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("Grade")
-                        .HasColumnType("integer");
 
                     b.Property<int>("MealCount")
                         .HasColumnType("integer");
@@ -431,16 +432,12 @@ namespace smart_pet_care_api.Migrations
                     b.Property<Guid>("PetId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Score")
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Summary")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<int>("TotalCalories")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("TargetCalories")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<int>("UtcOffsetMinutes")
                         .HasColumnType("integer");
@@ -451,7 +448,7 @@ namespace smart_pet_care_api.Migrations
 
                     b.ToTable("NutritionAnalyses", null, t =>
                         {
-                            t.HasCheckConstraint("CK_NutritionAnalyses_Score", "\"Score\" >= 0 AND \"Score\" <= 100");
+                            t.HasCheckConstraint("CK_NutritionAnalyses_NonNegativeCalories", "\"TargetCalories\" >= 0 AND \"ActualCalories\" >= 0");
                         });
                 });
 

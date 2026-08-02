@@ -134,14 +134,19 @@ namespace smart_pet_care_api.Models
             Piece
         }
 
-        public enum NutritionGrade
+        /// <summary>
+        /// How a day's logged calories compare with the classifier's target for
+        /// the pet. Mirrors the classifier's <c>feeding-summary</c> statuses.
+        /// </summary>
+        public enum FeedingStatus
         {
-            A,
-            B,
-            C,
-            D,
-            F
+            ExtremeUnderTarget,
+            UnderTarget,
+            OnTarget,
+            OverTarget,
+            ExtremeOverTarget
         }
+
         public enum ActivitySource
         {
             Manual,
