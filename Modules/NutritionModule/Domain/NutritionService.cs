@@ -92,16 +92,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
 
-            if (utcOffsetMinutes < -MaxOffsetMinutes || utcOffsetMinutes > MaxOffsetMinutes)
-                throw new ArgumentException("utcOffsetMinutes is out of range");
-
-            // Default to "today" in the caller's local time.
-            var localDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(utcOffsetMinutes));
-
-            // Local midnight → UTC. Npgsql requires Kind=Utc for timestamptz comparisons.
-            var startUtc = DateTime.SpecifyKind(
-                localDate.ToDateTime(TimeOnly.MinValue).AddMinutes(-utcOffsetMinutes), DateTimeKind.Utc);
-            var endUtc = startUtc.AddDays(1);
+            var (localDate, startUtc, endUtc) = ResolveDayWindow(date, utcOffsetMinutes);
 
             var logs = await _feedingRepo.GetByPetIdAndRangeAsync(petId, startUtc, endUtc);
             var goal = await _goalRepo.GetByPetIdAsync(petId);
@@ -131,6 +122,27 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
                 summary.Comparison = BuildComparison(goal, summary.TotalCalories, summary.MealCount, portionTotals);
 
             return summary;
+        }
+
+        /// <summary>
+        /// Turns the caller's local day into the half-open UTC range that holds
+        /// it. Shared with the analysis service so both read the same feeding
+        /// logs for a given <paramref name="date"/> and offset.
+        /// </summary>
+        public static (DateOnly LocalDate, DateTime StartUtc, DateTime EndUtc) ResolveDayWindow(
+            DateOnly? date, int utcOffsetMinutes)
+        {
+            if (utcOffsetMinutes < -MaxOffsetMinutes || utcOffsetMinutes > MaxOffsetMinutes)
+                throw new ArgumentException("utcOffsetMinutes is out of range");
+
+            // Default to "today" in the caller's local time.
+            var localDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(utcOffsetMinutes));
+
+            // Local midnight → UTC. Npgsql requires Kind=Utc for timestamptz comparisons.
+            var startUtc = DateTime.SpecifyKind(
+                localDate.ToDateTime(TimeOnly.MinValue).AddMinutes(-utcOffsetMinutes), DateTimeKind.Utc);
+
+            return (localDate, startUtc, startUtc.AddDays(1));
         }
 
         private static NutritionComparisonDto BuildComparison(

@@ -11,18 +11,24 @@ namespace smart_pet_care_api.Modules.NutritionModule.DTOs.Responses
         public DateOnly Date { get; set; }
         public int UtcOffsetMinutes { get; set; }
 
-        public NutritionGrade Grade { get; set; }
+        /// <summary>How the day's calories compared with the pet's target.</summary>
+        public FeedingStatus Status { get; set; }
 
-        /// <summary>Overall quality of the day, from 0 to 100.</summary>
-        public int Score { get; set; }
+        /// <summary>
+        /// The daily calorie need this day was graded against: the pet's
+        /// nutrition goal when it sets a target above zero, otherwise the
+        /// figure the AI derived from the pet's body data.
+        /// </summary>
+        public decimal TargetCalories { get; set; }
+        public decimal ActualCalories { get; set; }
 
-        public string Summary { get; set; } = null!;
-        public List<string> Advice { get; set; } = new();
+        /// <summary>Signed percentage away from <see cref="TargetCalories"/>.</summary>
+        public decimal DeviationPct { get; set; }
+
         public string Disclaimer { get; set; } = null!;
 
-        /// <summary>Figures the analysis was based on, as they stood when it ran.</summary>
+        /// <summary>Meals the analysis was based on, as they stood when it ran.</summary>
         public int MealCount { get; set; }
-        public int TotalCalories { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

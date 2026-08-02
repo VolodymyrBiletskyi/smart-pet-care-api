@@ -33,14 +33,18 @@ history replay and pagination, ownership checks, response mapping, and
 relational persistence.
 
 Nutrition module tests are in `Tests/NutritionModule.Tests/`. They cover the
-daily summary (day-window math, goal comparison) and the AI nutrition
-analysis (ownership, classifier request building, persistence and the
-two-analyses-per-pet retention rule).
+daily summary (day-window math, goal comparison) and the AI feeding analysis
+(ownership, weight validation, classifier request building, caller-supplied
+overrides, response validation, persistence and the two-analyses-per-pet
+retention rule).
 
 Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`
-- `docs/nutrition-analysis-contract-v1.md`
+- `docs/feeding-summary-contract-v1.md`
+
+The classifier exposes four routes: `predict`, `chat`, `wellness` and
+`feeding-summary`. Only `chat` and `feeding-summary` are wired up.
 
 ## Architecture
 

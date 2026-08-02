@@ -2,6 +2,7 @@ using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
+using smart_pet_care_api.Modules.NutritionModule.DTOs.Requests;
 using Xunit;
 using static smart_pet_care_api.Models.Enums;
 
@@ -16,20 +17,19 @@ public class NutritionAnalysisServiceTests
         NutritionAnalysisService Service,
         FakeNutritionAnalysisRepository Analyses,
         FakeClassifierClient Classifier,
-        FakeNutritionGoalRepository Goals,
         FakeFeedingLogRepository Feeding,
-        FakePetRepository Pets);
+        FakePetRepository Pets,
+        FakeNutritionGoalRepository Goals);
 
     private Harness BuildHarness(
-        ClassifierNutritionResponse? response = null,
+        ClassifierFeedingSummaryResponse? response = null,
         Exception? classifierException = null,
         bool petExists = true,
-        double calorieRatio = 1.0,
-        string? chatAnswer = null)
+        decimal? weightKg = 12.4m,
+        DateTime? birthDate = null,
+        int? dailyCalorieTarget = null)
     {
-        var goals = new FakeNutritionGoalRepository();
         var feeding = new FakeFeedingLogRepository();
-        var reminders = new FakeReminderRepository();
         var pets = new FakePetRepository
         {
             PetExists = petExists,
@@ -40,46 +40,66 @@ public class NutritionAnalysisServiceTests
                 Name = "Buddy",
                 Species = AnimalSpecies.Dog,
                 Breed = "Beagle",
-                WeightKg = 12.4m,
-                BirthDate = DateTime.UtcNow.AddDays(-365)
+                WeightKg = weightKg,
+                BirthDate = birthDate ?? DateTime.UtcNow.AddDays(-365)
             }
         };
         var analyses = new FakeNutritionAnalysisRepository();
-        var classifier = new FakeClassifierClient(
-            response,
-            classifierException,
-            FakeClassifierClient.DefaultWellness(calorieRatio),
-            FakeClassifierClient.DefaultChat(chatAnswer));
+        var classifier = new FakeClassifierClient(response, classifierException);
+        var goals = new FakeNutritionGoalRepository
+        {
+            Goal = dailyCalorieTarget is null
+                ? null
+                : new NutritionGoal { PetId = _petId, DailyCalorieTarget = dailyCalorieTarget }
+        };
 
-        var nutritionService = new NutritionService(goals, pets, feeding, reminders);
-        var service = new NutritionAnalysisService(nutritionService, analyses, pets, classifier);
+        var service = new NutritionAnalysisService(analyses, pets, feeding, goals, classifier);
 
-        return new Harness(service, analyses, classifier, goals, feeding, pets);
+        return new Harness(service, analyses, classifier, feeding, pets, goals);
     }
 
-    private FeedingLog Log(int? calories, decimal? amount, PortionUnit? unit) => new()
+    private FeedingLog Log(int? calories, string? foodName = null, FoodType foodType = FoodType.DryFood) => new()
     {
         PetId = _petId,
         FedAt = DateTime.UtcNow,
-        FoodType = FoodType.DryFood,
-        ApproxCalories = calories,
-        PortionAmount = amount,
-        PortionUnit = unit
+        FoodType = foodType,
+        FoodName = foodName,
+        ApproxCalories = calories
     };
 
-    private NutritionAnalysis StoredAnalysis(DateTime createdAt, NutritionGrade grade) => new()
+    private NutritionAnalysis StoredAnalysis(DateTime createdAt, FeedingStatus status) => new()
     {
         PetId = _petId,
         Date = DateOnly.FromDateTime(createdAt),
-        Grade = grade,
-        Score = 50,
-        Summary = "stored",
-        Advice = ["stored advice"],
+        Status = status,
+        TargetCalories = 600m,
+        ActualCalories = 500m,
+        DeviationPct = -16.67m,
         Disclaimer = "disclaimer",
         CreatedAt = createdAt
     };
 
-    // ----- ownership -----
+    private ClassifierFeedingSummaryResponse ResponseFor(
+        ClassifierFeedingStatus status,
+        decimal target = 600m,
+        decimal actual = 480m,
+        decimal deviationPct = -20m) => new()
+        {
+            Results =
+            [
+                new ClassifierFeedingSummaryResult
+                {
+                    PetId = _petId.ToString("D"),
+                    Status = status,
+                    TargetCalories = target,
+                    ActualCalories = actual,
+                    DeviationPct = deviationPct
+                }
+            ],
+            Disclaimer = "This guidance does not replace a veterinary examination."
+        };
+
+    // ----- ownership and validation -----
 
     [Fact]
     public async Task Analyze_WhenPetDoesNotBelongToUser_ThrowsWithoutCallingClassifier()
@@ -87,11 +107,10 @@ public class NutritionAnalysisServiceTests
         var harness = BuildHarness(petExists: false);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken));
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("Pet not found", ex.Message);
-        Assert.Empty(harness.Classifier.WellnessRequests);
-        Assert.Empty(harness.Classifier.ChatRequests);
+        Assert.Empty(harness.Classifier.Requests);
         Assert.Empty(harness.Analyses.Stored);
     }
 
@@ -110,168 +129,480 @@ public class NutritionAnalysisServiceTests
         var harness = BuildHarness();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            harness.Service.AnalyzeAsync(_petId, _userId, null, 841, TestContext.Current.CancellationToken));
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 841, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Empty(harness.Classifier.WellnessRequests);
-        Assert.Empty(harness.Classifier.ChatRequests);
+        Assert.Empty(harness.Classifier.Requests);
+    }
+
+    /// <summary>
+    /// The route derives the calorie target from body weight, so there is
+    /// nothing to grade without one — and the classifier would answer 422.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(501)]
+    public async Task Analyze_WhenWeightIsMissingOrOutOfRange_ThrowsWithoutCallingClassifier(int? weight)
+    {
+        var harness = BuildHarness(weightKg: weight);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Empty(harness.Classifier.Requests);
+        Assert.Empty(harness.Analyses.Stored);
     }
 
     // ----- request building -----
 
     [Fact]
-    public async Task Analyze_SendsPetContextAndFeedingFiguresToWellness()
+    public async Task Analyze_SendsTheSinglePetWithItsContextAndProducts()
     {
         var harness = BuildHarness();
-        harness.Feeding.Logs = [Log(300, 120m, PortionUnit.Gram), Log(180, 90m, PortionUnit.Gram)];
+        harness.Feeding.Logs = [Log(300, "Chicken kibble"), Log(180, "Salmon treat")];
 
-        await harness.Service.AnalyzeAsync(_petId, _userId, new DateOnly(2026, 7, 15), 120, TestContext.Current.CancellationToken);
+        await harness.Service.AnalyzeAsync(
+            _petId, _userId, new DateOnly(2026, 7, 15), 120, cancellationToken: TestContext.Current.CancellationToken);
 
-        var request = Assert.Single(harness.Classifier.WellnessRequests);
-        Assert.Equal(ClassifierPetType.Dog, request.Pet.Species);
-        Assert.Equal("Beagle", request.Pet.Breed);
-        Assert.Equal(12.4m, request.Pet.WeightKg);
-        Assert.Equal(12, request.Pet.AgeMonths);
-        Assert.Equal(2, request.Feeding?.AvgMealsPerDay);
-        Assert.Equal(480, request.Feeding?.AvgCaloriesPerDay);
-        Assert.Equal("2026-07-15", request.EvaluationWindow?.StartDate);
-        Assert.Equal("2026-07-15", request.EvaluationWindow?.EndDate);
+        var request = Assert.Single(harness.Classifier.Requests);
+        var pet = Assert.Single(request.Pets);
+
+        Assert.Equal(_petId.ToString("D"), pet.PetId);
+        Assert.Equal(ClassifierPetType.Dog, pet.Species);
+        Assert.Equal("Beagle", pet.Breed);
+        Assert.Equal(12.4m, pet.WeightKg);
+        Assert.Equal(12, pet.AgeMonths);
+
+        // Ordered by calories, largest first.
+        Assert.Equal(
+            new[] { ("Chicken kibble", 300m), ("Salmon treat", 180m) },
+            pet.Products.Select(p => (p.Name, p.Calories)).ToArray());
+    }
+
+    [Fact]
+    public async Task Analyze_ReadsOnlyTheRequestedLocalDay()
+    {
+        var harness = BuildHarness();
+
+        await harness.Service.AnalyzeAsync(
+            _petId, _userId, new DateOnly(2026, 7, 15), 120, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Local midnight in UTC+2 is 22:00 the previous day, UTC.
+        Assert.Equal(_petId, harness.Feeding.RequestedPetId);
+        Assert.Equal(
+            new DateTime(2026, 7, 14, 22, 0, 0, DateTimeKind.Utc),
+            harness.Feeding.RequestedStartUtc);
+        Assert.Equal(
+            new DateTime(2026, 7, 15, 22, 0, 0, DateTimeKind.Utc),
+            harness.Feeding.RequestedEndUtc);
+    }
+
+    [Fact]
+    public async Task Analyze_MergesLogsOfTheSameFoodAndFallsBackToTheFoodType()
+    {
+        var harness = BuildHarness();
+        harness.Feeding.Logs =
+        [
+            Log(200, "Chicken kibble"),
+            Log(150, "Chicken kibble"),
+            Log(90, foodName: null, foodType: FoodType.Treat),
+            Log(null, "Chicken kibble")
+        ];
+
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(
+            new[] { ("Chicken kibble", 350m), ("Treat", 90m) },
+            pet.Products.Select(p => (p.Name, p.Calories)).ToArray());
+    }
+
+    [Fact]
+    public async Task Analyze_WhenNothingWasLogged_SendsNoProducts()
+    {
+        var harness = BuildHarness();
+
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Empty(pet.Products);
     }
 
     /// <summary>
-    /// The classifier rejects a consistency window longer than a week, and one
-    /// analysed day is one day of history either way.
+    /// The route accepts at most 100 products, so the tail is merged rather than
+    /// dropped — the graded calorie total has to stay intact.
     /// </summary>
     [Fact]
-    public async Task Analyze_SendsASingleDayConsistencyWindow()
+    public async Task Analyze_WhenOverTheProductCap_MergesTheTailWithoutLosingCalories()
     {
         var harness = BuildHarness();
+        harness.Feeding.Logs = [.. Enumerable.Range(1, 150).Select(i => Log(i, $"Food {i}"))];
 
-        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
-        var request = Assert.Single(harness.Classifier.WellnessRequests);
-        Assert.Equal(1, request.Feeding?.ConsistencyDays);
-        Assert.InRange(
-            request.Feeding!.ConsistencyDays,
-            1,
-            ClassifierWellnessFeeding.MaximumConsistencyDays);
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(100, pet.Products.Count);
+        Assert.Equal((decimal)Enumerable.Range(1, 150).Sum(), pet.Products.Sum(p => p.Calories));
+        Assert.Equal("Other foods", pet.Products[^1].Name);
     }
 
     [Fact]
-    public async Task Analyze_SendsTheDaysFiguresAndTheGoalToChatAsOneTurn()
+    public async Task Analyze_WhenBirthDateIsAbsurdlyOld_ClampsAgeToTheRouteMaximum()
+    {
+        var harness = BuildHarness(birthDate: DateTime.UtcNow.AddYears(-80));
+
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(600, pet.AgeMonths);
+    }
+
+    // ----- caller-supplied overrides -----
+
+    [Fact]
+    public async Task Analyze_WhenTheBodySuppliesContext_ItOverridesTheStoredPet()
     {
         var harness = BuildHarness();
-        harness.Feeding.Logs = [Log(300, 120m, PortionUnit.Gram), Log(180, 90m, PortionUnit.Gram)];
-        harness.Goals.Goal = new NutritionGoal
-        {
-            PetId = _petId,
-            DailyCalorieTarget = 600,
-            DailyPortionTarget = 250m,
-            PortionUnit = PortionUnit.Gram,
-            MealsPerDay = 3
-        };
 
-        await harness.Service.AnalyzeAsync(_petId, _userId, new DateOnly(2026, 7, 15), 120, TestContext.Current.CancellationToken);
+        await harness.Service.AnalyzeAsync(
+            _petId,
+            _userId,
+            null,
+            0,
+            new NutritionAnalysisRequestDto
+            {
+                Species = AnimalSpecies.Cat,
+                Breed = "Siamese",
+                WeightKg = 4.2m,
+                AgeMonths = 30
+            },
+            TestContext.Current.CancellationToken);
 
-        var request = Assert.Single(harness.Classifier.ChatRequests);
-        Assert.Equal(ClassifierPetType.Dog, request.PetType);
-        Assert.Null(request.SessionId);
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(ClassifierPetType.Cat, pet.Species);
+        Assert.Equal("Siamese", pet.Breed);
+        Assert.Equal(4.2m, pet.WeightKg);
+        Assert.Equal(30, pet.AgeMonths);
+    }
 
-        var message = Assert.Single(request.Messages);
-        Assert.Equal(ClassifierChatRole.User, message.Role);
-        Assert.Contains("2026-07-15", message.Content);
-        Assert.Contains("Meals logged: 2", message.Content);
-        Assert.Contains("Total calories: 480", message.Content);
-        Assert.Contains("210 Gram", message.Content);
-        Assert.Contains("600 kcal", message.Content);
-        Assert.Contains("Calories remaining against the goal: 120", message.Content);
+    /// <summary>
+    /// A body that sets only one field must not blank out the rest — the pet's
+    /// own data still fills every gap.
+    /// </summary>
+    [Fact]
+    public async Task Analyze_WhenTheBodyIsPartial_UnsetFieldsStillComeFromThePet()
+    {
+        var harness = BuildHarness();
+
+        await harness.Service.AnalyzeAsync(
+            _petId,
+            _userId,
+            null,
+            0,
+            new NutritionAnalysisRequestDto { WeightKg = 15m },
+            TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(15m, pet.WeightKg);
+        Assert.Equal(ClassifierPetType.Dog, pet.Species);
+        Assert.Equal("Beagle", pet.Breed);
+        Assert.Equal(12, pet.AgeMonths);
     }
 
     [Fact]
-    public async Task Analyze_WhenNoGoalIsSet_ChatPromptCarriesNoGoalOrComparison()
+    public async Task Analyze_WhenTheBodySuppliesProducts_TheFeedingLogsAreNotRead()
+    {
+        var harness = BuildHarness();
+        harness.Feeding.Logs = [Log(999, "Should be ignored")];
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId,
+            _userId,
+            null,
+            0,
+            new NutritionAnalysisRequestDto
+            {
+                Products =
+                [
+                    new NutritionAnalysisProductDto { Name = "Chicken kibble", Calories = 300m },
+                    new NutritionAnalysisProductDto { Name = "Salmon treat", Calories = 180m }
+                ]
+            },
+            TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+
+        // Passed through in the order given, not reordered by calories the way
+        // logs are, and the ignored log is nowhere in the request.
+        Assert.Equal(
+            new[] { ("Chicken kibble", 300m), ("Salmon treat", 180m) },
+            pet.Products.Select(p => (p.Name, p.Calories)).ToArray());
+
+        Assert.Null(harness.Feeding.RequestedPetId);
+        Assert.Equal(2, result.MealCount);
+    }
+
+    /// <summary>
+    /// An empty array is a deliberate "ate nothing", which is different from
+    /// omitting the property and falling back to the day's logs.
+    /// </summary>
+    [Fact]
+    public async Task Analyze_WhenTheBodySuppliesNoProducts_GradesTheDayAsEmpty()
+    {
+        var harness = BuildHarness();
+        harness.Feeding.Logs = [Log(300, "Chicken kibble")];
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId,
+            _userId,
+            null,
+            0,
+            new NutritionAnalysisRequestDto { Products = [] },
+            TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Empty(pet.Products);
+        Assert.Null(harness.Feeding.RequestedPetId);
+        Assert.Equal(0, result.MealCount);
+    }
+
+    /// <summary>
+    /// The supplied weight is what the grading needs, so a pet with none
+    /// recorded can still be analysed.
+    /// </summary>
+    [Fact]
+    public async Task Analyze_WhenThePetHasNoWeight_TheSuppliedOneIsEnough()
+    {
+        var harness = BuildHarness(weightKg: null);
+
+        await harness.Service.AnalyzeAsync(
+            _petId,
+            _userId,
+            null,
+            0,
+            new NutritionAnalysisRequestDto { WeightKg = 9.5m },
+            TestContext.Current.CancellationToken);
+
+        var pet = Assert.Single(Assert.Single(harness.Classifier.Requests).Pets);
+        Assert.Equal(9.5m, pet.WeightKg);
+    }
+
+    /// <summary>
+    /// Model validation catches this at the edge, but the service is the last
+    /// line before the classifier answers 422.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(501)]
+    public async Task Analyze_WhenTheSuppliedWeightIsOutOfRange_ThrowsWithoutCallingClassifier(int weight)
     {
         var harness = BuildHarness();
 
-        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            harness.Service.AnalyzeAsync(
+                _petId,
+                _userId,
+                null,
+                0,
+                new NutritionAnalysisRequestDto { WeightKg = weight },
+                TestContext.Current.CancellationToken));
 
-        var message = Assert.Single(Assert.Single(harness.Classifier.ChatRequests).Messages);
-        Assert.DoesNotContain("Daily goal:", message.Content);
-        Assert.DoesNotContain("remaining against the goal", message.Content);
+        Assert.Empty(harness.Classifier.Requests);
+        Assert.Empty(harness.Analyses.Stored);
+    }
+
+    // ----- nutrition goal as the target -----
+
+    /// <summary>
+    /// The classifier route takes no target input, so a user-set goal can only
+    /// be applied to its answer afterwards. Target, deviation and status must
+    /// move together or the stored row contradicts itself.
+    /// </summary>
+    [Fact]
+    public async Task Analyze_WhenAGoalSetsACalorieTarget_ItReplacesTheClassifierTarget()
+    {
+        var harness = BuildHarness(
+            ResponseFor(
+                ClassifierFeedingStatus.OnTarget,
+                target: 740.1m,
+                actual: 480m,
+                deviationPct: -35.1m),
+            dailyCalorieTarget: 600);
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(600m, result.TargetCalories);
+        Assert.Equal(480m, result.ActualCalories);
+
+        // (480 - 600) / 600 = -20%, which lands in the UNDER_TARGET band and
+        // replaces the ON_TARGET the classifier reported for its own target.
+        Assert.Equal(-20m, result.DeviationPct);
+        Assert.Equal(FeedingStatus.UnderTarget, result.Status);
+    }
+
+    [Fact]
+    public async Task Analyze_WhenNoGoalExists_TheClassifierTargetIsKept()
+    {
+        var harness = BuildHarness(
+            ResponseFor(
+                ClassifierFeedingStatus.UnderTarget,
+                target: 740.1m,
+                actual: 480m,
+                deviationPct: -35.1m));
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(740.1m, result.TargetCalories);
+        Assert.Equal(-35.1m, result.DeviationPct);
+        Assert.Equal(FeedingStatus.UnderTarget, result.Status);
+    }
+
+    /// <summary>
+    /// A goal that sets no calorie target, or sets it to zero, has nothing to
+    /// grade against — and zero would divide. The classifier's own target
+    /// stands in both cases.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    public async Task Analyze_WhenTheGoalHasNoUsableTarget_TheClassifierTargetIsKept(int? target)
+    {
+        var harness = BuildHarness(
+            ResponseFor(ClassifierFeedingStatus.UnderTarget, target: 740.1m, actual: 480m, deviationPct: -35.1m),
+            dailyCalorieTarget: target);
+        harness.Goals.Goal = new NutritionGoal { PetId = _petId, DailyCalorieTarget = target };
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(740.1m, result.TargetCalories);
+        Assert.Equal(-35.1m, result.DeviationPct);
+    }
+
+    [Theory]
+    [InlineData(600, 600, FeedingStatus.OnTarget)]        //    0%
+    [InlineData(600, 660, FeedingStatus.OnTarget)]        //  +10%, band edge
+    [InlineData(600, 540, FeedingStatus.OnTarget)]        //  -10%, band edge
+    [InlineData(600, 661, FeedingStatus.OverTarget)]      // +10.17%
+    [InlineData(600, 539, FeedingStatus.UnderTarget)]     // -10.17%
+    [InlineData(600, 900, FeedingStatus.ExtremeOverTarget)]  //  +50%, band edge
+    [InlineData(600, 300, FeedingStatus.ExtremeUnderTarget)] //  -50%, band edge
+    [InlineData(600, 0, FeedingStatus.ExtremeUnderTarget)]   // -100%
+    public async Task Analyze_GradesTheGoalDeviationIntoTheRightBand(
+        int goalTarget, int actual, FeedingStatus expected)
+    {
+        var harness = BuildHarness(
+            ResponseFor(ClassifierFeedingStatus.OnTarget, actual: actual),
+            dailyCalorieTarget: goalTarget);
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, result.Status);
+    }
+
+    [Fact]
+    public async Task Analyze_WhenTheClassifierFails_TheGoalIsNotRead()
+    {
+        var harness = BuildHarness(
+            classifierException: new ClassifierUnavailableException("down"),
+            dailyCalorieTarget: 600);
+
+        await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+            harness.Service.AnalyzeAsync(
+                _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Empty(harness.Analyses.Stored);
     }
 
     // ----- persistence / mapping -----
 
     [Fact]
-    public async Task Analyze_GradesOnTheCalorieRatioAndTakesProseFromChat()
+    public async Task Analyze_StoresTheGradedFiguresAndTheMealSnapshot()
     {
-        // 0.6 of target is 40 points off, so it grades D.
         var harness = BuildHarness(
-            calorieRatio: 0.6,
-            chatAnswer: "Well under target.\n- Increase portion size.\n- Log the evening meal.");
-        harness.Feeding.Logs = [Log(120, 50m, PortionUnit.Gram)];
+            ResponseFor(ClassifierFeedingStatus.ExtremeUnderTarget, target: 700m, actual: 120m, deviationPct: -82.86m));
+        harness.Feeding.Logs = [Log(120, "Chicken kibble")];
 
-        var result = await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(NutritionGrade.D, result.Grade);
-        Assert.Equal(40, result.Score);
-        Assert.Equal("Well under target.", result.Summary);
-        Assert.Equal(["Increase portion size.", "Log the evening meal."], result.Advice);
+        Assert.Equal(FeedingStatus.ExtremeUnderTarget, result.Status);
+        Assert.Equal(700m, result.TargetCalories);
+        Assert.Equal(120m, result.ActualCalories);
+        Assert.Equal(-82.86m, result.DeviationPct);
         Assert.Equal("This guidance does not replace a veterinary examination.", result.Disclaimer);
 
         // Snapshot of what was analysed, so a later feeding log cannot silently
         // change what the stored verdict was based on.
         Assert.Equal(1, result.MealCount);
-        Assert.Equal(120, result.TotalCalories);
 
         var stored = Assert.Single(harness.Analyses.Stored);
-        Assert.Equal(NutritionGrade.D, stored.Grade);
+        Assert.Equal(FeedingStatus.ExtremeUnderTarget, stored.Status);
         Assert.Equal(_petId, stored.PetId);
     }
 
     [Theory]
-    [InlineData(1.0, 100, NutritionGrade.A)]   // exactly on target
-    [InlineData(0.95, 95, NutritionGrade.A)]
-    [InlineData(1.106, 89, NutritionGrade.B)]  // the ratio observed for a real under-fed day
-    [InlineData(0.8, 80, NutritionGrade.B)]
-    [InlineData(1.35, 65, NutritionGrade.C)]
-    [InlineData(0.5, 50, NutritionGrade.D)]
-    [InlineData(0.2304, 23, NutritionGrade.F)] // severely under
-    [InlineData(2.765, 0, NutritionGrade.F)]   // severely over
-    [InlineData(3.0, 0, NutritionGrade.F)]     // clamped, never negative
-    public async Task Analyze_MapsCalorieRatioOntoScoreAndGrade(
-        double ratio, int expectedScore, NutritionGrade expectedGrade)
+    [InlineData(ClassifierFeedingStatus.ExtremeUnderTarget, FeedingStatus.ExtremeUnderTarget)]
+    [InlineData(ClassifierFeedingStatus.UnderTarget, FeedingStatus.UnderTarget)]
+    [InlineData(ClassifierFeedingStatus.OnTarget, FeedingStatus.OnTarget)]
+    [InlineData(ClassifierFeedingStatus.OverTarget, FeedingStatus.OverTarget)]
+    [InlineData(ClassifierFeedingStatus.ExtremeOverTarget, FeedingStatus.ExtremeOverTarget)]
+    public async Task Analyze_MapsEveryClassifierStatus(
+        ClassifierFeedingStatus wire, FeedingStatus expected)
     {
-        var harness = BuildHarness(calorieRatio: ratio);
+        var harness = BuildHarness(ResponseFor(wire));
 
-        var result = await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(expectedScore, result.Score);
-        Assert.Equal(expectedGrade, result.Grade);
+        Assert.Equal(expected, result.Status);
+    }
+
+    [Fact]
+    public async Task Analyze_StoresTheAnalysedLocalDayAndOffset()
+    {
+        var harness = BuildHarness();
+
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, new DateOnly(2026, 7, 15), 120, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(new DateOnly(2026, 7, 15), result.Date);
+        Assert.Equal(120, result.UtcOffsetMinutes);
     }
 
     /// <summary>
-    /// The chat route returns prose, so an answer with no list still has to
-    /// produce a usable summary rather than being split into fragments.
+    /// A batch response that grades some other pet cannot answer this request,
+    /// and is reported as a broken contract rather than stored.
     /// </summary>
     [Fact]
-    public async Task Analyze_WhenChatReturnsNoBullets_KeepsTheWholeAnswerAsTheSummary()
+    public async Task Analyze_WhenResultsHoldAnotherPet_ThrowsAndStoresNothing()
     {
-        var harness = BuildHarness(
-            chatAnswer: "Your Beagle is slightly under their calorie goal for the day.");
+        var harness = BuildHarness(new ClassifierFeedingSummaryResponse
+        {
+            Results = [FakeClassifierClient.DefaultResult(Guid.NewGuid().ToString("D"))],
+            Disclaimer = "disclaimer"
+        });
 
-        var result = await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        var ex = await Assert.ThrowsAsync<ClassifierInvalidResponseException>(() =>
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Equal("Your Beagle is slightly under their calorie goal for the day.", result.Summary);
-        Assert.Empty(result.Advice);
+        Assert.Equal("results holds no entry for the requested petId", ex.ValidationReason);
+        Assert.Empty(harness.Analyses.Stored);
     }
 
     [Fact]
-    public async Task Analyze_WhenChatFails_StoresNothing()
+    public async Task Analyze_WhenClassifierIsRateLimited_StoresNothing()
     {
         var harness = BuildHarness(
             classifierException: new ClassifierRateLimitedException("Busy.", "rate_limit_exceeded"));
 
         await Assert.ThrowsAsync<ClassifierRateLimitedException>(() =>
-            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken));
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Empty(harness.Analyses.Stored);
     }
@@ -283,7 +614,7 @@ public class NutritionAnalysisServiceTests
             classifierException: new ClassifierUnavailableException("Classifier is unavailable."));
 
         await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
-            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken));
+            harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Empty(harness.Analyses.Stored);
     }
@@ -294,11 +625,12 @@ public class NutritionAnalysisServiceTests
     public async Task Analyze_KeepsOnlyTheTwoMostRecentAnalyses()
     {
         var harness = BuildHarness();
-        var oldest = StoredAnalysis(DateTime.UtcNow.AddDays(-2), NutritionGrade.F);
-        var older = StoredAnalysis(DateTime.UtcNow.AddDays(-1), NutritionGrade.C);
+        var oldest = StoredAnalysis(DateTime.UtcNow.AddDays(-2), FeedingStatus.ExtremeOverTarget);
+        var older = StoredAnalysis(DateTime.UtcNow.AddDays(-1), FeedingStatus.OnTarget);
         harness.Analyses.Stored.AddRange([oldest, older]);
 
-        var result = await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        var result = await harness.Service.AnalyzeAsync(
+            _petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, harness.Analyses.Stored.Count);
         Assert.DoesNotContain(oldest, harness.Analyses.Stored);
@@ -314,18 +646,19 @@ public class NutritionAnalysisServiceTests
         {
             PetId = Guid.NewGuid(),
             Date = DateOnly.FromDateTime(DateTime.UtcNow),
-            Grade = NutritionGrade.A,
-            Score = 95,
-            Summary = "other pet",
+            Status = FeedingStatus.OnTarget,
+            TargetCalories = 500m,
+            ActualCalories = 500m,
+            DeviationPct = 0m,
             Disclaimer = "disclaimer",
             CreatedAt = DateTime.UtcNow.AddDays(-5)
         };
         harness.Analyses.Stored.AddRange([
             otherPets,
-            StoredAnalysis(DateTime.UtcNow.AddDays(-2), NutritionGrade.F),
-            StoredAnalysis(DateTime.UtcNow.AddDays(-1), NutritionGrade.C)]);
+            StoredAnalysis(DateTime.UtcNow.AddDays(-2), FeedingStatus.ExtremeOverTarget),
+            StoredAnalysis(DateTime.UtcNow.AddDays(-1), FeedingStatus.OnTarget)]);
 
-        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains(otherPets, harness.Analyses.Stored);
     }
@@ -336,8 +669,8 @@ public class NutritionAnalysisServiceTests
     public async Task GetRecent_ReturnsLatestAndPreviousNewestFirst()
     {
         var harness = BuildHarness();
-        var previous = StoredAnalysis(DateTime.UtcNow.AddDays(-1), NutritionGrade.C);
-        var latest = StoredAnalysis(DateTime.UtcNow, NutritionGrade.A);
+        var previous = StoredAnalysis(DateTime.UtcNow.AddDays(-1), FeedingStatus.OnTarget);
+        var latest = StoredAnalysis(DateTime.UtcNow, FeedingStatus.UnderTarget);
         harness.Analyses.Stored.AddRange([previous, latest]);
 
         var history = await harness.Service.GetRecentAsync(_petId, _userId);
@@ -361,7 +694,7 @@ public class NutritionAnalysisServiceTests
     public async Task GetRecent_AfterFirstAnalysis_HasNoPrevious()
     {
         var harness = BuildHarness();
-        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, TestContext.Current.CancellationToken);
+        await harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken);
 
         var history = await harness.Service.GetRecentAsync(_petId, _userId);
 

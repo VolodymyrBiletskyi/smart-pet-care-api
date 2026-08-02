@@ -1,9 +1,11 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
+using smart_pet_care_api.Modules.NutritionModule.DTOs.Requests;
 using smart_pet_care_api.Modules.NutritionModule.DTOs.Responses;
 
 namespace smart_pet_care_api.Modules.NutritionModule.Api
@@ -24,7 +26,16 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
             _logger = logger;
         }
 
-        /// <summary>Asks the AI to grade the pet's nutrition for a day and advise on it.</summary>
+        /// <summary>
+        /// Asks the AI to grade a day's feeding against the calorie target it
+        /// derives from the pet's body data. Answers <c>400</c> when no usable
+        /// weight is available, which the grading needs.
+        /// </summary>
+        /// <remarks>
+        /// The body is optional and every field in it is an override. Omit it
+        /// and the pet's stored species, breed, weight and age are used, with
+        /// the products built from the analysed day's feeding logs.
+        /// </remarks>
         [HttpPost]
         [ProducesResponseType(typeof(NutritionAnalysisResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -43,12 +54,14 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
             Guid petId,
             CancellationToken cancellationToken,
             [FromQuery] DateOnly? date,
-            [FromQuery] int utcOffsetMinutes = 0)
+            [FromQuery] int utcOffsetMinutes = 0,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)]
+            NutritionAnalysisRequestDto? request = null)
         {
             try
             {
                 var analysis = await _service.AnalyzeAsync(
-                    petId, User.GetUserId(), date, utcOffsetMinutes, cancellationToken);
+                    petId, User.GetUserId(), date, utcOffsetMinutes, request, cancellationToken);
                 return Ok(analysis);
             }
             catch (InvalidOperationException ex)
