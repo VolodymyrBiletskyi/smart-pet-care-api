@@ -173,5 +173,10 @@ public sealed class ChatSessionFlowIntegrationTests
                 }
             });
         }
+
+        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+            ClassifierNutritionRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Chat tests do not analyse nutrition.");
     }
 }

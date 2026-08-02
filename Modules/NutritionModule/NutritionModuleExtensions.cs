@@ -8,7 +8,9 @@ namespace smart_pet_care_api.Modules.NutritionModule
         public static IServiceCollection AddNutritionModule(this IServiceCollection services)
         {
             services.AddScoped<INutritionGoalRepository, NutritionGoalRepository>();
+            services.AddScoped<INutritionAnalysisRepository, NutritionAnalysisRepository>();
             services.AddScoped<INutritionService, NutritionService>();
+            services.AddScoped<INutritionAnalysisService, NutritionAnalysisService>();
             return services;
         }
     }

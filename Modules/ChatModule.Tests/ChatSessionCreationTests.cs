@@ -147,5 +147,11 @@ public sealed class ChatSessionCreationTests
             throw new InvalidOperationException(
                 "Session queries must not call the classifier.");
         }
+
+        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+            ClassifierNutritionRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(
+                "Session queries must not call the classifier.");
     }
 }

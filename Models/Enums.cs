@@ -133,6 +133,15 @@ namespace smart_pet_care_api.Models
             Cup,
             Piece
         }
+
+        public enum NutritionGrade
+        {
+            A,
+            B,
+            C,
+            D,
+            F
+        }
         public enum ActivitySource
         {
             Manual,

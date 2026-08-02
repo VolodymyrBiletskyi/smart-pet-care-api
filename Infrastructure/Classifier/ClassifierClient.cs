@@ -26,9 +26,49 @@ public sealed class ClassifierClient : IClassifierClient
         this.circuitBreaker = circuitBreaker;
     }
 
-    public async Task<ClassifierChatResponse> ChatAsync(
+    public Task<ClassifierChatResponse> ChatAsync(
         ClassifierChatRequest request,
         CancellationToken cancellationToken = default)
+    {
+        return SendAsync<ClassifierChatRequest, ClassifierChatResponse>(
+            "chat",
+            request,
+            ValidateChatResponse,
+            cancellationToken);
+    }
+
+    public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+        ClassifierNutritionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<ClassifierNutritionRequest, ClassifierNutritionResponse>(
+            "nutrition-analysis",
+            request,
+            ValidateNutritionResponse,
+            cancellationToken);
+    }
+
+    public Task<ClassifierWellnessResponse> AnalyzeWellnessAsync(
+        ClassifierWellnessRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<ClassifierWellnessRequest, ClassifierWellnessResponse>(
+            "wellness",
+            request,
+            ValidateWellnessResponse,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs one classifier call through the shared circuit breaker, failure
+    /// metrics and public-status mapping. Every classifier route must go
+    /// through here so a single unhealthy route cannot bypass the breaker.
+    /// </summary>
+    private async Task<TResponse> SendAsync<TRequest, TResponse>(
+        string path,
+        TRequest request,
+        Func<TResponse?, string?> validate,
+        CancellationToken cancellationToken)
     {
         var lease = circuitBreaker?.TryAcquire()
             ?? new ClassifierCircuitLease(IsAllowed: true);
@@ -49,12 +89,12 @@ public sealed class ClassifierClient : IClassifierClient
         try
         {
             using var response = await httpClient.PostAsJsonAsync(
-                "chat",
+                path,
                 request,
                 SerializerOptions,
                 cancellationToken);
 
-            var result = await HandleResponseAsync(response, cancellationToken);
+            var result = await HandleResponseAsync(response, validate, cancellationToken);
             circuitBreaker?.RecordSuccess();
             return result;
         }
@@ -156,8 +196,9 @@ public sealed class ClassifierClient : IClassifierClient
         }
     }
 
-    private static async Task<ClassifierChatResponse> HandleResponseAsync(
+    private static async Task<TResponse> HandleResponseAsync<TResponse>(
         HttpResponseMessage response,
+        Func<TResponse?, string?> validate,
         CancellationToken cancellationToken)
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -192,22 +233,29 @@ public sealed class ClassifierClient : IClassifierClient
                 content);
         }
 
+        TResponse? result;
         try
         {
-            var result = JsonSerializer.Deserialize<ClassifierChatResponse>(
+            result = JsonSerializer.Deserialize<TResponse>(
                 content,
                 SerializerOptions);
-            ValidateResponse(result, response.StatusCode);
-            return result!;
         }
         catch (JsonException exception)
         {
-            throw MalformedResponse(response.StatusCode, exception);
+            throw MalformedResponse(
+                response.StatusCode,
+                DescribeJsonFailure(exception),
+                exception);
         }
         catch (NotSupportedException exception)
         {
-            throw MalformedResponse(response.StatusCode, exception);
+            throw MalformedResponse(response.StatusCode, "body is not deserializable", exception);
         }
+
+        var reason = validate(result);
+        return reason is null
+            ? result!
+            : throw MalformedResponse(response.StatusCode, reason);
     }
 
     private static ClassifierErrorResponse? TryDeserializeError(string content)
@@ -265,49 +313,189 @@ public sealed class ClassifierClient : IClassifierClient
             : (int)Math.Ceiling(duration.TotalSeconds);
     }
 
-    private static void ValidateResponse(
-        ClassifierChatResponse? response,
-        HttpStatusCode statusCode)
+    /// <summary>
+    /// Serializer messages name types, properties and JSON paths but never
+    /// property values, so they are safe for normal application logs. The
+    /// trailing line/byte position is dropped as noise.
+    /// </summary>
+    private static string DescribeJsonFailure(JsonException exception)
     {
-        if (response is null
-            || !Enum.IsDefined(response.Mode)
-            || response.Answer is null
-            || response.SymptomSummary is null
-            || response.RelatedTopics is null
-            || response.Disclaimer is null)
+        var message = exception.Message;
+        var noiseIndex = message.IndexOf(" | LineNumber:", StringComparison.Ordinal);
+        return noiseIndex < 0 ? message : message[..noiseIndex];
+    }
+
+    /// <summary>Returns null when valid, otherwise why the contract was broken.</summary>
+    private static string? ValidateChatResponse(ClassifierChatResponse? response)
+    {
+        if (response is null)
         {
-            throw MalformedResponse(statusCode);
+            return "body was null or empty";
+        }
+
+        if (!Enum.IsDefined(response.Mode))
+        {
+            return "mode is missing or not one of general/health/emergency";
+        }
+
+        if (response.Answer is null)
+        {
+            return "answer is missing";
+        }
+
+        if (response.SymptomSummary is null)
+        {
+            return "symptomSummary is missing";
+        }
+
+        if (response.RelatedTopics is null)
+        {
+            return "relatedTopics is missing";
+        }
+
+        if (response.Disclaimer is null)
+        {
+            return "disclaimer is missing";
         }
 
         var prediction = response.Prediction;
         if (prediction is null)
         {
-            return;
+            return null;
         }
 
-        if (prediction.PredictedCondition is null
-            || !double.IsFinite(prediction.Confidence)
-            || prediction.TopK is null
-            || !Enum.IsDefined(prediction.Urgency)
-            || prediction.Specialist is null
-            || prediction.DiseaseCategory is null
-            || prediction.HomeAdvice is null
-            || prediction.TopK.Any(item =>
-                item is null
-                || item.Condition is null
-                || !double.IsFinite(item.Confidence)))
+        if (prediction.PredictedCondition is null)
         {
-            throw MalformedResponse(statusCode);
+            return "prediction.predictedCondition is missing";
         }
+
+        if (!double.IsFinite(prediction.Confidence))
+        {
+            return "prediction.confidence is not a finite number";
+        }
+
+        if (prediction.TopK is null)
+        {
+            return "prediction.topK is missing";
+        }
+
+        if (!Enum.IsDefined(prediction.Urgency))
+        {
+            return "prediction.urgency is missing or not one of MONITOR/CONSULT_SOON/URGENT/EMERGENCY";
+        }
+
+        if (prediction.Specialist is null)
+        {
+            return "prediction.specialist is missing";
+        }
+
+        if (prediction.DiseaseCategory is null)
+        {
+            return "prediction.diseaseCategory is missing";
+        }
+
+        if (prediction.HomeAdvice is null)
+        {
+            return "prediction.homeAdvice is missing";
+        }
+
+        if (prediction.TopK.Any(item => item is null || item.Condition is null))
+        {
+            return "prediction.topK contains an entry without a condition";
+        }
+
+        return prediction.TopK.Any(item => !double.IsFinite(item.Confidence))
+            ? "prediction.topK contains a non-finite confidence"
+            : null;
+    }
+
+    /// <summary>Returns null when valid, otherwise why the contract was broken.</summary>
+    private static string? ValidateNutritionResponse(ClassifierNutritionResponse? response)
+    {
+        if (response is null)
+        {
+            return "body was null or empty";
+        }
+
+        if (!Enum.IsDefined(response.Grade))
+        {
+            return "grade is missing or not one of A/B/C/D/F";
+        }
+
+        if (response.Score is < 0 or > 100)
+        {
+            return "score is outside 0-100";
+        }
+
+        if (response.Summary is null)
+        {
+            return "summary is missing";
+        }
+
+        if (response.Advice is null)
+        {
+            return "advice is missing";
+        }
+
+        if (response.Advice.Any(advice => advice is null))
+        {
+            return "advice contains a null entry";
+        }
+
+        return response.Disclaimer is null
+            ? "disclaimer is missing"
+            : null;
+    }
+
+    /// <summary>
+    /// Returns null when valid, otherwise why the contract was broken. Only the
+    /// diet dimension is checked — the nutrition analysis ignores the other five
+    /// and the overall wellness score, which is null whenever the pet has no
+    /// activity or preventive-care data.
+    /// </summary>
+    private static string? ValidateWellnessResponse(ClassifierWellnessResponse? response)
+    {
+        if (response is null)
+        {
+            return "body was null or empty";
+        }
+
+        var diet = response.Breakdown?.Diet;
+        if (diet is null)
+        {
+            return "breakdown.diet is missing";
+        }
+
+        if (!double.IsFinite(diet.Score) || !double.IsFinite(diet.MaxScore))
+        {
+            return "breakdown.diet score is not a finite number";
+        }
+
+        if (diet.MaxScore <= 0)
+        {
+            return "breakdown.diet.maxScore is not positive";
+        }
+
+        var ratio = diet.Evidence?.CalorieRatio;
+        if (ratio is null)
+        {
+            return "breakdown.diet.evidence.calorieRatio is missing";
+        }
+
+        return double.IsFinite(ratio.Value) && ratio.Value >= 0
+            ? null
+            : "breakdown.diet.evidence.calorieRatio is not a non-negative finite number";
     }
 
     private static ClassifierInvalidResponseException MalformedResponse(
         HttpStatusCode statusCode,
+        string? validationReason = null,
         Exception? innerException = null)
     {
         return new ClassifierInvalidResponseException(
             "The classifier returned a malformed response.",
             statusCode,
-            innerException: innerException);
+            innerException: innerException,
+            validationReason: validationReason);
     }
 }

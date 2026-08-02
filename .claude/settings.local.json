@@ -16,7 +16,15 @@
       "PowerShell(git push *)",
       "PowerShell(git *)",
       "PowerShell(dotnet test *)",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(awk '{print \"ahead of origin: \"$1\"   behind origin: \"$2}')",
+      "Bash(git branch *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(awk '{print \"ahead: \"$1\"  behind: \"$2}')",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet ef migrations *)"
     ]
   },
   "disabledMcpjsonServers": [
