@@ -440,6 +440,11 @@ public sealed class ChatServiceTests
             Requests.Add(request);
             return Task.FromResult(responses.Dequeue());
         }
+
+        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+            ClassifierNutritionRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Chat tests do not analyse nutrition.");
     }
 
     private sealed class ControlledClassifierClient : IClassifierClient
@@ -459,6 +464,11 @@ public sealed class ChatServiceTests
             return response.Task.WaitAsync(cancellationToken);
         }
 
+        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+            ClassifierNutritionRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Chat tests do not analyse nutrition.");
+
         public void Complete(ClassifierChatResponse classifierResponse)
         {
             response.TrySetResult(classifierResponse);
@@ -477,5 +487,10 @@ public sealed class ChatServiceTests
         {
             throw exception;
         }
+
+        public Task<ClassifierNutritionResponse> AnalyzeNutritionAsync(
+            ClassifierNutritionRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw exception;
     }
 }

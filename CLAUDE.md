@@ -32,9 +32,15 @@ classifier client and configuration, session replacement, eight-message
 history replay and pagination, ownership checks, response mapping, and
 relational persistence.
 
-Chat integration documentation:
+Nutrition module tests are in `Tests/NutritionModule.Tests/`. They cover the
+daily summary (day-window math, goal comparison) and the AI nutrition
+analysis (ownership, classifier request building, persistence and the
+two-analyses-per-pet retention rule).
+
+Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`
+- `docs/nutrition-analysis-contract-v1.md`
 
 ## Architecture
 
