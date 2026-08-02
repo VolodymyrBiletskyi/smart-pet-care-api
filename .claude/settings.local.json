@@ -24,7 +24,9 @@
       "Bash(echo \"exit=$?\")",
       "Bash(awk '{print \"ahead: \"$1\"  behind: \"$2}')",
       "PowerShell(dotnet build *)",
-      "PowerShell(dotnet ef migrations *)"
+      "PowerShell(dotnet ef migrations *)",
+      "WebFetch(domain:txmrwave5a.execute-api.us-east-1.amazonaws.com)",
+      "Bash(python -c ' *)"
     ]
   },
   "disabledMcpjsonServers": [
