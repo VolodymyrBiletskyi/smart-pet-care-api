@@ -10,12 +10,22 @@ public sealed class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMess
     {
         builder.ToTable("ChatMessages");
         builder.HasKey(message => message.Id);
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_ChatMessages_SourceMessageId_AssistantOnly",
+            "\"Role\" = 1 OR \"SourceMessageId\" IS NULL"));
 
         builder.Property(message => message.Content).IsRequired().HasColumnType("text");
+        builder.Property(message => message.ClassifierResponseJson).HasColumnType("text");
         builder.Property(message => message.Status).HasColumnType("integer");
         builder.Property(message => message.CreatedAt).HasDefaultValueSql("now()");
 
         builder.HasIndex(message => new { message.SessionId, message.CreatedAt });
+        builder.HasIndex(message => new { message.SessionId, message.ClientMessageId })
+            .IsUnique()
+            .HasFilter("\"ClientMessageId\" IS NOT NULL");
+        builder.HasIndex(message => message.SourceMessageId)
+            .IsUnique()
+            .HasFilter("\"SourceMessageId\" IS NOT NULL");
 
         builder.HasOne<ChatSession>()
             .WithMany(session => session.Messages)

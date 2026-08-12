@@ -38,6 +38,18 @@ namespace smart_pet_care_api.Data
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
+            // xmin is a PostgreSQL system column. Configuring it for SQLite
+            // makes EnsureCreated generate a required physical column that
+            // SQLite cannot populate.
+            if (Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                modelBuilder.Entity<ChatSession>()
+                    .Property<uint>("xmin")
+                    .HasColumnName("xmin")
+                    .IsRowVersion()
+                    .IsConcurrencyToken();
+            }
+
             // Keep the table name EF discovered via navigation property in the initial migration
             modelBuilder.Entity<ReminderRun>().ToTable("ReminderRun");
         }

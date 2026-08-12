@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using smart_pet_care_api.Data;
@@ -12,9 +13,11 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809175039_AddChatAssistantSourceMessage")]
+    partial class AddChatAssistantSourceMessage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -115,10 +118,7 @@ namespace smart_pet_care_api.Migrations
 
                     b.HasIndex("SessionId", "CreatedAt");
 
-                    b.ToTable("ChatMessages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ChatMessages_SourceMessageId_AssistantOnly", "\"Role\" = 1 OR \"SourceMessageId\" IS NULL");
-                        });
+                    b.ToTable("ChatMessages", (string)null);
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.ChatSession", b =>
@@ -148,12 +148,6 @@ namespace smart_pet_care_api.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 

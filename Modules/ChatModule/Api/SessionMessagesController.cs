@@ -75,7 +75,9 @@ public sealed class SessionMessagesController(
                 sessionId,
                 User.GetUserId(),
                 request.Text,
-                cancellationToken));
+                request.ClientMessageId ?? Guid.Empty,
+                cancellationToken),
+            mapInvalidStateToConflict: true);
     }
 
     [HttpPost("{messageId:guid}/retry")]

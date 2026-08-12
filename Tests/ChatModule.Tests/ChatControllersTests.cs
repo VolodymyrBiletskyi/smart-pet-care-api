@@ -374,6 +374,7 @@ public sealed class ChatControllersTests
             Guid sessionId,
             Guid userId,
             string userText,
+            Guid clientMessageId,
             CancellationToken cancellationToken = default)
         {
             if (RateLimitedException is not null)
