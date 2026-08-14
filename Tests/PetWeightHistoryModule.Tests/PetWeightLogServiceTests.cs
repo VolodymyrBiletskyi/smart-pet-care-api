@@ -195,7 +195,7 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_StoresUtcLogRefreshesPetWeightAndSavesTwice()
+    public async Task CreateAsync_StoresUtcLogRefreshesPetWeightAndSavesOnce()
     {
         var measuredAt = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Unspecified);
         var pet = new Pet { Id = _petId, WeightKg = 5m };
@@ -213,14 +213,14 @@ public class PetWeightLogServiceTests
         Assert.Equal(measuredAt, repo.AddedLog.MeasuredAt);
         Assert.Equal(12.3m, pet.WeightKg);
         Assert.InRange(pet.UpdatedAt!.Value, before, DateTime.UtcNow);
-        Assert.Equal(2, repo.SaveChangesCalls);
+        Assert.Equal(1, repo.SaveChangesCalls);
         Assert.Equal(repo.AddedLog.Id, result.Id);
         Assert.Equal(repo.AddedLog.MeasuredAt, repo.CheckedMeasuredAt);
         Assert.Null(repo.CheckedExcludeId);
     }
 
     [Fact]
-    public async Task CreateAsync_WhenTrackedPetDisappears_ThrowsAfterInitialSave()
+    public async Task CreateAsync_WhenTrackedPetDisappears_ThrowsWithoutSaving()
     {
         var repo = new FakePetWeightLogRepository { TrackedPet = null };
         var service = new PetWeightLogService(repo);
@@ -229,7 +229,8 @@ public class PetWeightLogServiceTests
             service.CreateAsync(_petId, _userId, ValidCreate()));
 
         Assert.Equal("Pet not found", exception.Message);
-        Assert.Equal(1, repo.SaveChangesCalls);
+        Assert.Null(repo.AddedLog);
+        Assert.Equal(0, repo.SaveChangesCalls);
     }
 
     [Fact]
@@ -340,7 +341,7 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_PatchesFieldsClearsNotesRefreshesWeightAndSavesTwice()
+    public async Task UpdateAsync_PatchesFieldsClearsNotesRefreshesWeightAndSavesOnce()
     {
         var log = NewLog();
         var latest = NewLog();
@@ -365,7 +366,8 @@ public class PetWeightLogServiceTests
         Assert.Null(log.Notes);
         Assert.InRange(log.UpdatedAt!.Value, before, DateTime.UtcNow);
         Assert.Equal(25m, pet.WeightKg);
-        Assert.Equal(2, repo.SaveChangesCalls);
+        Assert.Equal(log.Id, repo.LatestExcludedId);
+        Assert.Equal(1, repo.SaveChangesCalls);
         Assert.Equal(log.Id, result.Id);
     }
 
@@ -407,7 +409,7 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_DeletesLogRefreshesLatestWeightAndSavesTwice()
+    public async Task DeleteAsync_DeletesLogRefreshesLatestWeightAndSavesOnce()
     {
         var log = NewLog();
         var latest = NewLog();
@@ -421,7 +423,8 @@ public class PetWeightLogServiceTests
         Assert.True(result);
         Assert.Same(log, repo.DeletedLog);
         Assert.Equal(8.5m, pet.WeightKg);
-        Assert.Equal(2, repo.SaveChangesCalls);
+        Assert.Equal(log.Id, repo.LatestExcludedId);
+        Assert.Equal(1, repo.SaveChangesCalls);
     }
 
     [Fact]

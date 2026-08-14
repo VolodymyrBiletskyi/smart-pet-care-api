@@ -42,11 +42,16 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Repository
                 .FirstOrDefaultAsync(w => w.Id == id);
         }
 
-        public async Task<PetWeightLog?> GetLatestByPetIdAsync(Guid petId)
+        public async Task<PetWeightLog?> GetLatestByPetIdAsync(Guid petId, Guid? excludeId = null)
         {
-            return await _dbContext.PetWeightLogs
+            var query = _dbContext.PetWeightLogs
                 .AsNoTracking()
-                .Where(w => w.PetId == petId)
+                .Where(w => w.PetId == petId);
+
+            if (excludeId.HasValue)
+                query = query.Where(w => w.Id != excludeId.Value);
+
+            return await query
                 .OrderByDescending(w => w.MeasuredAt)
                 .ThenByDescending(w => w.CreatedAt)
                 .FirstOrDefaultAsync();

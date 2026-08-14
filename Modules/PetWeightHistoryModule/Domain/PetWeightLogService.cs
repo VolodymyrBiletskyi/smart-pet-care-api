@@ -32,9 +32,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             var log = PetWeightLogMapper.ToEntity(dto, petId);
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt);
 
+            await RefreshPetCurrentWeightAsync(petId, log);
             await _repo.AddAsync(log);
-            await _repo.SaveChangesAsync();
-            await RefreshPetCurrentWeightAsync(petId);
             await _repo.SaveChangesAsync();
 
             return log.ToDto();
@@ -53,8 +52,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             ValidateFinalState(log);
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt, log.Id);
 
-            await _repo.SaveChangesAsync();
-            await RefreshPetCurrentWeightAsync(petId);
+            await RefreshPetCurrentWeightAsync(petId, log, log.Id);
             await _repo.SaveChangesAsync();
 
             return log.ToDto();
@@ -67,9 +65,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             var log = await _repo.GetTrackedByIdAsync(weightLogId);
             if (log is null || log.PetId != petId) return false;
 
+            await RefreshPetCurrentWeightAsync(petId, excludeId: log.Id);
             _repo.Delete(log);
-            await _repo.SaveChangesAsync();
-            await RefreshPetCurrentWeightAsync(petId);
             await _repo.SaveChangesAsync();
 
             return true;
@@ -89,15 +86,34 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
                 throw new PetWeightLogConflictException("A weight log for this pet already exists at the same measurement time.");
         }
 
-        private async Task RefreshPetCurrentWeightAsync(Guid petId)
+        private async Task RefreshPetCurrentWeightAsync(
+            Guid petId,
+            PetWeightLog? pendingLog = null,
+            Guid? excludeId = null)
         {
             var pet = await _repo.GetTrackedPetByIdAsync(petId);
             if (pet is null)
                 throw new InvalidOperationException("Pet not found");
 
-            var latestLog = await _repo.GetLatestByPetIdAsync(petId);
+            var latestPersistedLog = await _repo.GetLatestByPetIdAsync(petId, excludeId);
+            var latestLog = IsLaterThan(pendingLog, latestPersistedLog)
+                ? pendingLog
+                : latestPersistedLog;
             pet.WeightKg = latestLog?.WeightKg;
             pet.UpdatedAt = DateTime.UtcNow;
+        }
+
+        private static bool IsLaterThan(PetWeightLog? candidate, PetWeightLog? current)
+        {
+            if (candidate is null)
+                return false;
+
+            if (current is null)
+                return true;
+
+            return candidate.MeasuredAt > current.MeasuredAt
+                || (candidate.MeasuredAt == current.MeasuredAt
+                    && candidate.CreatedAt > current.CreatedAt);
         }
 
         private static void ValidateCreate(CreatePetWeightLogDto dto)
