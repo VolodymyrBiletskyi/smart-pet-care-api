@@ -482,7 +482,7 @@ public sealed class ChatService(
         catch (ClassifierRateLimitedException exception)
         {
             userMessage.Status = ChatMessageStatus.FailedRetryable;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
 
             throw new ClassifierRateLimitedException(
                 exception.Message,
@@ -494,7 +494,7 @@ public sealed class ChatService(
         catch (ClassifierUnavailableException exception)
         {
             userMessage.Status = ChatMessageStatus.FailedRetryable;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
 
             throw new ClassifierUnavailableException(
                 exception.Message,
@@ -503,6 +503,25 @@ public sealed class ChatService(
                 exception.Code,
                 exception.RetryAfterSeconds,
                 userMessage.Id);
+        }
+        catch (ClassifierInvalidResponseException exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedNonRetryable;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+
+            throw new ClassifierInvalidResponseException(
+                exception.Message,
+                exception.StatusCode,
+                exception.ResponseContent,
+                exception,
+                exception.ValidationReason,
+                userMessage.Id);
+        }
+        catch (Exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedRetryable;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+            throw;
         }
 
         var assistantMessage = new ChatMessage

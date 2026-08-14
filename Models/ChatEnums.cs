@@ -35,5 +35,6 @@ public enum ChatMessageStatus
 {
     Pending,
     Completed,
-    FailedRetryable
+    FailedRetryable,
+    FailedNonRetryable
 }

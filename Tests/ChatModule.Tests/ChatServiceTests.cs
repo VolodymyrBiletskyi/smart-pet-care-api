@@ -138,6 +138,62 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
+    public async Task HandleUserMessageAsync_WhenClassifierResponseIsInvalid_MarksUserNonRetryableAndReturnsMessageId()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var service = new ChatService(
+            dbContext,
+            new ThrowingClassifierClient(
+                new ClassifierInvalidResponseException(
+                    "Classifier response is invalid.",
+                    System.Net.HttpStatusCode.OK,
+                    validationReason: "answer is missing")));
+
+        var exception = await Assert.ThrowsAsync<ClassifierInvalidResponseException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "new symptom",
+                TestContext.Current.CancellationToken));
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        var persistedSession = await dbContext.ChatSessions.SingleAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ChatMessageStatus.FailedNonRetryable, message.Status);
+        Assert.Equal(message.Id, exception.MessageId);
+        Assert.Equal("answer is missing", exception.ValidationReason);
+        Assert.Equal("last good summary", persistedSession.SymptomSummary);
+        Assert.Empty(await dbContext.ChatMessages.Where(candidate =>
+            candidate.Role == ChatMessageRole.Assistant).ToListAsync(
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task HandleUserMessageAsync_WhenClassifierThrowsUnexpectedException_MarksUserRetryable()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var service = new ChatService(
+            dbContext,
+            new ThrowingClassifierClient(
+                new InvalidOperationException("Unexpected classifier failure.")));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "new symptom",
+                TestContext.Current.CancellationToken));
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ChatMessageStatus.FailedRetryable, message.Status);
+    }
+
+    [Fact]
     public async Task HandleUserMessageAsync_WithSameClientMessageId_ReplaysCompletedResponse()
     {
         await using var dbContext = CreateContext();
@@ -304,6 +360,37 @@ public sealed class ChatServiceTests
 
         Assert.Single(await dbContext.ChatMessages.ToListAsync(
             TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RetryUserMessageAsync_WhenMessageIsFailedNonRetryable_RejectsRetry()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var failedMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.FailedNonRetryable,
+            Content = "invalid classifier turn"
+        };
+        dbContext.ChatMessages.Add(failedMessage);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var client = new QueueClassifierClient(CreateResponse("unused", "unused"));
+        var service = new ChatService(dbContext, client);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RetryUserMessageAsync(
+                session.Id,
+                session.UserId,
+                failedMessage.Id,
+                TestContext.Current.CancellationToken));
+
+        Assert.Empty(client.Requests);
+        Assert.Equal(
+            ChatMessageStatus.FailedNonRetryable,
+            (await dbContext.ChatMessages.SingleAsync(
+                TestContext.Current.CancellationToken)).Status);
     }
 
     [Fact]
