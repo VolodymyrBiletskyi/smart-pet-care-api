@@ -72,8 +72,13 @@ namespace smart_pet_care_api.Migrations
             // Existing rules have always counted from their first occurrence, so that is where
             // the anchor starts. Without this they would all anchor on 0001-01-01 and any
             // interval above 1 would compute its parity from the wrong origin.
+            //
+            // The default only exists to make the column addable as NOT NULL; the model
+            // declares none, so it is dropped once the backfill has run rather than left
+            // behind as '-infinity' for every future insert.
             migrationBuilder.Sql("""
                 UPDATE "Reminders" SET "ScheduleAnchorAt" = "StartAt";
+                ALTER TABLE "Reminders" ALTER COLUMN "ScheduleAnchorAt" DROP DEFAULT;
                 """);
 
             // A run and the advancing of NextTriggerAt are written in one SaveChanges, so two
