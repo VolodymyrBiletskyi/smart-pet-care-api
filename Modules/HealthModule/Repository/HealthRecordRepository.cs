@@ -55,6 +55,13 @@ namespace smart_pet_care_api.Modules.HealthModule.Repository
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
+        public async Task<HealthRecord?> GetByReminderAndPerformedAtAsync(Guid reminderId, DateTime performedAtUtc)
+        {
+            return await _dbContext.HealthRecords
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.ReminderId == reminderId && r.PerformedAt == performedAtUtc);
+        }
+
         public async Task<HealthRecord> AddAsync(HealthRecord entity)
         {
             await _dbContext.HealthRecords.AddAsync(entity);

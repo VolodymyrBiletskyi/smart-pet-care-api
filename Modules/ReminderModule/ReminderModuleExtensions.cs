@@ -10,6 +10,8 @@ namespace smart_pet_care_api.Modules.ReminderModule
         {
             services.AddScoped<IReminderRepository, ReminderRepository>();
             services.AddScoped<IReminderService, ReminderService>();
+            services.AddScoped<IReminderRecalculationService, ReminderRecalculationService>();
+            services.AddScoped<IReminderCompletionService, ReminderCompletionService>();
             services.AddHostedService<ReminderSchedulerService>();
             return services;
         }

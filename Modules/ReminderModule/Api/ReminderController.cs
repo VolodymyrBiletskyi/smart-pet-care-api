@@ -4,6 +4,7 @@ using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.ReminderModule.Domain;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Responses;
+using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.ReminderModule.Api
 {
@@ -13,8 +14,13 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
     public class ReminderController : ControllerBase
     {
         private readonly IReminderService _service;
+        private readonly IReminderCompletionService _completion;
 
-        public ReminderController(IReminderService service) => _service = service;
+        public ReminderController(IReminderService service, IReminderCompletionService completion)
+        {
+            _service = service;
+            _completion = completion;
+        }
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<ReminderResponseDto>), StatusCodes.Status200OK)]
@@ -121,6 +127,89 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             var userId = User.GetUserId();
             var runs = await _service.GetRunsAsync(id, userId);
             return Ok(runs);
+        }
+
+        /// <summary>
+        /// The Done button. Takes the date in the body so the user can correct it in the log
+        /// window, or confirm before the notification has even fired.
+        /// </summary>
+        [HttpPost("{id:guid}/complete")]
+        [ProducesResponseType(typeof(ReminderCompletionResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteReminderDto? dto)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var result = await _completion.CompleteAsync(id, userId, dto ?? new CompleteReminderDto());
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Occurrences over a window. Future ones are projected from the repeat rules and are
+        /// not stored, so they carry no run id until something actually happens to them.
+        /// </summary>
+        [HttpGet("occurrences")]
+        [ProducesResponseType(typeof(IEnumerable<ReminderOccurrenceDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetOccurrences(
+            [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] Guid? petId)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var occurrences = await _service.GetOccurrencesAsync(userId, petId, from, to);
+                return Ok(occurrences);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>Execution history across every rule of one pet, for a period.</summary>
+        [HttpGet("runs")]
+        [ProducesResponseType(typeof(IEnumerable<ReminderRunHistoryDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetRunHistory(
+            [FromQuery] Guid petId,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] ReminderType? type)
+        {
+            try
+            {
+                var userId = User.GetUserId();
+                var history = await _service.GetRunHistoryAsync(petId, userId, from, to, type);
+                return Ok(history);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("runs/{runId:guid}/acknowledge")]

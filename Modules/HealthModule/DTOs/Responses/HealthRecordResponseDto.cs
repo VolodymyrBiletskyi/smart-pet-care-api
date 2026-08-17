@@ -6,6 +6,10 @@ namespace smart_pet_care_api.Modules.HealthModule.DTOs.Responses
     {
         public Guid Id { get; set; }
         public Guid PetId { get; set; }
+
+        /// <summary>Reminder this record was logged against, if any.</summary>
+        public Guid? ReminderId { get; set; }
+
         public HealthRecordType Type { get; set; }
         public string Title { get; set; } = null!;
         public string? Description { get; set; }

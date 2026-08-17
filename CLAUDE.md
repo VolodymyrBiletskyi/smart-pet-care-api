@@ -38,6 +38,32 @@ daily summary (day-window math, goal comparison) and the AI feeding analysis
 overrides, response validation, persistence and the two-analyses-per-pet
 retention rule).
 
+Reminder module tests are in `Tests/ReminderModule.Tests/`. They cover the
+schedule calculator (interval arithmetic, week parity against the anchor,
+month clamping, forward-only weekday alignment, local-vs-UTC date handling),
+the recalculation service (completion closing an occurrence, early and
+backdated completion, idempotency, end-of-series) and the completion service
+(health record filing, type mapping, ownership).
+
+### Reminder recalculation
+
+`Reminder.RecalcStrategy` decides what a completion does to the schedule:
+
+- `Calendar` — the completion is recorded and the calendar is left alone
+  (brushing, weighing, activity).
+- `FromCompletion` — next trigger is the performed date plus the interval,
+  exactly. Forced on the server for Vaccination, ParasiteTreatment,
+  Deworming and VetVisit, since the interval is a safety property there.
+- `FromCompletionAlignedToWeekday` — same, then moved *forward* to the nearest
+  selected weekday so habits like "bathing on Saturdays" survive.
+
+All trigger dates come from `ReminderScheduleCalculator`, counted from
+`Reminder.ScheduleAnchorAt` rather than from "now". Recalculation has one
+implementation (`IReminderRecalculationService`) and two callers: the Done
+button (`POST /api/reminders/{id}/complete`) and health record creation with
+a `reminderId`. Both are keyed on the performed date, so registering the same
+completion twice changes nothing.
+
 Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`

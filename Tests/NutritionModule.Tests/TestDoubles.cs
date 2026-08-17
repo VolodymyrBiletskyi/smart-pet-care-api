@@ -76,6 +76,20 @@ internal sealed class FakeReminderRepository : IReminderRepository
     public Task<ReminderRun?> GetRunByIdAsync(Guid runId) => Task.FromResult<ReminderRun?>(null);
     public Task AddRunAsync(ReminderRun run) => Task.CompletedTask;
     public Task<int> SaveChangesAsync() => Task.FromResult(0);
+
+    // Scheduling members the nutrition tests never exercise.
+    public Task<IReadOnlyList<Reminder>> GetSchedulableByPetIdsAsync(IEnumerable<Guid> petIds) =>
+        Task.FromResult(Reminders);
+    public Task<IReadOnlyList<ReminderRun>> GetRunsByReminderIdsAsync(
+        IEnumerable<Guid> reminderIds, DateTime fromUtc, DateTime toUtc) =>
+        Task.FromResult<IReadOnlyList<ReminderRun>>([]);
+    public Task<IReadOnlyList<(ReminderRun Run, Reminder Reminder)>> GetRunHistoryByPetIdAsync(
+        Guid petId, DateTime? fromUtc, DateTime? toUtc, Enums.ReminderType? type) =>
+        Task.FromResult<IReadOnlyList<(ReminderRun, Reminder)>>([]);
+    public Task<ReminderRun?> GetLatestOpenRunAsync(Guid reminderId, DateTime asOfUtc) =>
+        Task.FromResult<ReminderRun?>(null);
+    public Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc) =>
+        Task.FromResult<ReminderRun?>(null);
 }
 
 internal sealed class FakePetRepository : IPetRepository

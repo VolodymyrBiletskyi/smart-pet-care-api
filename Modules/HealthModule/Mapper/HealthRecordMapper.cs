@@ -10,6 +10,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Mapper
         public static HealthRecord ToEntity(CreateHealthRecordDto dto, Guid petId) => new()
         {
             PetId = petId,
+            ReminderId = dto.ReminderId,
             Type = dto.Type,
             Title = dto.Title.Trim(),
             Description = dto.Description,
@@ -25,6 +26,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Mapper
         {
             Id = record.Id,
             PetId = record.PetId,
+            ReminderId = record.ReminderId,
             Type = record.Type,
             Title = record.Title,
             Description = record.Description,

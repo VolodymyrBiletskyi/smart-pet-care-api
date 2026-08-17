@@ -9,6 +9,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.DTOs.Requests
 
         public RepeatType? RepeatType { get; set; }
 
+        public int? IntervalN { get; set; }
+
+        public RecalcStrategy? RecalcStrategy { get; set; }
+
         public DaysOfWeek[]? Days { get; set; }
 
         public DateOnly? Date { get; set; }

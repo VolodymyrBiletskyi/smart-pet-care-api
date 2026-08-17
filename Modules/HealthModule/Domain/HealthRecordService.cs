@@ -3,6 +3,7 @@ using smart_pet_care_api.Modules.HealthModule.DTOs.Requests;
 using smart_pet_care_api.Modules.HealthModule.DTOs.Responses;
 using smart_pet_care_api.Modules.HealthModule.Mapper;
 using smart_pet_care_api.Modules.HealthModule.Repository;
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.HealthModule.Domain
@@ -10,10 +11,14 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
     public class HealthRecordService : IHealthRecordService
     {
         private readonly IHealthRecordRepository _repo;
+        private readonly IReminderRecalculationService _reminderRecalculation;
 
-        public HealthRecordService(IHealthRecordRepository repo)
+        public HealthRecordService(
+            IHealthRecordRepository repo,
+            IReminderRecalculationService reminderRecalculation)
         {
             _repo = repo;
+            _reminderRecalculation = reminderRecalculation;
         }
 
         public async Task<IReadOnlyList<HealthRecordResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, HealthRecordType? type, SymptomType? symptom, DateTime? from, DateTime? to)
@@ -49,6 +54,23 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             ValidateCreate(dto);
 
             var record = HealthRecordMapper.ToEntity(dto, petId);
+
+            // Second entry point into recalculation. A treatment can happen without any rule
+            // behind it — vaccinated at the vet, nobody set anything up — and the next date is
+            // still needed, so creating a record against a reminder moves that reminder on.
+            // Registering the same completion twice is a no-op: the schedule is derived from
+            // PerformedAt rather than shifted from wherever it currently sits.
+            if (dto.ReminderId is { } reminderId)
+            {
+                var outcome = await _reminderRecalculation.RegisterCompletionAsync(
+                    reminderId, record.PerformedAt, expectedPetId: petId)
+                    ?? throw new InvalidOperationException("Reminder not found");
+
+                // NextDueAt belongs to the server for linked records; letting the client set it
+                // too would give us two sources of truth for one date.
+                record.NextDueAt = outcome.Reminder.NextTriggerAt;
+            }
+
             ValidateFinalState(record);
 
             await _repo.AddAsync(record);

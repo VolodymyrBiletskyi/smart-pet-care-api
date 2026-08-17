@@ -9,6 +9,13 @@ namespace smart_pet_care_api.Models
 
         public Guid PetId { get; set; }
 
+        /// <summary>
+        /// Reminder this record answers, when it was logged against one. Nulled rather than
+        /// cascaded when the reminder goes away — deleting a rule must not delete treatment
+        /// history. Null for records entered by hand with no rule behind them.
+        /// </summary>
+        public Guid? ReminderId { get; set; }
+
         public HealthRecordType Type { get; set; }
 
         public string Title { get; set; } = null!;
