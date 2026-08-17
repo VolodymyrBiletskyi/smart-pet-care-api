@@ -162,7 +162,7 @@ public class ReminderCompletionServiceTests
         var error = await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
             harness.Reminder.Id, UserId, new CompleteReminderDto()));
 
-        Assert.Contains("weight-logs", error.Message);
+        Assert.Contains("weight-history", error.Message);
         Assert.Empty(harness.Reminders.Runs);
     }
 

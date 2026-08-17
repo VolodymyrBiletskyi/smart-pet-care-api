@@ -69,7 +69,7 @@ log belongs:
 |---|---|
 | Vaccination, ParasiteTreatment, Deworming, VetVisit | `POST /api/reminders/{id}/complete` — files the HealthRecord itself |
 | Grooming, Activity, Medication, anything else | `POST /api/reminders/{id}/complete` — the closed run is the log |
-| Weighing | `POST /api/pets/{petId}/weight-logs` with `reminderId` |
+| Weighing | `POST /api/pets/{petId}/weight-history` with `reminderId` |
 | Feeding | `POST /api/pets/{petId}/feeding-logs` with `reminderId` |
 
 The last two carry a measurement the completion payload has no room for, so

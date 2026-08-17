@@ -43,7 +43,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         /// <summary>Endpoint that owns the completion of <paramref name="type"/>.</summary>
         public static string DedicatedLogEndpoint(ReminderType type) => type switch
         {
-            ReminderType.Weighing => "POST /api/pets/{petId}/weight-logs",
+            ReminderType.Weighing => "POST /api/pets/{petId}/weight-history",
             ReminderType.Feeding => "POST /api/pets/{petId}/feeding-logs",
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
