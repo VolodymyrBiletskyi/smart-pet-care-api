@@ -42,7 +42,6 @@ public sealed class ChatService(
     {
         var session = await dbContext.ChatSessions
             .AsNoTracking()
-            .Include(candidate => candidate.Messages)
             .SingleOrDefaultAsync(
                 candidate => candidate.Id == sessionId
                     && candidate.UserId == userId,

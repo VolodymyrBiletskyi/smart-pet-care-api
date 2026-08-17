@@ -11,7 +11,6 @@ public sealed record ChatSessionDetailsResponseDto
     public string? SymptomSummary { get; init; }
     public required DateTime CreatedAt { get; init; }
     public required DateTime UpdatedAt { get; init; }
-    public IReadOnlyList<ChatMessageResponseDto> Messages { get; init; } = [];
 
     public static ChatSessionDetailsResponseDto FromResult(
         ChatSessionDetailsResult result)
@@ -23,10 +22,7 @@ public sealed record ChatSessionDetailsResponseDto
             PetType = result.PetType,
             SymptomSummary = result.SymptomSummary,
             CreatedAt = result.CreatedAt,
-            UpdatedAt = result.UpdatedAt,
-            Messages = result.Messages
-                .Select(ChatMessageResponseDto.FromResult)
-                .ToList()
+            UpdatedAt = result.UpdatedAt
         };
     }
 }

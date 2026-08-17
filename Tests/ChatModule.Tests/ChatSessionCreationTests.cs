@@ -103,10 +103,17 @@ public sealed class ChatSessionCreationTests
             session.Id,
             userId,
             TestContext.Current.CancellationToken);
+        var messages = await service.GetMessagesAsync(
+            session.Id,
+            userId,
+            ChatService.DefaultMessagePageSize,
+            cursor: null,
+            TestContext.Current.CancellationToken);
 
         Assert.Single(sessions);
         Assert.Equal("summary", sessions[0].SymptomSummary);
-        Assert.Equal(["first", "second"], details.Messages.Select(message => message.Content));
+        Assert.Equal("summary", details.SymptomSummary);
+        Assert.Equal(["first", "second"], messages.Items.Select(message => message.Content));
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             service.GetSessionAsync(
                 session.Id,

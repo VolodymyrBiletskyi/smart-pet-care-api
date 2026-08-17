@@ -129,6 +129,23 @@ public sealed class ChatControllersTests
     }
 
     [Fact]
+    public async Task GetSession_ReturnsMetadataWithoutMessages()
+    {
+        var result = CreateSessionResult();
+        var controller = CreateSessionsController(
+            new StubChatService { CreateResult = result });
+
+        var action = await controller.GetSession(
+            result.SessionId,
+            TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<OkObjectResult>(action);
+        var response = Assert.IsType<ChatSessionDetailsResponseDto>(ok.Value);
+        Assert.Equal(result.SessionId, response.SessionId);
+        Assert.Null(typeof(ChatSessionDetailsResponseDto).GetProperty("Messages"));
+    }
+
+    [Fact]
     public async Task PostMessage_ReturnsFlattenedClassifierResponse()
     {
         var service = new StubChatService
@@ -371,8 +388,7 @@ public sealed class ChatControllersTests
                 result.PetType,
                 result.SymptomSummary,
                 result.CreatedAt,
-                result.UpdatedAt,
-                []));
+                result.UpdatedAt));
         }
 
         public Task<ChatSessionResult> CreateSessionAsync(
