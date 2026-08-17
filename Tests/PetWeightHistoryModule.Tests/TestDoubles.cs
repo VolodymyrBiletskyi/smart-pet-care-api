@@ -1,3 +1,4 @@
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Domain;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests;
@@ -78,4 +79,43 @@ internal sealed class FakePetWeightLogService : IPetWeightLogService
     public Task<PetWeightLogResponseDto> UpdateAsync(Guid petId, Guid weightLogId, Guid userId, PatchPetWeightLogDto dto) =>
         Update(petId, weightLogId, userId, dto);
     public Task<bool> DeleteAsync(Guid petId, Guid weightLogId, Guid userId) => Delete(petId, weightLogId, userId);
+}
+
+/// <summary>
+/// Records completion registrations so tests can assert the weighing reminder was closed,
+/// without pulling the whole reminder module into this suite.
+/// </summary>
+internal sealed class FakeReminderRecalculationService : IReminderRecalculationService
+{
+    public Guid? RegisteredReminderId { get; private set; }
+    public DateTime? RegisteredPerformedAt { get; private set; }
+    public Guid? RegisteredPetId { get; private set; }
+    public int Calls { get; private set; }
+
+    /// <summary>Set to false to simulate a reminder that does not exist or belongs elsewhere.</summary>
+    public bool ReminderResolves { get; set; } = true;
+
+    public Task<ReminderCompletionOutcome?> RegisterCompletionAsync(
+        Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null)
+    {
+        Calls++;
+        RegisteredReminderId = reminderId;
+        RegisteredPerformedAt = performedAtUtc;
+        RegisteredPetId = expectedPetId;
+
+        if (!ReminderResolves) return Task.FromResult<ReminderCompletionOutcome?>(null);
+
+        var reminder = new Reminder
+        {
+            Id = reminderId,
+            PetId = expectedPetId ?? Guid.NewGuid(),
+            Title = "Weigh-in",
+            NextTriggerAt = performedAtUtc.AddDays(7)
+        };
+
+        var run = new ReminderRun { ReminderId = reminderId, PerformedAt = performedAtUtc };
+
+        return Task.FromResult<ReminderCompletionOutcome?>(
+            new ReminderCompletionOutcome(reminder, run, AlreadyRecorded: false));
+    }
 }

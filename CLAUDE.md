@@ -58,11 +58,24 @@ backdated completion, idempotency, end-of-series) and the completion service
   selected weekday so habits like "bathing on Saturdays" survive.
 
 All trigger dates come from `ReminderScheduleCalculator`, counted from
-`Reminder.ScheduleAnchorAt` rather than from "now". Recalculation has one
-implementation (`IReminderRecalculationService`) and two callers: the Done
-button (`POST /api/reminders/{id}/complete`) and health record creation with
-a `reminderId`. Both are keyed on the performed date, so registering the same
-completion twice changes nothing.
+`Reminder.ScheduleAnchorAt` rather than from "now".
+
+Recalculation has one implementation (`IReminderRecalculationService`) and
+several callers, all keyed on the performed date so registering the same
+completion twice changes nothing. Which caller applies depends on where the
+log belongs:
+
+| Reminder type | Completed by |
+|---|---|
+| Vaccination, ParasiteTreatment, Deworming, VetVisit | `POST /api/reminders/{id}/complete` — files the HealthRecord itself |
+| Grooming, Activity, Medication, anything else | `POST /api/reminders/{id}/complete` — the closed run is the log |
+| Weighing | `POST /api/pets/{petId}/weight-logs` with `reminderId` |
+| Feeding | `POST /api/pets/{petId}/feeding-logs` with `reminderId` |
+
+The last two carry a measurement the completion payload has no room for, so
+`/complete` rejects them rather than closing the occurrence and silently
+dropping the weight. A HealthRecord created by hand with a `reminderId`
+works the same way, for treatments given with no rule behind them.
 
 Classifier integration documentation:
 

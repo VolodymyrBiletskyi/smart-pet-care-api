@@ -39,12 +39,26 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
                 throw new InvalidOperationException("Reminder not found");
 
+            // Weighing and feeding carry a measurement this payload cannot hold. Silently
+            // closing the occurrence here would leave the user believing the weight was saved.
+            if (ReminderTypePolicy.HasDedicatedLog(reminder.Type))
+                throw new ArgumentException(
+                    $"{reminder.Type} reminders are completed by creating the log itself: "
+                    + $"{ReminderTypePolicy.DedicatedLogEndpoint(reminder.Type)} with reminderId.");
+
             var performedAt = ReminderMapper.NormalizeToUtc(dto.PerformedAt ?? DateTime.UtcNow);
             if (performedAt > DateTime.UtcNow.Add(FutureTolerance))
                 throw new ArgumentException("PerformedAt cannot be in the future");
 
             if (dto.Note is { Length: > 2000 })
                 throw new ArgumentException("Note must be 2000 characters or less");
+
+            // Dosage and provider only reach a health record; accepting them for a bath would
+            // quietly drop them.
+            var filesHealthRecord = ReminderTypePolicy.ToHealthRecordType(reminder.Type) is not null;
+            if (!filesHealthRecord && (dto.Dosage is not null || dto.Provider is not null))
+                throw new ArgumentException(
+                    $"Dosage and provider do not apply to {reminder.Type} reminders.");
 
             var outcome = await _recalculation.RegisterCompletionAsync(reminderId, performedAt, dto.Note)
                 ?? throw new InvalidOperationException("Reminder not found");

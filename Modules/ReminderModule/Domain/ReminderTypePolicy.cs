@@ -32,6 +32,23 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         };
 
         /// <summary>
+        /// Types whose log carries data the generic completion payload has no room for — a
+        /// weight, a portion. Those are completed by creating the log itself with a
+        /// reminderId, so that the measurement and the schedule move together.
+        /// </summary>
+        public static bool HasDedicatedLog(ReminderType type) => type
+            is ReminderType.Weighing
+            or ReminderType.Feeding;
+
+        /// <summary>Endpoint that owns the completion of <paramref name="type"/>.</summary>
+        public static string DedicatedLogEndpoint(ReminderType type) => type switch
+        {
+            ReminderType.Weighing => "POST /api/pets/{petId}/weight-logs",
+            ReminderType.Feeding => "POST /api/pets/{petId}/feeding-logs",
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        /// <summary>
         /// Types whose interval is a safety property, so the recalculation mode is not the
         /// client's to choose. Antiparasitics protect for a fixed number of days from the
         /// dose; a calendar rule or a weekday nudge would quietly shorten that cover.

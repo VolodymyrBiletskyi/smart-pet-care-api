@@ -151,4 +151,39 @@ public class ReminderCompletionServiceTests
         Assert.True(second.AlreadyRecorded);
         Assert.Equal(harness.HealthRecords.Records[0].Id, second.HealthRecordId);
     }
+
+    [Fact]
+    public async Task Weighing_cannot_be_completed_through_the_generic_endpoint()
+    {
+        // Closing it here would leave the user believing the weight was saved. The weight log
+        // owns this completion.
+        var harness = Build(ReminderType.Weighing, RecalcStrategy.Calendar);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
+            harness.Reminder.Id, UserId, new CompleteReminderDto()));
+
+        Assert.Contains("weight-logs", error.Message);
+        Assert.Empty(harness.Reminders.Runs);
+    }
+
+    [Fact]
+    public async Task Feeding_cannot_be_completed_through_the_generic_endpoint()
+    {
+        var harness = Build(ReminderType.Feeding, RecalcStrategy.Calendar);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
+            harness.Reminder.Id, UserId, new CompleteReminderDto()));
+
+        Assert.Contains("feeding-logs", error.Message);
+    }
+
+    [Fact]
+    public async Task Dosage_on_a_type_that_files_no_health_record_is_rejected()
+    {
+        // Accepting it would drop it silently.
+        var harness = Build(ReminderType.Bathing, RecalcStrategy.Calendar);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
+            harness.Reminder.Id, UserId, new CompleteReminderDto { Dosage = "10 mg" }));
+    }
 }

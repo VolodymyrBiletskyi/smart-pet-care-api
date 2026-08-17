@@ -21,9 +21,17 @@ public class FeedingLogConfiguration : IEntityTypeConfiguration<FeedingLog>
         builder.HasIndex(f => new { f.PetId, f.FedAt })
             .IsDescending(false, true);
 
+        builder.HasIndex(f => f.ReminderId);
+
         builder.HasOne<Pet>()
             .WithMany(p => p.FeedingLogs)
             .HasForeignKey(f => f.PetId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Deleting a reminder must not delete feeding history, so the link is cut instead.
+        builder.HasOne<Reminder>()
+            .WithMany()
+            .HasForeignKey(f => f.ReminderId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
