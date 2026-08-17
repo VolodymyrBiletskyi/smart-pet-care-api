@@ -132,6 +132,18 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc)
+        {
+            return await _db.ReminderRuns
+                .Where(rr => rr.ReminderId == reminderId
+                    && rr.ScheduledFor < beforeUtc
+                    && rr.CompletedAt == null
+                    && (rr.Status == ReminderRunStatus.Pending
+                        || rr.Status == ReminderRunStatus.Sent
+                        || rr.Status == ReminderRunStatus.Delivered))
+                .ToListAsync();
+        }
+
         public async Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc)
         {
             return await _db.ReminderRuns

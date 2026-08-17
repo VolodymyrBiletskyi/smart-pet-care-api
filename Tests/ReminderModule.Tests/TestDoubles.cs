@@ -110,6 +110,16 @@ internal sealed class FakeReminderRepository : IReminderRepository
             .OrderByDescending(r => r.ScheduledFor)
             .FirstOrDefault());
 
+    public Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc) =>
+        Task.FromResult<IReadOnlyList<ReminderRun>>(Runs
+            .Where(r => r.ReminderId == reminderId
+                && r.ScheduledFor < beforeUtc
+                && r.CompletedAt == null
+                && r.Status is ReminderRunStatus.Pending
+                    or ReminderRunStatus.Sent
+                    or ReminderRunStatus.Delivered)
+            .ToList());
+
     public Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc) =>
         Task.FromResult(Runs.FirstOrDefault(r => r.ReminderId == reminderId
             && r.Status == ReminderRunStatus.Completed

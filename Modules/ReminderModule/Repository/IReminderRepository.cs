@@ -35,5 +35,11 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
 
         /// <summary>Guards against the same completion being registered twice.</summary>
         Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc);
+
+        /// <summary>
+        /// Occurrences before <paramref name="beforeUtc"/> that were delivered but never
+        /// confirmed. Tracked, so the caller can mark them missed.
+        /// </summary>
+        Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc);
     }
 }

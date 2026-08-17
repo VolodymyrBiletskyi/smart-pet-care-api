@@ -90,6 +90,8 @@ internal sealed class FakeReminderRepository : IReminderRepository
         Task.FromResult<ReminderRun?>(null);
     public Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc) =>
         Task.FromResult<ReminderRun?>(null);
+    public Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc) =>
+        Task.FromResult<IReadOnlyList<ReminderRun>>([]);
 }
 
 internal sealed class FakePetRepository : IPetRepository

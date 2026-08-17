@@ -57,13 +57,22 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             }
         }
 
-        private static async Task FireReminderAsync(
+        internal static async Task FireReminderAsync(
             Reminder reminder,
             DateTime now,
             IReminderRepository reminderRepo,
             INotificationService notificationService)
         {
             var scheduledFor = reminder.NextTriggerAt!.Value;
+
+            // A new occurrence is due, so any earlier one still waiting for confirmation will
+            // never get it. Without this they sit in Sent forever and history cannot tell a
+            // delivered-and-done occurrence from a delivered-and-ignored one.
+            foreach (var stale in await reminderRepo.GetUnconfirmedRunsAsync(reminder.Id, scheduledFor))
+            {
+                stale.Status = ReminderRunStatus.Missed;
+                stale.UpdatedAt = now;
+            }
 
             var run = new ReminderRun
             {
