@@ -9,7 +9,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Mapper
         public static FeedingLog ToEntity(CreateFeedingLogDto dto, Guid petId) => new()
         {
             PetId = petId,
-            FedAt = NormalizeToUtc(dto.FedAt),
+            FedAt = NormalizeToUtc(dto.FedAt!.Value),
             FoodType = dto.FoodType,
             FoodName = dto.FoodName,
             PortionAmount = dto.PortionAmount,
