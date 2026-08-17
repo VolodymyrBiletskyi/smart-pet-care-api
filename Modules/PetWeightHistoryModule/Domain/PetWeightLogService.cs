@@ -3,16 +3,21 @@ using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Responses;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Mapper;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Repository;
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 
 namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
 {
     public class PetWeightLogService : IPetWeightLogService
     {
         private readonly IPetWeightLogRepository _repo;
+        private readonly IReminderRecalculationService _reminderRecalculation;
 
-        public PetWeightLogService(IPetWeightLogRepository repo)
+        public PetWeightLogService(
+            IPetWeightLogRepository repo,
+            IReminderRecalculationService reminderRecalculation)
         {
             _repo = repo;
+            _reminderRecalculation = reminderRecalculation;
         }
 
         public async Task<IReadOnlyList<PetWeightLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, DateTime? from = null, DateTime? to = null)
@@ -31,6 +36,15 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
 
             var log = PetWeightLogMapper.ToEntity(dto, petId);
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt);
+
+            // Weighing has its own log, so the reminder is closed from here rather than by a
+            // generic complete call that would have nowhere to put the weight.
+            if (dto.ReminderId is { } reminderId)
+            {
+                _ = await _reminderRecalculation.RegisterCompletionAsync(
+                    reminderId, log.MeasuredAt, expectedPetId: petId)
+                    ?? throw new InvalidOperationException("Reminder not found");
+            }
 
             await _repo.AddAsync(log);
             await _repo.SaveChangesAsync();

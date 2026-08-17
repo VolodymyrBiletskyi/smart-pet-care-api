@@ -25,10 +25,17 @@ public class HealthRecordConfiguration : IEntityTypeConfiguration<HealthRecord>
         builder.HasIndex(r => new { r.PetId, r.PerformedAt })
             .IsDescending(false, true);
         builder.HasIndex(r => new { r.PetId, r.Type });
+        builder.HasIndex(r => r.ReminderId);
 
         builder.HasOne<Pet>()
             .WithMany(p => p.HealthRecords)
             .HasForeignKey(r => r.PetId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Deleting a reminder must not delete treatment history, so the link is cut instead.
+        builder.HasOne<Reminder>()
+            .WithMany()
+            .HasForeignKey(r => r.ReminderId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

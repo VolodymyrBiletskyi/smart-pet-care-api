@@ -1,14 +1,21 @@
+using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.PetModule.Repository;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Responses;
 using smart_pet_care_api.Modules.ReminderModule.Mapper;
 using smart_pet_care_api.Modules.ReminderModule.Repository;
 using static smart_pet_care_api.Models.Enums;
+using static smart_pet_care_api.Modules.ReminderModule.Domain.ReminderScheduleCalculator;
 
 namespace smart_pet_care_api.Modules.ReminderModule.Domain
 {
     public class ReminderService : IReminderService
     {
+        /// <summary>Furthest ahead occurrences may be projected, to bound a daily rule's expansion.</summary>
+        private static readonly TimeSpan MaxHorizon = TimeSpan.FromDays(90);
+
+        private const int MaxProjectedPerReminder = 60;
+
         private readonly IReminderRepository _reminderRepo;
         private readonly IPetRepository _petRepo;
 
@@ -51,12 +58,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
                 throw new InvalidOperationException("EndAt must be in the future");
 
-            ValidateMode(dto.RepeatType, dto.Days, dto.Date);
+            var strategy = ResolveStrategy(dto.Type, dto.RepeatType, dto.RecalcStrategy);
+            ValidateSchedule(dto.RepeatType, dto.IntervalN, strategy, dto.Days, dto.Date);
 
             var (firstTrigger, timeOfDayUtc) = ComputeSchedule(
-                dto.RepeatType, dto.Days, dto.Date, dto.Time, dto.UtcOffsetMinutes, DateTime.UtcNow);
+                dto.RepeatType, dto.IntervalN, strategy, dto.Days, dto.Date,
+                dto.Time, dto.UtcOffsetMinutes, DateTime.UtcNow);
 
-            var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeOfDayUtc);
+            var reminder = ReminderMapper.ToEntity(dto, firstTrigger, timeOfDayUtc, strategy);
             await _reminderRepo.AddAsync(reminder);
             await _reminderRepo.SaveChangesAsync();
 
@@ -79,12 +88,16 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             reminder.PatchEntity(dto);
 
             var touchesSchedule = dto.RepeatType.HasValue || dto.Days != null
-                || dto.Date.HasValue || dto.Time.HasValue || dto.UtcOffsetMinutes.HasValue;
+                || dto.Date.HasValue || dto.Time.HasValue || dto.UtcOffsetMinutes.HasValue
+                || dto.IntervalN.HasValue || dto.RecalcStrategy.HasValue;
 
             if (touchesSchedule)
             {
                 var repeatType = dto.RepeatType ?? reminder.RepeatType;
                 var offset = dto.UtcOffsetMinutes ?? reminder.UtcOffsetMinutes;
+                var intervalN = dto.IntervalN ?? reminder.IntervalN;
+                var strategy = ResolveStrategy(
+                    reminder.Type, repeatType, dto.RecalcStrategy ?? reminder.RecalcStrategy);
 
                 var usesDate = repeatType is RepeatType.Monthly or RepeatType.Once;
 
@@ -92,21 +105,23 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 // fields left over from a mode switch are cleared silently instead.
                 if (!usesDate && dto.Date.HasValue)
                     throw new InvalidOperationException($"{repeatType} reminders must not include a date.");
-                if (repeatType != RepeatType.Weekly && dto.Days is { Length: > 0 })
+                if (!ReminderMapper.KeepDays(repeatType, strategy) && dto.Days is { Length: > 0 })
                     throw new InvalidOperationException($"{repeatType} reminders must not include days.");
 
-                var days = repeatType == RepeatType.Weekly ? (dto.Days ?? reminder.Days) : [];
+                var days = ReminderMapper.KeepDays(repeatType, strategy) ? (dto.Days ?? reminder.Days) : [];
                 DateOnly? date = usesDate ? (dto.Date ?? reminder.Date) : null;
 
-                ValidateMode(repeatType, days, date);
+                ValidateSchedule(repeatType, intervalN, strategy, days, date);
 
                 var localTime = dto.Time ?? TimeOnly.FromTimeSpan(reminder.TimeOfDay)
                     .Add(TimeSpan.FromMinutes(offset));
 
                 var (trigger, timeOfDayUtc) = ComputeSchedule(
-                    repeatType, days, date, localTime, offset, DateTime.UtcNow);
+                    repeatType, intervalN, strategy, days, date, localTime, offset, DateTime.UtcNow);
 
                 reminder.RepeatType = repeatType;
+                reminder.IntervalN = intervalN;
+                reminder.RecalcStrategy = strategy;
                 reminder.Days = days;
                 reminder.Date = date;
                 reminder.UtcOffsetMinutes = offset;
@@ -114,10 +129,18 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 reminder.StartAt = trigger;
                 reminder.NextTriggerAt = trigger;
 
+                // Editing the schedule restarts the interval, so the anchor follows the new
+                // first occurrence; keeping the old one would leave week parity counting from
+                // a rule that no longer exists.
+                reminder.ScheduleAnchorAt = trigger;
+
                 // Rescheduling implies the reminder should fire again; without this a
                 // Completed/Missed reminder would hold a trigger the scheduler ignores.
                 if (!dto.Status.HasValue)
                     reminder.Status = ReminderStatus.Active;
+
+                // The pending occurrence was replaced, so whatever was overdue no longer is.
+                reminder.OverdueSince = null;
             }
 
             await _reminderRepo.SaveChangesAsync();
@@ -146,6 +169,116 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             return runs.Select(r => r.ToDto()).ToList();
         }
 
+        public async Task<IReadOnlyList<ReminderRunHistoryDto>> GetRunHistoryAsync(
+            Guid petId, Guid userId, DateTime? from, DateTime? to, ReminderType? type)
+        {
+            if (!await _petRepo.ExistsForUserAsync(petId, userId))
+                throw new InvalidOperationException("Pet not found");
+
+            var fromUtc = from is { } f ? ReminderMapper.NormalizeToUtc(f) : (DateTime?)null;
+            var toUtc = to is { } t ? ReminderMapper.NormalizeToUtc(t) : (DateTime?)null;
+
+            if (fromUtc.HasValue && toUtc.HasValue && fromUtc > toUtc)
+                throw new ArgumentException("From cannot be later than To");
+
+            var rows = await _reminderRepo.GetRunHistoryByPetIdAsync(petId, fromUtc, toUtc, type);
+            return rows.Select(row => row.Run.ToHistoryDto(row.Reminder)).ToList();
+        }
+
+        /// <summary>
+        /// Occurrences in a window: stored runs for what already happened, plus occurrences
+        /// projected from the repeat rules for what has not. Projections are never written —
+        /// editing a routine would otherwise mean deleting and regenerating everything ahead
+        /// of it.
+        /// </summary>
+        public async Task<IReadOnlyList<ReminderOccurrenceDto>> GetOccurrencesAsync(
+            Guid userId, Guid? petId, DateTime from, DateTime to)
+        {
+            var fromUtc = ReminderMapper.NormalizeToUtc(from);
+            var toUtc = ReminderMapper.NormalizeToUtc(to);
+
+            if (fromUtc > toUtc)
+                throw new ArgumentException("From cannot be later than To");
+
+            if (toUtc - fromUtc > MaxHorizon)
+                throw new ArgumentException($"Window cannot exceed {MaxHorizon.TotalDays:0} days");
+
+            IReadOnlyList<Guid> petIds;
+            if (petId is { } single)
+            {
+                if (!await _petRepo.ExistsForUserAsync(single, userId))
+                    throw new InvalidOperationException("Pet not found");
+                petIds = [single];
+            }
+            else
+            {
+                var pets = await _petRepo.GetByUserIdAsync(userId);
+                petIds = pets.Select(p => p.Id).ToList();
+            }
+
+            if (petIds.Count == 0) return [];
+
+            var reminders = await _reminderRepo.GetSchedulableByPetIdsAsync(petIds);
+            if (reminders.Count == 0) return [];
+
+            var runs = await _reminderRepo.GetRunsByReminderIdsAsync(
+                reminders.Select(r => r.Id).ToList(), fromUtc, toUtc);
+
+            var byReminder = reminders.ToDictionary(r => r.Id);
+            var occurrences = new List<ReminderOccurrenceDto>();
+            var materialised = new HashSet<(Guid, DateTime)>();
+
+            foreach (var run in runs)
+            {
+                if (!byReminder.TryGetValue(run.ReminderId, out var reminder)) continue;
+
+                materialised.Add((run.ReminderId, run.ScheduledFor));
+                occurrences.Add(ToOccurrence(reminder, run.ScheduledFor, run));
+            }
+
+            foreach (var reminder in reminders)
+                occurrences.AddRange(Project(reminder, fromUtc, toUtc, materialised));
+
+            return occurrences.OrderBy(o => o.ScheduledFor).ToList();
+        }
+
+        private static IEnumerable<ReminderOccurrenceDto> Project(
+            Reminder reminder, DateTime fromUtc, DateTime toUtc, HashSet<(Guid, DateTime)> materialised)
+        {
+            if (reminder.NextTriggerAt is not { } next) yield break;
+
+            var plan = PlanFor(reminder);
+            var horizon = reminder.EndAt.HasValue && reminder.EndAt < toUtc ? reminder.EndAt.Value : toUtc;
+
+            for (var i = 0; i < MaxProjectedPerReminder && next <= horizon; i++)
+            {
+                if (next >= fromUtc && materialised.Add((reminder.Id, next)))
+                    yield return ToOccurrence(reminder, next, run: null);
+
+                // Past the pending trigger, a completion-driven rule has no knowable schedule:
+                // the date after this one depends on when the user actually does it.
+                if (reminder.RecalcStrategy != RecalcStrategy.Calendar) yield break;
+
+                if (NextFromCalendar(plan, next) is not { } following) yield break;
+                next = following;
+            }
+        }
+
+        private static ReminderOccurrenceDto ToOccurrence(Reminder reminder, DateTime scheduledFor, ReminderRun? run) => new()
+        {
+            ReminderId = reminder.Id,
+            PetId = reminder.PetId,
+            Title = reminder.Title,
+            Type = run?.Type ?? reminder.Type,
+            ScheduledFor = scheduledFor,
+            RunId = run?.Id,
+            Status = run?.Status,
+            CompletedAt = run?.CompletedAt,
+            PerformedAt = run?.PerformedAt,
+            IsMaterialized = run is not null,
+            IsOverdue = reminder.OverdueSince.HasValue && scheduledFor <= reminder.OverdueSince.Value
+        };
+
         public async Task<ReminderRunResponseDto> AcknowledgeRunAsync(Guid runId, Guid userId)
         {
             var run = await _reminderRepo.GetRunByIdAsync(runId)
@@ -167,70 +300,71 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         }
 
         /// <summary>
-        /// Days are stored as the user's local weekdays while TimeOfDay is UTC; when the
-        /// local→UTC conversion crosses midnight the occurrence falls on the adjacent UTC weekday.
+        /// Medical intervals are a safety property, so the recalculation mode for those types
+        /// is decided here rather than taken from the request. One-off reminders are exempt
+        /// because they have no interval to count from. The effective value comes back in the
+        /// response, so a client that asked for something else can see what it got.
         /// </summary>
-        internal static DaysOfWeek[] ToUtcDays(DaysOfWeek[] localDays, TimeSpan timeOfDayUtc, int offsetMinutes)
-        {
-            var localMinutes = timeOfDayUtc.TotalMinutes + offsetMinutes;
-            var shift = localMinutes >= 1440 ? -1 : localMinutes < 0 ? 1 : 0;
-
-            return shift == 0
-                ? localDays
-                : localDays.Select(d => (DaysOfWeek)(((int)d + shift + 7) % 7)).ToArray();
-        }
-
-        internal static DateTime? ComputeNextTrigger(DaysOfWeek[] days, TimeSpan time, DateTime after)
-        {
-            if (days.Length == 0) return null;
-
-            return days
-                .Select(day => NextOccurrence(day, time, after))
-                .OrderBy(d => d)
-                .Cast<DateTime?>()
-                .First();
-        }
+        internal static RecalcStrategy ResolveStrategy(
+            ReminderType type, RepeatType repeatType, RecalcStrategy requested) =>
+            repeatType != RepeatType.Once && ReminderTypePolicy.RequiresCompletionDrivenRecalc(type)
+                ? RecalcStrategy.FromCompletion
+                : requested;
 
         private static (DateTime trigger, TimeSpan timeOfDayUtc) ComputeSchedule(
-            RepeatType repeatType, DaysOfWeek[] days, DateOnly? date, TimeOnly localTime, int offsetMinutes, DateTime nowUtc)
+            RepeatType repeatType, int intervalN, RecalcStrategy strategy, DaysOfWeek[] days,
+            DateOnly? date, TimeOnly localTime, int offsetMinutes, DateTime nowUtc)
         {
-            switch (repeatType)
+            var timeOfDayUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
+
+            if (repeatType == RepeatType.Once)
             {
-                case RepeatType.Weekly:
-                    {
-                        // No "time already passed today" guard: ComputeNextTrigger rolls a same-day-but-past
-                        // time forward to next week automatically.
-                        var timeUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
-                        var utcDays = ToUtcDays(days, timeUtc, offsetMinutes);
-                        var trigger = ComputeNextTrigger(utcDays, timeUtc, nowUtc)
-                            ?? throw new InvalidOperationException("Could not compute a valid trigger time");
-                        return (trigger, timeUtc);
-                    }
-                case RepeatType.Daily:
-                    {
-                        var timeUtc = localTime.Add(TimeSpan.FromMinutes(-offsetMinutes)).ToTimeSpan();
-                        return (ComputeNextDaily(timeUtc, nowUtc), timeUtc);
-                    }
-                case RepeatType.Monthly:
-                    {
-                        var trigger = ComputeNextMonthly(date!.Value, localTime, offsetMinutes, nowUtc);
-                        return (trigger, trigger.TimeOfDay);
-                    }
-                case RepeatType.Once:
-                    {
-                        var trigger = DateTime.SpecifyKind(
-                            date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes), DateTimeKind.Utc);
-                        if (trigger <= nowUtc)
-                            throw new InvalidOperationException("Date must be in the future.");
-                        return (trigger, trigger.TimeOfDay);
-                    }
-                default:
-                    throw new InvalidOperationException("Unknown repeat type.");
+                var once = DateTime.SpecifyKind(
+                    date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes), DateTimeKind.Utc);
+                if (once <= nowUtc)
+                    throw new InvalidOperationException("Date must be in the future.");
+                return (once, once.TimeOfDay);
             }
+
+            var plan = new SchedulePlan(
+                repeatType, intervalN, days, date, timeOfDayUtc, offsetMinutes, nowUtc, strategy);
+
+            var trigger = FirstTrigger(plan, nowUtc)
+                ?? throw new InvalidOperationException("Could not compute a valid trigger time");
+
+            return (trigger, timeOfDayUtc);
         }
 
-        private static void ValidateMode(RepeatType repeatType, DaysOfWeek[] days, DateOnly? date)
+        internal static void ValidateSchedule(
+            RepeatType repeatType, int intervalN, RecalcStrategy strategy, DaysOfWeek[] days, DateOnly? date)
         {
+            if (!Enum.IsDefined(repeatType))
+                throw new InvalidOperationException("Unknown repeat type.");
+            if (!Enum.IsDefined(strategy))
+                throw new InvalidOperationException("Unknown recalculation strategy.");
+
+            var maxInterval = repeatType switch
+            {
+                RepeatType.Daily => 365,
+                RepeatType.Weekly => 52,
+                RepeatType.Monthly => 24,
+                _ => 1
+            };
+
+            if (intervalN < 1 || intervalN > maxInterval)
+                throw new InvalidOperationException(
+                    $"IntervalN must be between 1 and {maxInterval} for {repeatType} reminders.");
+
+            if (repeatType == RepeatType.Once && strategy != RecalcStrategy.Calendar)
+                throw new InvalidOperationException(
+                    "Once reminders have no interval to recalculate from.");
+
+            if (strategy == RecalcStrategy.FromCompletionAlignedToWeekday && days.Length == 0)
+                throw new InvalidOperationException(
+                    "Weekday-aligned recalculation requires at least one day to align to.");
+
+            var daysAllowed = ReminderMapper.KeepDays(repeatType, strategy);
+
             switch (repeatType)
             {
                 case RepeatType.Weekly:
@@ -240,7 +374,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                         throw new InvalidOperationException("Weekly reminders must not include a date.");
                     break;
                 case RepeatType.Daily:
-                    if (days.Length > 0)
+                    if (days.Length > 0 && !daysAllowed)
                         throw new InvalidOperationException("Daily reminders must not include days.");
                     if (date.HasValue)
                         throw new InvalidOperationException("Daily reminders must not include a date.");
@@ -249,48 +383,12 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 case RepeatType.Once:
                     if (!date.HasValue)
                         throw new InvalidOperationException($"{repeatType} reminders require a date.");
-                    if (days.Length > 0)
+                    if (days.Length > 0 && !daysAllowed)
                         throw new InvalidOperationException($"{repeatType} reminders must not include days.");
                     break;
                 default:
                     throw new InvalidOperationException("Unknown repeat type.");
             }
-        }
-
-        internal static DateTime ComputeNextDaily(TimeSpan timeOfDayUtc, DateTime afterUtc)
-        {
-            var candidate = afterUtc.Date + timeOfDayUtc;
-            return candidate <= afterUtc ? candidate.AddDays(1) : candidate;
-        }
-
-        internal static DateTime ComputeNextMonthly(DateOnly anchor, TimeOnly localTime, int offsetMinutes, DateTime afterUtc)
-        {
-            var afterLocal = afterUtc.AddMinutes(offsetMinutes);
-
-            var candidate = BuildMonthlyLocal(afterLocal.Year, afterLocal.Month, anchor.Day, localTime);
-            if (candidate <= afterLocal)
-            {
-                var nextMonth = new DateTime(afterLocal.Year, afterLocal.Month, 1).AddMonths(1);
-                candidate = BuildMonthlyLocal(nextMonth.Year, nextMonth.Month, anchor.Day, localTime);
-            }
-
-            // Candidate is built with new DateTime(...) (Kind=Unspecified); after removing the
-            // offset it is UTC, and Npgsql rejects non-UTC kinds for timestamptz columns.
-            return DateTime.SpecifyKind(candidate.AddMinutes(-offsetMinutes), DateTimeKind.Utc);
-        }
-
-        private static DateTime BuildMonthlyLocal(int year, int month, int dayOfMonth, TimeOnly localTime)
-        {
-            var day = Math.Min(dayOfMonth, DateTime.DaysInMonth(year, month));
-            return new DateTime(year, month, day).Add(localTime.ToTimeSpan());
-        }
-
-        private static DateTime NextOccurrence(DaysOfWeek day, TimeSpan time, DateTime after)
-        {
-            var daysUntil = ((int)day - (int)after.DayOfWeek + 7) % 7;
-            if (daysUntil == 0 && after.TimeOfDay > time)
-                daysUntil = 7;
-            return after.Date.AddDays(daysUntil) + time;
         }
     }
 }

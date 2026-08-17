@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using smart_pet_care_api.Data;
@@ -12,9 +13,11 @@ using smart_pet_care_api.Data;
 namespace smart_pet_care_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260817111214_AddReminderCompletionRecalc")]
+    partial class AddReminderCompletionRecalc
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -278,15 +281,10 @@ namespace smart_pet_care_api.Migrations
                     b.Property<int?>("PortionUnit")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("ReminderId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReminderId");
 
                     b.HasIndex("PetId", "FedAt")
                         .IsDescending(false, true);
@@ -823,9 +821,6 @@ namespace smart_pet_care_api.Migrations
                     b.Property<Guid>("PetId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ReminderId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -833,8 +828,6 @@ namespace smart_pet_care_api.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReminderId");
 
                     b.HasIndex("PetId", "MeasuredAt")
                         .IsUnique()
@@ -1170,11 +1163,6 @@ namespace smart_pet_care_api.Migrations
                         .HasForeignKey("PetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("smart_pet_care_api.Models.Reminder", null)
-                        .WithMany()
-                        .HasForeignKey("ReminderId")
-                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.HealthRecord", b =>
@@ -1285,11 +1273,6 @@ namespace smart_pet_care_api.Migrations
                         .HasForeignKey("PetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("smart_pet_care_api.Models.Reminder", null)
-                        .WithMany()
-                        .HasForeignKey("ReminderId")
-                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.RefreshToken", b =>

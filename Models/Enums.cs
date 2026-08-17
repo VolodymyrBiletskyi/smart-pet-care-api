@@ -28,6 +28,12 @@ namespace smart_pet_care_api.Models
             Veterinary,
             Grooming,
         }
+        /// <summary>
+        /// Stored as an integer, so new values must be appended — inserting in the
+        /// middle shifts every later value and rewrites the meaning of existing rows.
+        /// The grooming values below are labels only: recurrence behaviour lives in
+        /// <see cref="RecalcStrategy"/>, not in the type.
+        /// </summary>
         public enum ReminderType
         {
             Feeding,
@@ -36,7 +42,38 @@ namespace smart_pet_care_api.Models
             Vaccination,
             ParasiteTreatment,
             VetVisit,
+            /// <summary>Unspecified grooming; kept as the bucket for rows created before the labels below existed.</summary>
             Grooming,
+            Weighing,
+            Deworming,
+            Bathing,
+            Brushing,
+            EarCleaning,
+            NailTrimming,
+            PawCare,
+            TeethCleaning,
+        }
+
+        /// <summary>
+        /// How the next trigger is derived once an occurrence is completed.
+        /// </summary>
+        public enum RecalcStrategy
+        {
+            /// <summary>Ignore the completion date and keep following the calendar.</summary>
+            Calendar = 0,
+
+            /// <summary>
+            /// Next trigger is the completion date plus the interval, exactly. Used where the
+            /// interval is a safety property (antiparasitics protect for N days from the dose).
+            /// </summary>
+            FromCompletion = 1,
+
+            /// <summary>
+            /// Completion date plus the interval, then moved forward to the nearest selected
+            /// weekday. Keeps habits like "bathing on Saturdays" from drifting while never
+            /// shortening the interval.
+            /// </summary>
+            FromCompletionAlignedToWeekday = 2,
         }
         public enum Frequency
         {
