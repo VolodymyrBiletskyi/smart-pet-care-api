@@ -9,6 +9,12 @@ namespace smart_pet_care_api.Models
 
         public Guid PetId { get; set; }
 
+        /// <summary>
+        /// Reminder this feeding answers, when it was logged against one. Nulled rather than
+        /// cascaded when the reminder goes away. Null for feedings logged on their own.
+        /// </summary>
+        public Guid? ReminderId { get; set; }
+
         public DateTime FedAt { get; set; }
 
         public FoodType FoodType { get; set; }

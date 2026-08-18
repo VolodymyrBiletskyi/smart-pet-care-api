@@ -17,12 +17,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             Type = r.Type,
             Status = r.Status,
             RepeatType = r.RepeatType,
+            IntervalN = r.IntervalN,
+            RecalcStrategy = r.RecalcStrategy,
             Days = r.Days,
             Date = r.Date,
             TimeOfDay = r.TimeOfDay,
             StartAt = r.StartAt,
             NextTriggerAt = r.NextTriggerAt,
             EndAt = r.EndAt,
+            ScheduleAnchorAt = r.ScheduleAnchorAt,
+            OverdueSince = r.OverdueSince,
+            LastCompletedAt = r.LastCompletedAt,
             IsSystemGenerated = r.IsSystemGenerated,
             CreatedAt = r.CreatedAt,
             UpdatedAt = r.UpdatedAt
@@ -35,27 +40,56 @@ namespace smart_pet_care_api.Modules.ReminderModule.Mapper
             ScheduledFor = run.ScheduledFor,
             SentAt = run.SentAt,
             CompletedAt = run.CompletedAt,
+            PerformedAt = run.PerformedAt,
+            Type = run.Type,
+            Note = run.Note,
             Status = run.Status,
             Channel = run.Channel,
             CreatedAt = run.CreatedAt
         };
 
-        public static Reminder ToEntity(CreateReminderDto dto, DateTime firstTrigger, TimeSpan timeOfDayUtc) => new()
+        public static ReminderRunHistoryDto ToHistoryDto(this ReminderRun run, Reminder reminder) => new()
+        {
+            RunId = run.Id,
+            ReminderId = run.ReminderId,
+            PetId = reminder.PetId,
+            Title = reminder.Title,
+            Type = run.Type ?? reminder.Type,
+            ScheduledFor = run.ScheduledFor,
+            PerformedAt = run.PerformedAt,
+            CompletedAt = run.CompletedAt,
+            Status = run.Status,
+            Note = run.Note
+        };
+
+        public static Reminder ToEntity(
+            CreateReminderDto dto, DateTime firstTrigger, TimeSpan timeOfDayUtc, RecalcStrategy strategy) => new()
         {
             PetId = dto.PetId,
             Title = dto.Title,
             Description = dto.Description,
             Type = dto.Type,
             RepeatType = dto.RepeatType,
-            Days = dto.RepeatType == RepeatType.Weekly ? dto.Days : [],
+            IntervalN = dto.IntervalN,
+            RecalcStrategy = strategy,
+            // Weekly needs days to fire at all; the other repeat types only keep them as the
+            // alignment target of the weekday-aligned strategy.
+            Days = KeepDays(dto.RepeatType, strategy) ? dto.Days : [],
             Date = dto.RepeatType is RepeatType.Monthly or RepeatType.Once ? dto.Date : null,
             TimeOfDay = timeOfDayUtc,
             UtcOffsetMinutes = dto.UtcOffsetMinutes,
             StartAt = firstTrigger,
             NextTriggerAt = firstTrigger,
+            // Intervals count from the first occurrence, so "every 2 weeks" means every second
+            // week starting there rather than from an arbitrary creation timestamp.
+            ScheduleAnchorAt = firstTrigger,
             EndAt = dto.EndAt is { } endAt ? NormalizeToUtc(endAt) : null,
             SourceType = SourceType.Manual
         };
+
+        public static bool KeepDays(RepeatType repeatType, RecalcStrategy strategy) =>
+            repeatType == RepeatType.Weekly
+            || strategy == RecalcStrategy.FromCompletionAlignedToWeekday;
 
         public static void PatchEntity(this Reminder reminder, PatchReminderDto dto)
         {

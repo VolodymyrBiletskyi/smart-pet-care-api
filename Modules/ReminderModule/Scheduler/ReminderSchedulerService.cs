@@ -57,22 +57,46 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             }
         }
 
-        private static async Task FireReminderAsync(
+        internal static async Task FireReminderAsync(
             Reminder reminder,
             DateTime now,
             IReminderRepository reminderRepo,
             INotificationService notificationService)
         {
+            var scheduledFor = reminder.NextTriggerAt!.Value;
+
+            // A new occurrence is due, so any earlier one still waiting for confirmation will
+            // never get it. Without this they sit in Sent forever and history cannot tell a
+            // delivered-and-done occurrence from a delivered-and-ignored one.
+            foreach (var stale in await reminderRepo.GetUnconfirmedRunsAsync(reminder.Id, scheduledFor))
+            {
+                stale.Status = ReminderRunStatus.Missed;
+                stale.UpdatedAt = now;
+            }
+
             var run = new ReminderRun
             {
                 ReminderId = reminder.Id,
-                ScheduledFor = reminder.NextTriggerAt!.Value,
+                ScheduledFor = scheduledFor,
                 Status = ReminderRunStatus.Pending,
-                Channel = "push"
+                Channel = "push",
+                // Snapshotted so editing the rule later cannot recategorise finished history.
+                Type = reminder.Type
             };
             await reminderRepo.AddRunAsync(run);
 
-            var next = ComputeNextTrigger(reminder, now);
+            // Firing is not completing. Completion-driven rules stay marked until the user
+            // confirms — that is the whole point, a missed antiparasitic must keep asking
+            // instead of quietly rescheduling a month out. Calendar rules are left alone:
+            // nobody confirms every brushing, and flagging those would leave the pet
+            // permanently overdue.
+            if (reminder.RecalcStrategy != RecalcStrategy.Calendar)
+                reminder.OverdueSince ??= scheduledFor;
+
+            // Computed from now rather than from the missed slot, so a scheduler that was down
+            // for three days resumes instead of replaying three days of stale notifications.
+            var next = ReminderScheduleCalculator.NextAfterMiss(
+                ReminderScheduleCalculator.PlanFor(reminder), now);
 
             if (next == null || (reminder.EndAt.HasValue && next > reminder.EndAt))
             {
@@ -96,20 +120,5 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             run.UpdatedAt = now;
             await reminderRepo.SaveChangesAsync();
         }
-
-        private static DateTime? ComputeNextTrigger(Reminder reminder, DateTime now) => reminder.RepeatType switch
-        {
-            RepeatType.Once => null,
-            RepeatType.Daily => ReminderService.ComputeNextDaily(reminder.TimeOfDay, now),
-            RepeatType.Weekly => ReminderService.ComputeNextTrigger(
-                ReminderService.ToUtcDays(reminder.Days, reminder.TimeOfDay, reminder.UtcOffsetMinutes),
-                reminder.TimeOfDay, now),
-            RepeatType.Monthly => ReminderService.ComputeNextMonthly(
-                reminder.Date!.Value,
-                TimeOnly.FromDateTime(reminder.NextTriggerAt!.Value.AddMinutes(reminder.UtcOffsetMinutes)),
-                reminder.UtcOffsetMinutes,
-                now),
-            _ => null,
-        };
     }
 }

@@ -3,6 +3,7 @@ using smart_pet_care_api.Modules.FeedingModule.DTOs.Requests;
 using smart_pet_care_api.Modules.FeedingModule.DTOs.Responses;
 using smart_pet_care_api.Modules.FeedingModule.Mapper;
 using smart_pet_care_api.Modules.FeedingModule.Repository;
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.FeedingModule.Domain
@@ -10,10 +11,14 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
     public class FeedingLogService : IFeedingLogService
     {
         private readonly IFeedingLogRepository _repo;
+        private readonly IReminderRecalculationService _reminderRecalculation;
 
-        public FeedingLogService(IFeedingLogRepository repo)
+        public FeedingLogService(
+            IFeedingLogRepository repo,
+            IReminderRecalculationService reminderRecalculation)
         {
             _repo = repo;
+            _reminderRecalculation = reminderRecalculation;
         }
 
         public async Task<IReadOnlyList<FeedingLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId)
@@ -40,6 +45,16 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
             ValidateCreate(dto);
 
             var log = FeedingLogMapper.ToEntity(dto, petId);
+
+            // Feeding has its own log, so the reminder is closed from here rather than by a
+            // generic complete call that would have nowhere to put the portion.
+            if (dto.ReminderId is { } reminderId)
+            {
+                _ = await _reminderRecalculation.RegisterCompletionAsync(
+                    reminderId, log.FedAt, expectedPetId: petId)
+                    ?? throw new InvalidOperationException("Reminder not found");
+            }
+
             await _repo.AddAsync(log);
             await _repo.SaveChangesAsync();
 

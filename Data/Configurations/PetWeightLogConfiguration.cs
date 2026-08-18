@@ -22,9 +22,17 @@ public class PetWeightLogConfiguration : IEntityTypeConfiguration<PetWeightLog>
             .IsUnique()
             .IsDescending(false, true);
 
+        builder.HasIndex(w => w.ReminderId);
+
         builder.HasOne<Pet>()
             .WithMany(p => p.WeightLogs)
             .HasForeignKey(w => w.PetId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Deleting a reminder must not delete weight history, so the link is cut instead.
+        builder.HasOne<Reminder>()
+            .WithMany()
+            .HasForeignKey(w => w.ReminderId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

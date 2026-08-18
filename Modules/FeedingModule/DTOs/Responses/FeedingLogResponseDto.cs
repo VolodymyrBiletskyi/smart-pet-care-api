@@ -6,6 +6,10 @@ namespace smart_pet_care_api.Modules.FeedingModule.DTOs.Responses
     {
         public Guid Id { get; set; }
         public Guid PetId { get; set; }
+
+        /// <summary>Reminder this feeding was logged against, if any.</summary>
+        public Guid? ReminderId { get; set; }
+
         public DateTime FedAt { get; set; }
         public FoodType FoodType { get; set; }
         public string? FoodName { get; set; }

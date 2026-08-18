@@ -21,9 +21,17 @@ public class ReminderRunConfiguration : IEntityTypeConfiguration<ReminderRun>
             .IsRequired();
 
         builder.Property(r => r.CreatedAt).HasDefaultValueSql("now()");
+        builder.Property(r => r.Note).HasMaxLength(2000);
 
         builder.HasIndex(r => r.ReminderId);
         builder.HasIndex(r => new { r.Status, r.ScheduledFor });
+
+        // One run per slot: the scheduler firing a trigger and the user completing that same
+        // slot ahead of time must not produce two rows for one occurrence.
+        builder.HasIndex(r => new { r.ReminderId, r.ScheduledFor }).IsUnique();
+
+        // Pet-wide history joins runs to reminders and filters by period.
+        builder.HasIndex(r => new { r.PerformedAt });
 
         builder.HasOne<Reminder>()
             .WithMany(rm => rm.ReminderRuns)

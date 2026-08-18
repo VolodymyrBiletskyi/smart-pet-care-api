@@ -20,7 +20,9 @@ public sealed class PetWeightLogAtomicityTests
         await dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         var (petId, userId) = await SeedPetAsync(dbContext);
         var measuredAt = DateTime.UtcNow.AddMinutes(-5);
-        var service = new PetWeightLogService(new PetWeightLogRepository(dbContext));
+        var service = new PetWeightLogService(
+            new PetWeightLogRepository(dbContext),
+            new FakeReminderRecalculationService());
 
         await service.CreateAsync(
             petId,
@@ -56,7 +58,9 @@ public sealed class PetWeightLogAtomicityTests
                 "CREATE TRIGGER FailWeightLogInsert BEFORE INSERT ON PetWeightLogs "
                 + "BEGIN SELECT RAISE(ABORT, 'forced failure'); END;",
                 TestContext.Current.CancellationToken);
-            var service = new PetWeightLogService(new PetWeightLogRepository(dbContext));
+            var service = new PetWeightLogService(
+                new PetWeightLogRepository(dbContext),
+                new FakeReminderRecalculationService());
 
             await Assert.ThrowsAsync<DbUpdateException>(() =>
                 service.CreateAsync(
@@ -87,7 +91,9 @@ public sealed class PetWeightLogAtomicityTests
         var (petId, userId) = await SeedPetAsync(dbContext);
         var firstMeasuredAt = DateTime.UtcNow.AddHours(-1);
         var secondMeasuredAt = DateTime.UtcNow.AddMinutes(-5);
-        var service = new PetWeightLogService(new PetWeightLogRepository(dbContext));
+        var service = new PetWeightLogService(
+            new PetWeightLogRepository(dbContext),
+            new FakeReminderRecalculationService());
 
         await service.CreateAsync(petId, userId, Measurement(8m, firstMeasuredAt));
         await service.CreateAsync(petId, userId, Measurement(9.5m, secondMeasuredAt));

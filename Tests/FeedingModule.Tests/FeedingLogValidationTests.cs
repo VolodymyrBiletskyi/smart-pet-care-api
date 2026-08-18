@@ -8,6 +8,7 @@ using smart_pet_care_api.Modules.FeedingModule.Api;
 using smart_pet_care_api.Modules.FeedingModule.Domain;
 using smart_pet_care_api.Modules.FeedingModule.DTOs.Requests;
 using smart_pet_care_api.Modules.FeedingModule.Repository;
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 using Xunit;
 using static smart_pet_care_api.Models.Enums;
 
@@ -64,7 +65,9 @@ public class FeedingLogValidationTests
     private FeedingLogController Controller()
     {
         var identity = new ClaimsIdentity([new Claim("userId", _userId.ToString())], "test");
-        return new FeedingLogController(new FeedingLogService(new FakeFeedingLogRepository()))
+        return new FeedingLogController(new FeedingLogService(
+            new FakeFeedingLogRepository(),
+            new FakeReminderRecalculationService()))
         {
             ControllerContext = new ControllerContext
             {
@@ -78,6 +81,16 @@ public class FeedingLogValidationTests
         {
             PropertyNameCaseInsensitive = true
         })!;
+}
+
+internal sealed class FakeReminderRecalculationService : IReminderRecalculationService
+{
+    public Task<ReminderCompletionOutcome?> RegisterCompletionAsync(
+        Guid reminderId,
+        DateTime performedAtUtc,
+        string? note = null,
+        Guid? expectedPetId = null) =>
+        Task.FromResult<ReminderCompletionOutcome?>(null);
 }
 
 internal sealed class FakeFeedingLogRepository : IFeedingLogRepository

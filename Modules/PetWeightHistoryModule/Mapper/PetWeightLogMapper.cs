@@ -9,6 +9,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Mapper
         public static PetWeightLog ToEntity(CreatePetWeightLogDto dto, Guid petId) => new()
         {
             PetId = petId,
+            ReminderId = dto.ReminderId,
             WeightKg = dto.WeightKg,
             MeasuredAt = NormalizeToUtc(dto.MeasuredAt!.Value),
             Notes = dto.Notes,
@@ -19,6 +20,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Mapper
         {
             Id = log.Id,
             PetId = log.PetId,
+            ReminderId = log.ReminderId,
             WeightKg = log.WeightKg,
             MeasuredAt = log.MeasuredAt,
             Notes = log.Notes,
