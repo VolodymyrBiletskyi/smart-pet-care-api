@@ -99,6 +99,17 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
 
         private static void ValidatePatch(PatchFeedingLogDto dto)
         {
+            if (!dto.FedAt.IsSet
+                && !dto.FoodType.IsSet
+                && !dto.FoodName.IsSet
+                && !dto.PortionAmount.IsSet
+                && !dto.PortionUnit.IsSet
+                && !dto.ApproxCalories.IsSet
+                && !dto.Notes.IsSet)
+            {
+                throw new ArgumentException("At least one field must be provided");
+            }
+
             if (dto.FedAt.IsSet) ValidateFedAt(dto.FedAt.Value);
             if (dto.FoodType.IsSet) ValidateFoodType(dto.FoodType.Value);
             if (dto.PortionAmount.IsSet) ValidatePortionAmount(dto.PortionAmount.Value);

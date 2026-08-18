@@ -72,16 +72,14 @@ public class PetWeightLogMapperTests
     }
 
     [Fact]
-    public void PatchEntity_UnsetFieldsRemainUnchangedButUpdatedAtIsSet()
+    public void PatchEntity_UnsetFieldsRemainUnchangedAndUpdatedAtIsNotSet()
     {
         var log = NewLog();
-        var before = DateTime.UtcNow;
-
         log.PatchEntity(new PatchPetWeightLogDto());
 
         Assert.Equal(5m, log.WeightKg);
         Assert.Equal("old", log.Notes);
-        Assert.InRange(log.UpdatedAt!.Value, before, DateTime.UtcNow);
+        Assert.Null(log.UpdatedAt);
     }
 
     [Fact]

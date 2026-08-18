@@ -36,6 +36,14 @@ namespace smart_pet_care_api.Modules.FeedingModule.Mapper
 
         public static void PatchEntity(this FeedingLog log, PatchFeedingLogDto dto)
         {
+            var hasChanges = dto.FedAt.IsSet
+                || dto.FoodType.IsSet
+                || dto.FoodName.IsSet
+                || dto.PortionAmount.IsSet
+                || dto.PortionUnit.IsSet
+                || dto.ApproxCalories.IsSet
+                || dto.Notes.IsSet;
+
             if (dto.FedAt.IsSet) log.FedAt = NormalizeToUtc(dto.FedAt.Value);
             if (dto.FoodType.IsSet) log.FoodType = dto.FoodType.Value;
             if (dto.FoodName.IsSet) log.FoodName = dto.FoodName.Value;
@@ -43,7 +51,8 @@ namespace smart_pet_care_api.Modules.FeedingModule.Mapper
             if (dto.PortionUnit.IsSet) log.PortionUnit = dto.PortionUnit.Value;
             if (dto.ApproxCalories.IsSet) log.ApproxCalories = dto.ApproxCalories.Value;
             if (dto.Notes.IsSet) log.Description = dto.Notes.Value;
-            log.UpdatedAt = DateTime.UtcNow;
+            if (hasChanges)
+                log.UpdatedAt = DateTime.UtcNow;
         }
 
         public static DateTime NormalizeToUtc(DateTime dateTime) =>

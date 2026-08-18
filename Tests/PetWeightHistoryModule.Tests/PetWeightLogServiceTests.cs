@@ -247,12 +247,32 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_WhenPatchIsEmpty_ThrowsWithoutSavingOrUpdatingTimestamps()
+    {
+        var log = NewLog();
+        var pet = new Pet { Id = _petId, WeightKg = log.WeightKg };
+        var repo = new FakePetWeightLogRepository { TrackedLog = log, TrackedPet = pet };
+        var service = new PetWeightLogService(repo);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UpdateAsync(_petId, log.Id, _userId, new PatchPetWeightLogDto()));
+
+        Assert.Equal("At least one field must be provided", exception.Message);
+        Assert.Null(log.UpdatedAt);
+        Assert.Null(pet.UpdatedAt);
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenLogIsMissing_ThrowsNotFound()
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository { TrackedLog = null });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchPetWeightLogDto()));
+            service.UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchPetWeightLogDto
+            {
+                Notes = PatchField<string?>.Set(null)
+            }));
 
         Assert.Equal("Weight log not found", exception.Message);
     }
@@ -264,7 +284,10 @@ public class PetWeightLogServiceTests
         var service = new PetWeightLogService(repo);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, new PatchPetWeightLogDto()));
+            service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, new PatchPetWeightLogDto
+            {
+                Notes = PatchField<string?>.Set(null)
+            }));
 
         Assert.Equal("Weight log not found", exception.Message);
     }
@@ -313,7 +336,7 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_ValidatesUnchangedFinalState()
+    public async Task UpdateAsync_ValidatesFinalStateAfterPatch()
     {
         var invalidLog = NewLog();
         invalidLog.WeightKg = 0;
@@ -321,7 +344,10 @@ public class PetWeightLogServiceTests
         var service = new PetWeightLogService(repo);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.UpdateAsync(_petId, invalidLog.Id, _userId, new PatchPetWeightLogDto()));
+            service.UpdateAsync(_petId, invalidLog.Id, _userId, new PatchPetWeightLogDto
+            {
+                Notes = PatchField<string?>.Set(null)
+            }));
 
         Assert.Equal("WeightKg must be greater than 0", exception.Message);
     }
@@ -334,7 +360,10 @@ public class PetWeightLogServiceTests
         var service = new PetWeightLogService(repo);
 
         await Assert.ThrowsAsync<PetWeightLogConflictException>(() =>
-            service.UpdateAsync(_petId, log.Id, _userId, new PatchPetWeightLogDto()));
+            service.UpdateAsync(_petId, log.Id, _userId, new PatchPetWeightLogDto
+            {
+                Notes = PatchField<string?>.Set(null)
+            }));
 
         Assert.Equal(log.Id, repo.CheckedExcludeId);
         Assert.Equal(0, repo.SaveChangesCalls);

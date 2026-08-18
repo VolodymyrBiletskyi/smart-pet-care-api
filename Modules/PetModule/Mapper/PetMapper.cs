@@ -56,6 +56,17 @@ public static class PetMapper
 
     public static void UpdateEntity(Pet pet, UpdatePetDto dto)
     {
+        var hasChanges = dto.Name is not null
+            || dto.Species.HasValue
+            || dto.Breed is not null
+            || dto.BirthDate.HasValue
+            || dto.Sex.HasValue
+            || dto.PhotoUrl.IsSet
+            || dto.PhotoPublicId.IsSet
+            || dto.Allergies.IsSet
+            || dto.ChronicConditions.IsSet
+            || dto.BehavioralNotes.IsSet;
+
         if (dto.Name is not null)
             pet.Name = NormalizeRequiredText(dto.Name);
 
@@ -86,7 +97,8 @@ public static class PetMapper
         if (dto.BehavioralNotes.IsSet)
             pet.BehavioralNotes = NormalizeOptionalTextItems(dto.BehavioralNotes.Value);
 
-        pet.UpdatedAt = DateTime.UtcNow;
+        if (hasChanges)
+            pet.UpdatedAt = DateTime.UtcNow;
     }
 
     private static string NormalizeRequiredText(string value) => value.Trim();

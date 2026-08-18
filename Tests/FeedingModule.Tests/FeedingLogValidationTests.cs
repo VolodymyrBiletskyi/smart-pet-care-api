@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.FeedingModule.Api;
 using smart_pet_care_api.Modules.FeedingModule.Domain;
@@ -29,7 +30,8 @@ public class FeedingLogValidationTests
         var result = await Controller().Create(_petId, dto);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("FedAt is required", badRequest.Value);
+        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("FedAt is required.", error.Message);
     }
 
     [Fact]
@@ -45,7 +47,18 @@ public class FeedingLogValidationTests
         var result = await Controller().Create(_petId, dto);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("FedAt is required", badRequest.Value);
+        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("FedAt is required.", error.Message);
+    }
+
+    [Fact]
+    public async Task Update_WhenPatchIsEmpty_ReturnsBadRequest()
+    {
+        var result = await Controller().Update(_petId, Guid.NewGuid(), new PatchFeedingLogDto());
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("At least one field must be provided.", error.Message);
     }
 
     private FeedingLogController Controller()

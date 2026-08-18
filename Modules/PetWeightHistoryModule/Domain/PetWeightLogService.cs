@@ -125,6 +125,9 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
 
         private static void ValidatePatch(PatchPetWeightLogDto dto)
         {
+            if (!dto.WeightKg.IsSet && !dto.MeasuredAt.IsSet && !dto.Notes.IsSet)
+                throw new ArgumentException("At least one field must be provided");
+
             if (dto.WeightKg.IsSet) ValidateWeightKg(dto.WeightKg.Value);
             if (dto.MeasuredAt.IsSet) ValidateMeasuredAt(dto.MeasuredAt.Value);
             if (dto.Notes.IsSet) ValidateNotes(dto.Notes.Value);

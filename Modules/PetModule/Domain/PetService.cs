@@ -157,6 +157,20 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 
         private static void ValidateUpdate(UpdatePetDto dto)
         {
+            if (dto.Name is null
+                && !dto.Species.HasValue
+                && dto.Breed is null
+                && !dto.BirthDate.HasValue
+                && !dto.Sex.HasValue
+                && !dto.PhotoUrl.IsSet
+                && !dto.PhotoPublicId.IsSet
+                && !dto.Allergies.IsSet
+                && !dto.ChronicConditions.IsSet
+                && !dto.BehavioralNotes.IsSet)
+            {
+                throw new ArgumentException("At least one field must be provided");
+            }
+
             ValidateOptionalText(dto.Name, "Name");
             if (dto.Species.HasValue) ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
