@@ -138,7 +138,131 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
-    public async Task RetryUserMessageAsync_ReusesFailedMessageWithoutCreatingUserDuplicate()
+    public async Task HandleUserMessageAsync_WhenClassifierResponseIsInvalid_MarksUserNonRetryableAndReturnsMessageId()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var service = new ChatService(
+            dbContext,
+            new ThrowingClassifierClient(
+                new ClassifierInvalidResponseException(
+                    "Classifier response is invalid.",
+                    System.Net.HttpStatusCode.OK,
+                    validationReason: "answer is missing")));
+
+        var exception = await Assert.ThrowsAsync<ClassifierInvalidResponseException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "new symptom",
+                TestContext.Current.CancellationToken));
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        var persistedSession = await dbContext.ChatSessions.SingleAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(ChatMessageStatus.FailedNonRetryable, message.Status);
+        Assert.Equal(message.Id, exception.MessageId);
+        Assert.Equal("answer is missing", exception.ValidationReason);
+        Assert.Equal("last good summary", persistedSession.SymptomSummary);
+        Assert.Empty(await dbContext.ChatMessages.Where(candidate =>
+            candidate.Role == ChatMessageRole.Assistant).ToListAsync(
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task HandleUserMessageAsync_WhenClassifierThrowsUnexpectedException_MarksUserRetryable()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "last good summary");
+        var service = new ChatService(
+            dbContext,
+            new ThrowingClassifierClient(
+                new InvalidOperationException("Unexpected classifier failure.")));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "new symptom",
+                TestContext.Current.CancellationToken));
+
+        var message = await dbContext.ChatMessages.SingleAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(ChatMessageStatus.FailedRetryable, message.Status);
+    }
+
+    [Fact]
+    public async Task HandleUserMessageAsync_WithSameClientMessageId_ReplaysCompletedResponse()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "initial summary");
+        var client = new QueueClassifierClient(
+            CreateResponse("answer", "updated summary"));
+        var service = new ChatService(dbContext, client);
+        var clientMessageId = Guid.NewGuid();
+
+        var first = await service.HandleUserMessageAsync(
+            session.Id,
+            session.UserId,
+            "new symptom",
+            clientMessageId,
+            TestContext.Current.CancellationToken);
+        var replay = await service.HandleUserMessageAsync(
+            session.Id,
+            session.UserId,
+            "new symptom",
+            clientMessageId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(first.Mode, replay.Mode);
+        Assert.Equal(first.Answer, replay.Answer);
+        Assert.Equal(first.SymptomSummary, replay.SymptomSummary);
+        Assert.Equal(first.Prediction, replay.Prediction);
+        Assert.Equal(first.RelatedTopics, replay.RelatedTopics);
+        Assert.Equal(first.NeedsClarification, replay.NeedsClarification);
+        Assert.Equal(first.Disclaimer, replay.Disclaimer);
+        Assert.Single(client.Requests);
+        Assert.Single(await dbContext.ChatMessages.Where(
+            message => message.Role == ChatMessageRole.User).ToListAsync(
+            TestContext.Current.CancellationToken));
+        Assert.Single(await dbContext.ChatMessages.Where(
+            message => message.Role == ChatMessageRole.Assistant).ToListAsync(
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task HandleUserMessageAsync_WithReusedClientMessageIdAndDifferentText_RejectsRequest()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "initial summary");
+        var client = new QueueClassifierClient(
+            CreateResponse("answer", "updated summary"));
+        var service = new ChatService(dbContext, client);
+        var clientMessageId = Guid.NewGuid();
+
+        await service.HandleUserMessageAsync(
+            session.Id,
+            session.UserId,
+            "first text",
+            clientMessageId,
+            TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.HandleUserMessageAsync(
+                session.Id,
+                session.UserId,
+                "different text",
+                clientMessageId,
+                TestContext.Current.CancellationToken));
+
+        Assert.Single(client.Requests);
+        Assert.Equal(2, await dbContext.ChatMessages.CountAsync(
+            TestContext.Current.CancellationToken));
+    }
+
+    [Fact]    public async Task RetryUserMessageAsync_ReusesFailedMessageWithoutCreatingUserDuplicate()
     {
         await using var dbContext = CreateContext();
         var session = SeedSession(dbContext, "last good summary");
@@ -236,6 +360,37 @@ public sealed class ChatServiceTests
 
         Assert.Single(await dbContext.ChatMessages.ToListAsync(
             TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RetryUserMessageAsync_WhenMessageIsFailedNonRetryable_RejectsRetry()
+    {
+        await using var dbContext = CreateContext();
+        var session = SeedSession(dbContext, "summary");
+        var failedMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Role = ChatMessageRole.User,
+            Status = ChatMessageStatus.FailedNonRetryable,
+            Content = "invalid classifier turn"
+        };
+        dbContext.ChatMessages.Add(failedMessage);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var client = new QueueClassifierClient(CreateResponse("unused", "unused"));
+        var service = new ChatService(dbContext, client);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RetryUserMessageAsync(
+                session.Id,
+                session.UserId,
+                failedMessage.Id,
+                TestContext.Current.CancellationToken));
+
+        Assert.Empty(client.Requests);
+        Assert.Equal(
+            ChatMessageStatus.FailedNonRetryable,
+            (await dbContext.ChatMessages.SingleAsync(
+                TestContext.Current.CancellationToken)).Status);
     }
 
     [Fact]
@@ -433,6 +588,11 @@ public sealed class ChatServiceTests
 
         public List<ClassifierChatRequest> Requests { get; } = [];
 
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<ClassifierFeedingSummaryResponse>(
+                new NotSupportedException());
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
@@ -440,11 +600,6 @@ public sealed class ChatServiceTests
             Requests.Add(request);
             return Task.FromResult(responses.Dequeue());
         }
-
-        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
-            ClassifierFeedingSummaryRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not summarise feeding.");
     }
 
     private sealed class ControlledClassifierClient : IClassifierClient
@@ -456,6 +611,11 @@ public sealed class ChatServiceTests
 
         public Task RequestStarted => requestStarted.Task;
 
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<ClassifierFeedingSummaryResponse>(
+                new NotSupportedException());
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
@@ -463,11 +623,6 @@ public sealed class ChatServiceTests
             requestStarted.TrySetResult();
             return response.Task.WaitAsync(cancellationToken);
         }
-
-        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
-            ClassifierFeedingSummaryRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not summarise feeding.");
 
         public void Complete(ClassifierChatResponse classifierResponse)
         {
@@ -481,16 +636,16 @@ public sealed class ChatServiceTests
         private readonly Exception exception = exception
             ?? new ClassifierUnavailableException("Classifier is unavailable.");
 
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<ClassifierFeedingSummaryResponse>(
+                new NotSupportedException());
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
         {
             throw exception;
         }
-
-        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
-            ClassifierFeedingSummaryRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw exception;
     }
 }

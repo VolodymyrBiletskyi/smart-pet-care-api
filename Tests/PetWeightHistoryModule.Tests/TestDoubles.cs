@@ -24,6 +24,7 @@ internal sealed class FakePetWeightLogRepository : IPetWeightLogRepository
     public DateTime? RequestedTo { get; private set; }
     public DateTime? CheckedMeasuredAt { get; private set; }
     public Guid? CheckedExcludeId { get; private set; }
+    public Guid? LatestExcludedId { get; private set; }
 
     public Task<bool> PetBelongsToUserAsync(Guid petId, Guid userId) => Task.FromResult(PetBelongsToUser);
 
@@ -36,7 +37,11 @@ internal sealed class FakePetWeightLogRepository : IPetWeightLogRepository
     }
 
     public Task<PetWeightLog?> GetTrackedByIdAsync(Guid id) => Task.FromResult(TrackedLog);
-    public Task<PetWeightLog?> GetLatestByPetIdAsync(Guid petId) => Task.FromResult(LatestLog);
+    public Task<PetWeightLog?> GetLatestByPetIdAsync(Guid petId, Guid? excludeId = null)
+    {
+        LatestExcludedId = excludeId;
+        return Task.FromResult(LatestLog);
+    }
     public Task<Pet?> GetTrackedPetByIdAsync(Guid petId) => Task.FromResult(TrackedPet);
 
     public Task<bool> ExistsForPetAtMeasuredAtAsync(Guid petId, DateTime measuredAt, Guid? excludeId = null)

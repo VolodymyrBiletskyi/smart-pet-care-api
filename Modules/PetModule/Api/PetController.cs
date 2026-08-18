@@ -32,7 +32,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -44,7 +44,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
 
         [HttpPost]
         [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(CreatePetDto dto)
         {
@@ -62,8 +62,8 @@ namespace smart_pet_care_api.Modules.PetModule.Api
 
         [HttpPatch("{id}")]
         [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid id, UpdatePetDto dto)
         {
@@ -86,10 +86,10 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         [HttpPatch("{id}/photo")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(PetResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status502BadGateway)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status502BadGateway)]
         public async Task<IActionResult> UpdatePhoto(Guid id, [FromForm] UploadPetPhotoDto dto)
         {
             try
@@ -119,7 +119,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -129,9 +129,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             return NoContent();
         }
 
-        private static ApiErrorResponse Error(string message) => new()
-        {
-            Message = message
-        };
+        private static ApiErrorResponse Error(string message) =>
+            ApiErrorResponse.FromMessage(message);
     }
 }

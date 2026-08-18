@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.FeedingModule.Domain;
 using smart_pet_care_api.Modules.FeedingModule.DTOs.Requests;
@@ -21,7 +22,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<FeedingLogResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAll(Guid petId)
         {
@@ -33,13 +34,13 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
         }
 
         [HttpGet("{logId:guid}")]
         [ProducesResponseType(typeof(FeedingLogResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetById(Guid petId, Guid logId)
         {
@@ -47,19 +48,19 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             {
                 var userId = User.GetUserId();
                 var log = await _service.GetByIdAsync(petId, logId, userId);
-                if (log is null) return NotFound();
+                if (log is null) return NotFound(Error("Feeding log not found"));
                 return Ok(log);
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(FeedingLogResponseDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(Guid petId, [FromBody] CreateFeedingLogDto dto)
         {
@@ -71,18 +72,18 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message));
             }
         }
 
         [HttpPatch("{logId:guid}")]
         [ProducesResponseType(typeof(FeedingLogResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid petId, Guid logId, [FromBody] PatchFeedingLogDto dto)
         {
@@ -94,17 +95,17 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message));
             }
         }
 
         [HttpDelete("{logId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid petId, Guid logId)
         {
@@ -112,13 +113,16 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             {
                 var userId = User.GetUserId();
                 var deleted = await _service.DeleteAsync(petId, logId, userId);
-                if (!deleted) return NotFound();
+                if (!deleted) return NotFound(Error("Feeding log not found"));
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message));
             }
         }
+
+        private static ApiErrorResponse Error(string message) =>
+            ApiErrorResponse.FromMessage(message);
     }
 }

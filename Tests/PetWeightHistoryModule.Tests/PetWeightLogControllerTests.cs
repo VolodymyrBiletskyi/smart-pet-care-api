@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Api;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Domain;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests;
@@ -56,6 +57,8 @@ public class PetWeightLogControllerTests
 
         var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(expectedStatus, objectResult.StatusCode);
+        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.EndsWith(".", response.Message);
     }
 
     [Fact]
@@ -92,6 +95,8 @@ public class PetWeightLogControllerTests
 
         var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(expectedStatus, objectResult.StatusCode);
+        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.EndsWith(".", response.Message);
     }
 
     [Theory]
@@ -111,7 +116,8 @@ public class PetWeightLogControllerTests
             : await controller.Update(_petId, _logId, new PatchPetWeightLogDto());
 
         var conflict = Assert.IsType<ConflictObjectResult>(result);
-        Assert.Equal("A weight log for this pet already exists at the same measurement time.", conflict.Value);
+        var response = Assert.IsType<ApiErrorResponse>(conflict.Value);
+        Assert.Equal("A weight log for this pet already exists at the same measurement time.", response.Message);
     }
 
     [Fact]
@@ -157,6 +163,8 @@ public class PetWeightLogControllerTests
 
         var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(expectedStatus, objectResult.StatusCode);
+        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.EndsWith(".", response.Message);
     }
 
     [Fact]
@@ -171,7 +179,9 @@ public class PetWeightLogControllerTests
     {
         var service = new FakePetWeightLogService { Delete = (_, _, _) => Task.FromResult(false) };
         var result = await Controller(service).Delete(_petId, _logId);
-        Assert.IsType<NotFoundResult>(result);
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var response = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("Weight log not found.", response.Message);
     }
 
     [Fact]
@@ -185,7 +195,8 @@ public class PetWeightLogControllerTests
         var result = await Controller(service).Delete(_petId, _logId);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal("Pet not found", notFound.Value);
+        var response = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("Pet not found.", response.Message);
     }
 
     [Fact]
@@ -199,7 +210,8 @@ public class PetWeightLogControllerTests
         var result = await controller.GetAll(_petId, null, null);
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-        Assert.Equal("Invalid authentication token", unauthorized.Value);
+        var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("Authentication token is invalid.", response.Message);
     }
 
     [Fact]
@@ -217,7 +229,8 @@ public class PetWeightLogControllerTests
         var result = await controller.GetAll(_petId, null, null);
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-        Assert.Equal("Invalid authentication token", unauthorized.Value);
+        var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("Authentication token is invalid.", response.Message);
     }
 
     private static DbUpdateException DuplicateDbUpdateException(string constraintName = "IX_PetWeightLogs_PetId_MeasuredAt")

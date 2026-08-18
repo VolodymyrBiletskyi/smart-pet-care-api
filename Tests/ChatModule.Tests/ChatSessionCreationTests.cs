@@ -103,10 +103,17 @@ public sealed class ChatSessionCreationTests
             session.Id,
             userId,
             TestContext.Current.CancellationToken);
+        var messages = await service.GetMessagesAsync(
+            session.Id,
+            userId,
+            ChatService.DefaultMessagePageSize,
+            cursor: null,
+            TestContext.Current.CancellationToken);
 
         Assert.Single(sessions);
         Assert.Equal("summary", sessions[0].SymptomSummary);
-        Assert.Equal(["first", "second"], details.Messages.Select(message => message.Content));
+        Assert.Equal("summary", details.SymptomSummary);
+        Assert.Equal(["first", "second"], messages.Items.Select(message => message.Content));
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             service.GetSessionAsync(
                 session.Id,
@@ -140,6 +147,11 @@ public sealed class ChatSessionCreationTests
 
     private sealed class UnusedClassifierClient : IClassifierClient
     {
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<ClassifierFeedingSummaryResponse>(
+                new NotSupportedException());
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
@@ -147,11 +159,5 @@ public sealed class ChatSessionCreationTests
             throw new InvalidOperationException(
                 "Session queries must not call the classifier.");
         }
-
-        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
-            ClassifierFeedingSummaryRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException(
-                "Session queries must not call the classifier.");
     }
 }

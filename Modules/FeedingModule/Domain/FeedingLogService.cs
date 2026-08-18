@@ -114,6 +114,17 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
 
         private static void ValidatePatch(PatchFeedingLogDto dto)
         {
+            if (!dto.FedAt.IsSet
+                && !dto.FoodType.IsSet
+                && !dto.FoodName.IsSet
+                && !dto.PortionAmount.IsSet
+                && !dto.PortionUnit.IsSet
+                && !dto.ApproxCalories.IsSet
+                && !dto.Notes.IsSet)
+            {
+                throw new ArgumentException("At least one field must be provided");
+            }
+
             if (dto.FedAt.IsSet) ValidateFedAt(dto.FedAt.Value);
             if (dto.FoodType.IsSet) ValidateFoodType(dto.FoodType.Value);
             if (dto.PortionAmount.IsSet) ValidatePortionAmount(dto.PortionAmount.Value);
@@ -127,9 +138,12 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
                 throw new ArgumentException("PortionUnit is required when PortionAmount is specified");
         }
 
-        private static void ValidateFedAt(DateTime fedAt)
+        private static void ValidateFedAt(DateTime? fedAt)
         {
-            if (FeedingLogMapper.NormalizeToUtc(fedAt) > DateTime.UtcNow.AddMinutes(10))
+            if (fedAt is null || fedAt.Value == default)
+                throw new ArgumentException("FedAt is required");
+
+            if (FeedingLogMapper.NormalizeToUtc(fedAt.Value) > DateTime.UtcNow.AddMinutes(10))
                 throw new ArgumentException("FedAt cannot be more than 10 minutes in the future");
         }
 

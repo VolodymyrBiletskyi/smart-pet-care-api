@@ -28,8 +28,7 @@ public sealed record ChatSessionDetailsResult(
     PetType PetType,
     string? SymptomSummary,
     DateTime CreatedAt,
-    DateTime UpdatedAt,
-    IReadOnlyList<ChatMessageResult> Messages)
+    DateTime UpdatedAt)
 {
     public static ChatSessionDetailsResult FromSession(ChatSession session)
     {
@@ -39,12 +38,7 @@ public sealed record ChatSessionDetailsResult(
             session.PetType,
             session.SymptomSummary,
             session.CreatedAt,
-            session.UpdatedAt,
-            session.Messages
-                .OrderBy(message => message.CreatedAt)
-                .ThenBy(message => message.Id)
-                .Select(ChatMessageResult.FromMessage)
-                .ToList());
+            session.UpdatedAt);
     }
 }
 

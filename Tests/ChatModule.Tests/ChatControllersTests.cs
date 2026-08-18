@@ -129,6 +129,23 @@ public sealed class ChatControllersTests
     }
 
     [Fact]
+    public async Task GetSession_ReturnsMetadataWithoutMessages()
+    {
+        var result = CreateSessionResult();
+        var controller = CreateSessionsController(
+            new StubChatService { CreateResult = result });
+
+        var action = await controller.GetSession(
+            result.SessionId,
+            TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<OkObjectResult>(action);
+        var response = Assert.IsType<ChatSessionDetailsResponseDto>(ok.Value);
+        Assert.Equal(result.SessionId, response.SessionId);
+        Assert.Null(typeof(ChatSessionDetailsResponseDto).GetProperty("Messages"));
+    }
+
+    [Fact]
     public async Task PostMessage_ReturnsFlattenedClassifierResponse()
     {
         var service = new StubChatService
@@ -240,6 +257,35 @@ public sealed class ChatControllersTests
     }
 
     [Fact]
+    public async Task PostMessage_WhenClassifierResponseIsInvalid_Returns502WithMessageId()
+    {
+        var messageId = Guid.NewGuid();
+        var controller = CreateMessagesController(
+            new StubChatService
+            {
+                InvalidResponseException = new ClassifierInvalidResponseException(
+                    "Internal invalid classifier response details",
+                    messageId: messageId)
+            });
+
+        var action = await controller.PostMessage(
+            Guid.NewGuid(),
+            new PostSessionMessageRequest { Text = "question" },
+            TestContext.Current.CancellationToken);
+
+        var result = Assert.IsType<ObjectResult>(action);
+        Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
+        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        Assert.Equal(messageId, response.MessageId);
+        Assert.Equal("classifier_invalid_response", response.Code);
+        Assert.False(response.Retryable);
+        Assert.Equal(
+            "The pet-care assistant returned an invalid response.",
+            response.Message);
+        Assert.DoesNotContain("Internal", response.Message);
+    }
+
+    [Fact]
     public async Task PostMessage_WhenClassifierTimesOut_Returns503()
     {
         var controller = CreateMessagesController(
@@ -314,6 +360,7 @@ public sealed class ChatControllersTests
         public bool ThrowSessionNotFound { get; init; }
         public ClassifierRateLimitedException? RateLimitedException { get; init; }
         public ClassifierUnavailableException? UnavailableException { get; init; }
+        public ClassifierInvalidResponseException? InvalidResponseException { get; init; }
         public bool ThrowInvalidRetryState { get; init; }
         public Guid? RetriedMessageId { get; private set; }
 
@@ -341,8 +388,7 @@ public sealed class ChatControllersTests
                 result.PetType,
                 result.SymptomSummary,
                 result.CreatedAt,
-                result.UpdatedAt,
-                []));
+                result.UpdatedAt));
         }
 
         public Task<ChatSessionResult> CreateSessionAsync(
@@ -374,8 +420,14 @@ public sealed class ChatControllersTests
             Guid sessionId,
             Guid userId,
             string userText,
+            Guid clientMessageId,
             CancellationToken cancellationToken = default)
         {
+            if (InvalidResponseException is not null)
+            {
+                throw InvalidResponseException;
+            }
+
             if (RateLimitedException is not null)
             {
                 throw RateLimitedException;

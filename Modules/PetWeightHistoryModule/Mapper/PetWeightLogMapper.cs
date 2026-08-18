@@ -30,10 +30,13 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Mapper
 
         public static void PatchEntity(this PetWeightLog log, PatchPetWeightLogDto dto)
         {
+            var hasChanges = dto.WeightKg.IsSet || dto.MeasuredAt.IsSet || dto.Notes.IsSet;
+
             if (dto.WeightKg.IsSet) log.WeightKg = dto.WeightKg.Value;
             if (dto.MeasuredAt.IsSet) log.MeasuredAt = NormalizeToUtc(dto.MeasuredAt.Value);
             if (dto.Notes.IsSet) log.Notes = dto.Notes.Value;
-            log.UpdatedAt = DateTime.UtcNow;
+            if (hasChanges)
+                log.UpdatedAt = DateTime.UtcNow;
         }
 
         public static DateTime NormalizeToUtc(DateTime dateTime) =>

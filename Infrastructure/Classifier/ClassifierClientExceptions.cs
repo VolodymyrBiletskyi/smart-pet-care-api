@@ -9,12 +9,14 @@ public sealed class ClassifierInvalidResponseException : Exception
         HttpStatusCode? statusCode = null,
         string? responseContent = null,
         Exception? innerException = null,
-        string? validationReason = null)
+        string? validationReason = null,
+        Guid? messageId = null)
         : base(message, innerException)
     {
         StatusCode = statusCode;
         ResponseContent = responseContent;
         ValidationReason = validationReason;
+        MessageId = messageId;
     }
 
     public HttpStatusCode? StatusCode { get; }
@@ -26,6 +28,8 @@ public sealed class ClassifierInvalidResponseException : Exception
     /// only. Safe to log: it names fields and JSON paths, never their values.
     /// </summary>
     public string? ValidationReason { get; }
+
+    public Guid? MessageId { get; }
 }
 
 public sealed class ClassifierUnavailableException : Exception

@@ -75,7 +75,9 @@ public sealed class SessionMessagesController(
                 sessionId,
                 User.GetUserId(),
                 request.Text,
-                cancellationToken));
+                request.ClientMessageId ?? Guid.Empty,
+                cancellationToken),
+            mapInvalidStateToConflict: true);
     }
 
     [HttpPost("{messageId:guid}/retry")]
@@ -158,6 +160,7 @@ public sealed class SessionMessagesController(
                 StatusCodes.Status502BadGateway,
                 new ClassifierServiceErrorResponseDto
                 {
+                    MessageId = exception.MessageId,
                     Code = "classifier_invalid_response",
                     Message = "The pet-care assistant returned an invalid response.",
                     Retryable = false

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
@@ -41,7 +42,6 @@ public sealed class ChatService(
     {
         var session = await dbContext.ChatSessions
             .AsNoTracking()
-            .Include(candidate => candidate.Messages)
             .SingleOrDefaultAsync(
                 candidate => candidate.Id == sessionId
                     && candidate.UserId == userId,
@@ -190,13 +190,52 @@ public sealed class ChatService(
         }
     }
 
-    public async Task<ClassifierChatResponse> HandleUserMessageAsync(
+    public Task<ClassifierChatResponse> HandleUserMessageAsync(
         Guid sessionId,
         Guid userId,
         string userText,
         CancellationToken cancellationToken = default)
     {
+        return HandleUserMessageAsync(
+            sessionId,
+            userId,
+            userText,
+            Guid.NewGuid(),
+            cancellationToken);
+    }
+
+    public Task<ClassifierChatResponse> HandleUserMessageAsync(
+        Guid sessionId,
+        Guid userId,
+        string userText,
+        Guid clientMessageId,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteSerializedTurnAsync(
+            sessionId,
+            () => HandleUserMessageCoreAsync(
+                sessionId,
+                userId,
+                userText,
+                clientMessageId,
+                cancellationToken),
+            cancellationToken);
+    }
+
+    private async Task<ClassifierChatResponse> HandleUserMessageCoreAsync(
+        Guid sessionId,
+        Guid userId,
+        string userText,
+        Guid clientMessageId,
+        CancellationToken cancellationToken)
+    {
         ValidateUserText(userText);
+        if (clientMessageId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Client message ID is required.",
+                nameof(clientMessageId));
+        }
 
         var session = await dbContext.ChatSessions
             .SingleOrDefaultAsync(
@@ -205,11 +244,22 @@ public sealed class ChatService(
                 cancellationToken)
             ?? throw new KeyNotFoundException("The chat session was not found.");
 
+        var existingMessage = await dbContext.ChatMessages
+            .SingleOrDefaultAsync(
+                message => message.SessionId == session.Id
+                    && message.ClientMessageId == clientMessageId,
+                cancellationToken);
+        if (existingMessage is not null)
+        {
+            return GetIdempotentResponse(existingMessage, userText);
+        }
+
         var userMessage = new ChatMessage
         {
             SessionId = session.Id,
             Role = ChatMessageRole.User,
             Status = ChatMessageStatus.Pending,
+            ClientMessageId = clientMessageId,
             Content = userText,
             CreatedAt = DateTime.UtcNow
         };
@@ -217,21 +267,56 @@ public sealed class ChatService(
         dbContext.ChatMessages.Add(userMessage);
         session.UpdatedAt = userMessage.CreatedAt;
 
-        // Keep the user's source message even when the remote classifier is
-        // temporarily unavailable so the session history remains auditable.
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            // Keep the user's source message even when the remote classifier is
+            // temporarily unavailable so the session history remains auditable.
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request may have inserted this client message after
+            // the lookup above. The unique index is the authoritative guard.
+            dbContext.ChangeTracker.Clear();
+            var concurrentMessage = await dbContext.ChatMessages
+                .SingleOrDefaultAsync(
+                    message => message.SessionId == sessionId
+                        && message.ClientMessageId == clientMessageId,
+                    cancellationToken);
+            if (concurrentMessage is not null)
+            {
+                return GetIdempotentResponse(concurrentMessage, userText);
+            }
+
+            throw;
+        }
 
         return await ProcessUserMessageAsync(
             session,
             userMessage,
             cancellationToken);
     }
-
-    public async Task<ClassifierChatResponse> RetryUserMessageAsync(
+    public Task<ClassifierChatResponse> RetryUserMessageAsync(
         Guid sessionId,
         Guid userId,
         Guid messageId,
         CancellationToken cancellationToken = default)
+    {
+        return ExecuteSerializedTurnAsync(
+            sessionId,
+            () => RetryUserMessageCoreAsync(
+                sessionId,
+                userId,
+                messageId,
+                cancellationToken),
+            cancellationToken);
+    }
+
+    private async Task<ClassifierChatResponse> RetryUserMessageCoreAsync(
+        Guid sessionId,
+        Guid userId,
+        Guid messageId,
+        CancellationToken cancellationToken)
     {
         var session = await dbContext.ChatSessions
             .SingleOrDefaultAsync(
@@ -240,21 +325,33 @@ public sealed class ChatService(
                 cancellationToken)
             ?? throw new KeyNotFoundException("The chat session was not found.");
 
-        var userMessage = await dbContext.ChatMessages
-            .SingleOrDefaultAsync(
-                message => message.Id == messageId
-                    && message.SessionId == session.Id
-                    && message.Role == ChatMessageRole.User,
-                cancellationToken)
-            ?? throw new KeyNotFoundException("The chat message was not found.");
-
-        if (userMessage.Status != ChatMessageStatus.FailedRetryable)
+        var claimed = await TryClaimFailedRetryableMessageAsync(
+            session.Id,
+            messageId,
+            cancellationToken);
+        if (!claimed)
         {
+            var messageExists = await dbContext.ChatMessages
+                .AsNoTracking()
+                .AnyAsync(
+                    message => message.Id == messageId
+                        && message.SessionId == session.Id
+                        && message.Role == ChatMessageRole.User,
+                    cancellationToken);
+            if (!messageExists)
+            {
+                throw new KeyNotFoundException("The chat message was not found.");
+            }
+
             throw new InvalidOperationException(
                 "Only a failed retryable user message can be retried.");
         }
 
-        userMessage.Status = ChatMessageStatus.Pending;
+        var userMessage = await dbContext.ChatMessages
+            .SingleAsync(
+                message => message.Id == messageId
+                    && message.SessionId == session.Id,
+                cancellationToken);
         session.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -264,6 +361,73 @@ public sealed class ChatService(
             cancellationToken);
     }
 
+    private async Task<T> ExecuteSerializedTurnAsync<T>(
+        Guid sessionId,
+        Func<Task<T>> operation,
+        CancellationToken cancellationToken)
+    {
+        if (dbContext.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
+        {
+            return await operation();
+        }
+
+        await using var transaction = await dbContext.Database
+            .BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({sessionId.ToString()}, 0));",
+                cancellationToken);
+
+            var result = await operation();
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        catch
+        {
+            await transaction.CommitAsync(CancellationToken.None);
+            throw;
+        }
+    }
+    private async Task<bool> TryClaimFailedRetryableMessageAsync(
+        Guid sessionId,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        if (!dbContext.Database.IsRelational())
+        {
+            var message = await dbContext.ChatMessages.SingleOrDefaultAsync(
+                candidate => candidate.Id == messageId
+                    && candidate.SessionId == sessionId
+                    && candidate.Role == ChatMessageRole.User,
+                cancellationToken);
+            if (message?.Status != ChatMessageStatus.FailedRetryable)
+            {
+                return false;
+            }
+
+            message.Status = ChatMessageStatus.Pending;
+            return true;
+        }
+
+        var updated = await dbContext.ChatMessages
+            .Where(message => message.Id == messageId
+                && message.SessionId == sessionId
+                && message.Role == ChatMessageRole.User
+                && message.Status == ChatMessageStatus.FailedRetryable)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    message => message.Status,
+                    ChatMessageStatus.Pending),
+                cancellationToken);
+
+        return updated == 1;
+    }
     private async Task<ClassifierChatResponse> ProcessUserMessageAsync(
         ChatSession session,
         ChatMessage userMessage,
@@ -308,10 +472,16 @@ public sealed class ChatService(
                 },
                 cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            userMessage.Status = ChatMessageStatus.FailedRetryable;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
         catch (ClassifierRateLimitedException exception)
         {
             userMessage.Status = ChatMessageStatus.FailedRetryable;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
 
             throw new ClassifierRateLimitedException(
                 exception.Message,
@@ -323,7 +493,7 @@ public sealed class ChatService(
         catch (ClassifierUnavailableException exception)
         {
             userMessage.Status = ChatMessageStatus.FailedRetryable;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
 
             throw new ClassifierUnavailableException(
                 exception.Message,
@@ -333,24 +503,90 @@ public sealed class ChatService(
                 exception.RetryAfterSeconds,
                 userMessage.Id);
         }
+        catch (ClassifierInvalidResponseException exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedNonRetryable;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+
+            throw new ClassifierInvalidResponseException(
+                exception.Message,
+                exception.StatusCode,
+                exception.ResponseContent,
+                exception,
+                exception.ValidationReason,
+                userMessage.Id);
+        }
+        catch (Exception)
+        {
+            userMessage.Status = ChatMessageStatus.FailedRetryable;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
 
         var assistantMessage = new ChatMessage
         {
             SessionId = session.Id,
             Role = ChatMessageRole.Assistant,
+            SourceMessageId = userMessage.Id,
             Content = response.Answer,
             CreatedAt = DateTime.UtcNow
         };
 
         dbContext.ChatMessages.Add(assistantMessage);
         userMessage.Status = ChatMessageStatus.Completed;
+        userMessage.ClassifierResponseJson = JsonSerializer.Serialize(response);
         session.SymptomSummary = response.SymptomSummary;
         session.UpdatedAt = assistantMessage.CreatedAt;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The unique SourceMessageId index may have rejected a duplicate
+            // assistant reply created by a concurrent or legacy code path.
+            dbContext.ChangeTracker.Clear();
+            var persistedUserMessage = await dbContext.ChatMessages
+                .SingleOrDefaultAsync(
+                    message => message.Id == userMessage.Id,
+                    cancellationToken);
+            if (persistedUserMessage?.Status == ChatMessageStatus.Completed
+                && !string.IsNullOrWhiteSpace(
+                    persistedUserMessage.ClassifierResponseJson))
+            {
+                return GetIdempotentResponse(
+                    persistedUserMessage,
+                    userMessage.Content);
+            }
+
+            throw;
+        }
 
         return response;
     }
 
+    private static ClassifierChatResponse GetIdempotentResponse(
+        ChatMessage message,
+        string userText)
+    {
+        if (!string.Equals(message.Content, userText, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "The client message ID has already been used with different text.");
+        }
+
+        if (message.Status != ChatMessageStatus.Completed
+            || string.IsNullOrWhiteSpace(message.ClassifierResponseJson))
+        {
+            throw new InvalidOperationException(
+                "The client message is already being processed or must be retried.");
+        }
+
+        return JsonSerializer.Deserialize<ClassifierChatResponse>(
+                   message.ClassifierResponseJson)
+               ?? throw new InvalidOperationException(
+                   "The stored chat response is invalid.");
+    }
     private static void ValidateUserText(string userText)
     {
         if (string.IsNullOrWhiteSpace(userText))

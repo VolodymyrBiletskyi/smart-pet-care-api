@@ -52,14 +52,20 @@ public sealed class ChatSessionFlowIntegrationTests
             created.SessionId,
             user.Id,
             TestContext.Current.CancellationToken);
+        var messages = await service.GetMessagesAsync(
+            created.SessionId,
+            user.Id,
+            ChatService.DefaultMessagePageSize,
+            cursor: null,
+            TestContext.Current.CancellationToken);
 
         Assert.Equal("Classifier answer", response.Answer);
         Assert.Equal("updated summary", details.SymptomSummary);
-        Assert.Equal(2, details.Messages.Count);
-        Assert.Equal(ChatMessageRole.User, details.Messages[0].Role);
-        Assert.Equal(ChatMessageStatus.Completed, details.Messages[0].Status);
-        Assert.Equal(ChatMessageRole.Assistant, details.Messages[1].Role);
-        Assert.Null(details.Messages[1].Status);
+        Assert.Equal(2, messages.Items.Count);
+        Assert.Equal(ChatMessageRole.User, messages.Items[0].Role);
+        Assert.Equal(ChatMessageStatus.Completed, messages.Items[0].Status);
+        Assert.Equal(ChatMessageRole.Assistant, messages.Items[1].Role);
+        Assert.Null(messages.Items[1].Status);
 
         var request = Assert.Single(classifier.Requests);
         Assert.Equal(created.SessionId.ToString("D"), request.SessionId);
@@ -151,6 +157,11 @@ public sealed class ChatSessionFlowIntegrationTests
     {
         public List<ClassifierChatRequest> Requests { get; } = [];
 
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<ClassifierFeedingSummaryResponse>(
+                new NotSupportedException());
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request,
             CancellationToken cancellationToken = default)
@@ -173,10 +184,5 @@ public sealed class ChatSessionFlowIntegrationTests
                 }
             });
         }
-
-        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
-            ClassifierFeedingSummaryRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException("Chat tests do not summarise feeding.");
     }
 }
