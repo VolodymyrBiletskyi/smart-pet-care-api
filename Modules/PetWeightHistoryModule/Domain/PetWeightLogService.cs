@@ -37,9 +37,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             var log = PetWeightLogMapper.ToEntity(dto, petId);
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt);
 
-            // The richer of the two ways to close a weighing reminder; /complete records the fact
-            // alone. Re-registering one it already handled today is a no-op, so the log still
-            // saves and the schedule does not move twice.
+            // Weighing has its own log, so the reminder is closed from here rather than by a
+            // generic complete call that would have nowhere to put the weight.
             if (dto.ReminderId is { } reminderId)
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(
