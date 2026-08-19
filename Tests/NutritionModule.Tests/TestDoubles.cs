@@ -88,7 +88,7 @@ internal sealed class FakeReminderRepository : IReminderRepository
         Task.FromResult<IReadOnlyList<(ReminderRun, Reminder)>>([]);
     public Task<ReminderRun?> GetLatestOpenRunAsync(Guid reminderId, DateTime asOfUtc) =>
         Task.FromResult<ReminderRun?>(null);
-    public Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc) =>
+    public Task<ReminderRun?> GetCompletedRunInRangeAsync(Guid reminderId, DateTime fromUtc, DateTime toUtc) =>
         Task.FromResult<ReminderRun?>(null);
     public Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc) =>
         Task.FromResult<IReadOnlyList<ReminderRun>>([]);

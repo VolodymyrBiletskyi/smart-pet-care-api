@@ -153,28 +153,33 @@ public class ReminderCompletionServiceTests
     }
 
     [Fact]
-    public async Task Weighing_cannot_be_completed_through_the_generic_endpoint()
+    public async Task Weighing_can_be_ticked_off_without_a_weight()
     {
-        // Closing it here would leave the user believing the weight was saved. The weight log
-        // owns this completion.
+        // Answering the push in one tap has to work. A weight the user never took is worth less
+        // than no weight at all, since the graph and the feeding analysis both read it.
         var harness = Build(ReminderType.Weighing, RecalcStrategy.Calendar);
 
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
-            harness.Reminder.Id, UserId, new CompleteReminderDto()));
+        var result = await harness.Service.CompleteAsync(
+            harness.Reminder.Id, UserId, new CompleteReminderDto());
 
-        Assert.Contains("weight-history", error.Message);
-        Assert.Empty(harness.Reminders.Runs);
+        var run = Assert.Single(harness.Reminders.Runs);
+        Assert.Equal(ReminderRunStatus.Completed, run.Status);
+        Assert.False(result.AlreadyRecorded);
     }
 
     [Fact]
-    public async Task Feeding_cannot_be_completed_through_the_generic_endpoint()
+    public async Task Feeding_can_be_ticked_off_without_a_feeding_log()
     {
+        // The closed run is the whole record: nutrition reads FeedingLogs, so a completion with
+        // no log stays out of the daily summary and out of the classifier prompt.
         var harness = Build(ReminderType.Feeding, RecalcStrategy.Calendar);
 
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
-            harness.Reminder.Id, UserId, new CompleteReminderDto()));
+        var result = await harness.Service.CompleteAsync(
+            harness.Reminder.Id, UserId, new CompleteReminderDto());
 
-        Assert.Contains("feeding-logs", error.Message);
+        var run = Assert.Single(harness.Reminders.Runs);
+        Assert.Equal(ReminderRunStatus.Completed, run.Status);
+        Assert.Null(result.HealthRecordId);
     }
 
     [Fact]

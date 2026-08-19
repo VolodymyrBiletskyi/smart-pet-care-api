@@ -181,6 +181,45 @@ public class ReminderRecalculationServiceTests
     }
 
     [Fact]
+    public async Task A_second_completion_the_same_day_does_not_skip_an_occurrence()
+    {
+        // Done is tapped on the push, then the user changes their mind and saves the feeding log
+        // too. The log carries its own fedAt, seconds later. Treating that as a fresh completion
+        // would materialise the *next* occurrence and close it, moving the schedule twice.
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, type: ReminderType.Feeding);
+        var (service, repo) = BuildService(reminder);
+
+        await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Utc));
+        var triggerAfterFirst = reminder.NextTriggerAt;
+
+        var second = await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 12, 0, 40, DateTimeKind.Utc));
+
+        Assert.True(second!.AlreadyRecorded);
+        Assert.Single(repo.Runs);
+        Assert.Equal(triggerAfterFirst, reminder.NextTriggerAt);
+    }
+
+    [Fact]
+    public async Task Completions_are_told_apart_by_the_users_day_not_by_a_fixed_gap()
+    {
+        // 23:00 and 01:00 Moscow are two hours apart and belong to two different days. A window
+        // measured in hours would merge them; the rule is one occurrence per local day.
+        var reminder = BuildReminder(RecalcStrategy.Calendar, type: ReminderType.Feeding);
+        var (service, repo) = BuildService(reminder);
+
+        await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 20, 0, 0, DateTimeKind.Utc));
+
+        var second = await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 22, 0, 0, DateTimeKind.Utc));
+
+        Assert.False(second!.AlreadyRecorded);
+        Assert.Equal(2, repo.Runs.Count);
+    }
+
+    [Fact]
     public async Task Completion_past_the_end_date_finishes_the_series()
     {
         var reminder = BuildReminder(

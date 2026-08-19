@@ -144,12 +144,15 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
                 .ToListAsync();
         }
 
-        public async Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc)
+        public async Task<ReminderRun?> GetCompletedRunInRangeAsync(
+            Guid reminderId, DateTime fromUtc, DateTime toUtc)
         {
             return await _db.ReminderRuns
                 .Where(rr => rr.ReminderId == reminderId
                     && rr.Status == ReminderRunStatus.Completed
-                    && rr.PerformedAt == performedAtUtc)
+                    && rr.PerformedAt >= fromUtc
+                    && rr.PerformedAt < toUtc)
+                .OrderByDescending(rr => rr.PerformedAt)
                 .FirstOrDefaultAsync();
         }
     }

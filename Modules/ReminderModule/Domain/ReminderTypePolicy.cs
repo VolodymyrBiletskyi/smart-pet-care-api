@@ -8,9 +8,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
     public static class ReminderTypePolicy
     {
         /// <summary>
-        /// Health record a completed occurrence should be filed as, or null when the log
-        /// belongs elsewhere (grooming stays on the run itself, weighing goes to
-        /// PetWeightHistory, feeding to FeedingModule).
+        /// Health record a completed occurrence should be filed as, or null when no health
+        /// record describes it: grooming's log is the closed run, while weighing and feeding
+        /// have their own optional logs in PetWeightHistory and FeedingModule.
         ///
         /// The two enums are deliberately not merged: ReminderType carries Feeding, Activity
         /// and the grooming labels that no health record describes, while HealthRecordType
@@ -29,23 +29,6 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             // dose. It stays a calendar rule and a record is only created if the user enters
             // one by hand.
             _ => null
-        };
-
-        /// <summary>
-        /// Types whose log carries data the generic completion payload has no room for — a
-        /// weight, a portion. Those are completed by creating the log itself with a
-        /// reminderId, so that the measurement and the schedule move together.
-        /// </summary>
-        public static bool HasDedicatedLog(ReminderType type) => type
-            is ReminderType.Weighing
-            or ReminderType.Feeding;
-
-        /// <summary>Endpoint that owns the completion of <paramref name="type"/>.</summary>
-        public static string DedicatedLogEndpoint(ReminderType type) => type switch
-        {
-            ReminderType.Weighing => "POST /api/pets/{petId}/weight-history",
-            ReminderType.Feeding => "POST /api/pets/{petId}/feeding-logs",
-            _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
 
         /// <summary>

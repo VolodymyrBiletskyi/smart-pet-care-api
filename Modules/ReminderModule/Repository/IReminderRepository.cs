@@ -33,8 +33,12 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
         /// </summary>
         Task<ReminderRun?> GetLatestOpenRunAsync(Guid reminderId, DateTime asOfUtc);
 
-        /// <summary>Guards against the same completion being registered twice.</summary>
-        Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc);
+        /// <summary>
+        /// Guards against the same completion being registered twice. The window is a whole
+        /// local day rather than an exact instant, because the second registration carries its
+        /// own timestamp — a feeding log saved a minute after the Done tap is the same event.
+        /// </summary>
+        Task<ReminderRun?> GetCompletedRunInRangeAsync(Guid reminderId, DateTime fromUtc, DateTime toUtc);
 
         /// <summary>
         /// Occurrences before <paramref name="beforeUtc"/> that were delivered but never

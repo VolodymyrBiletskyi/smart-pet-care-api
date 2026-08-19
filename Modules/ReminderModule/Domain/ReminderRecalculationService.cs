@@ -24,11 +24,12 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var now = DateTime.UtcNow;
             var performedAt = ReminderMapper.NormalizeToUtc(performedAtUtc);
 
-            // The same completion can legitimately arrive twice: the user taps Done and the
-            // client also posts a health record carrying the same reminderId. Recomputing is
-            // harmless because everything is derived from performedAt, but a second run would
-            // duplicate the history entry.
-            var duplicate = await _reminderRepo.GetCompletedRunByPerformedAtAsync(reminderId, performedAt);
+            // The same completion can legitimately arrive twice: the user taps Done on the push
+            // and then saves the feeding log or a health record carrying the same reminderId.
+            // The second call brings its own timestamp, so matching on the exact instant would
+            // miss it — and missing it is not merely a duplicate history entry, it materialises
+            // the *next* occurrence and closes that too, skipping a slot.
+            var duplicate = await FindSameDayCompletionAsync(reminder, performedAt);
             if (duplicate is not null)
                 return new ReminderCompletionOutcome(reminder, duplicate, AlreadyRecorded: true);
 
@@ -47,6 +48,26 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             await _reminderRepo.SaveChangesAsync();
 
             return new ReminderCompletionOutcome(reminder, run, AlreadyRecorded: false);
+        }
+
+        /// <summary>
+        /// A completion already stored for the same local day as <paramref name="performedAt"/>.
+        ///
+        /// The day is the right unit because no rule this calculator can express fires twice in
+        /// one: Daily lands on one time of day, Weekly on one time per selected weekday, Monthly
+        /// once. So two completions sharing a day cannot be two different occurrences, while a
+        /// tolerance measured in minutes would let an unhurried user slip past it. Backdating an
+        /// older occurrence still works — that lands on its own day.
+        /// </summary>
+        private async Task<ReminderRun?> FindSameDayCompletionAsync(Reminder reminder, DateTime performedAt)
+        {
+            var offset = reminder.UtcOffsetMinutes;
+            var dayStartLocal = ReminderScheduleCalculator.ToLocal(performedAt, offset).Date;
+
+            return await _reminderRepo.GetCompletedRunInRangeAsync(
+                reminder.Id,
+                ReminderScheduleCalculator.ToUtc(dayStartLocal, offset),
+                ReminderScheduleCalculator.ToUtc(dayStartLocal.AddDays(1), offset));
         }
 
         /// <summary>
