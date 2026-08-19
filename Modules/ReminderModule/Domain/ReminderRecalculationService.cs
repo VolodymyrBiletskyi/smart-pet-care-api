@@ -24,16 +24,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var now = DateTime.UtcNow;
             var performedAt = ReminderMapper.NormalizeToUtc(performedAtUtc);
 
-            // The same completion can legitimately arrive twice: the user taps Done and the
-            // client also posts a health record carrying the same reminderId. Recomputing is
-            // harmless because everything is derived from performedAt, but a second run would
-            // duplicate the history entry.
-            var duplicate = await _reminderRepo.GetCompletedRunByPerformedAtAsync(reminderId, performedAt);
+            var duplicate = await FindSameDayCompletionAsync(reminder, performedAt);
             if (duplicate is not null)
                 return new ReminderCompletionOutcome(reminder, duplicate, AlreadyRecorded: true);
 
+            var nextTrigger = ComputeNextTrigger(reminder, performedAt, now);
+
             var run = await _reminderRepo.GetLatestOpenRunAsync(reminderId, now)
-                ?? await MaterialiseEarlyRunAsync(reminder, performedAt);
+                ?? await MaterialiseEarlyRunAsync(reminder, performedAt, nextTrigger);
 
             run.Status = ReminderRunStatus.Completed;
             run.CompletedAt = now;
@@ -42,7 +40,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (!string.IsNullOrWhiteSpace(note)) run.Note = note.Trim();
             run.UpdatedAt = now;
 
-            ApplyCompletionToSchedule(reminder, performedAt, now);
+            ApplyCompletionToSchedule(reminder, performedAt, now, nextTrigger);
 
             await _reminderRepo.SaveChangesAsync();
 
@@ -50,17 +48,57 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         }
 
         /// <summary>
-        /// Nothing has fired yet — the user is confirming ahead of the notification, which is
-        /// allowed. The slot they are closing is the pending trigger, so it gets materialised
-        /// now. The unique index on (ReminderId, ScheduledFor) is what keeps this from racing
-        /// the scheduler; the trigger moves on in the same save, so that slot cannot fire again.
+        /// The same completion can arrive from /complete and from a log carrying the same
+        /// reminderId, each with its own timestamp. A whole local day is the window because no
+        /// rule here fires twice in one, so sharing a day means sharing an occurrence.
         /// </summary>
-        private async Task<ReminderRun> MaterialiseEarlyRunAsync(Reminder reminder, DateTime performedAt)
+        private async Task<ReminderRun?> FindSameDayCompletionAsync(Reminder reminder, DateTime performedAt)
         {
+            var offset = reminder.UtcOffsetMinutes;
+            var dayStartLocal = ReminderScheduleCalculator.ToLocal(performedAt, offset).Date;
+
+            return await _reminderRepo.GetCompletedRunInRangeAsync(
+                reminder.Id,
+                ReminderScheduleCalculator.ToUtc(dayStartLocal, offset),
+                ReminderScheduleCalculator.ToUtc(dayStartLocal.AddDays(1), offset));
+        }
+
+        /// <summary>
+        /// Side-effect free, because <see cref="MaterialiseEarlyRunAsync"/> needs the answer
+        /// before the run exists; the anchor and trigger are written later.
+        /// </summary>
+        private static DateTime? ComputeNextTrigger(Reminder reminder, DateTime performedAt, DateTime now)
+        {
+            var plan = ReminderScheduleCalculator.PlanFor(reminder);
+
+            // Confirming a calendar rule records the fact and nothing else; a pending future
+            // trigger stays exactly where the calendar put it.
+            if (reminder.RecalcStrategy == RecalcStrategy.Calendar)
+                return reminder.NextTriggerAt > now
+                    ? reminder.NextTriggerAt
+                    : ReminderScheduleCalculator.NextFromCalendar(plan, now);
+
+            return ReminderScheduleCalculator.NextFromCompletion(plan, performedAt);
+        }
+
+        /// <summary>
+        /// Nothing has fired yet, so the run is created here. It takes the pending slot only
+        /// when the completion carries the schedule past it — Saturday's bath done on Thursday.
+        /// A trigger that recomputes back onto the pending instant means the user did something
+        /// extra today, so that slot keeps its notification and the run is filed at the time it
+        /// happened; taking it would also collide with the scheduler on the unique
+        /// (ReminderId, ScheduledFor) index once that instant arrived.
+        /// </summary>
+        private async Task<ReminderRun> MaterialiseEarlyRunAsync(
+            Reminder reminder, DateTime performedAt, DateTime? nextTrigger)
+        {
+            var pending = reminder.NextTriggerAt;
+            var closesPendingSlot = pending.HasValue && (nextTrigger is null || nextTrigger > pending);
+
             var run = new ReminderRun
             {
                 ReminderId = reminder.Id,
-                ScheduledFor = reminder.NextTriggerAt ?? performedAt,
+                ScheduledFor = closesPendingSlot ? pending!.Value : performedAt,
                 Type = reminder.Type,
                 Status = ReminderRunStatus.Pending
             };
@@ -69,32 +107,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             return run;
         }
 
-        private static void ApplyCompletionToSchedule(Reminder reminder, DateTime performedAt, DateTime now)
+        private static void ApplyCompletionToSchedule(
+            Reminder reminder, DateTime performedAt, DateTime now, DateTime? next)
         {
             reminder.LastCompletedAt = performedAt;
             reminder.OverdueSince = null;
             reminder.UpdatedAt = now;
 
-            var plan = ReminderScheduleCalculator.PlanFor(reminder);
-
-            DateTime? next;
-            if (reminder.RecalcStrategy == RecalcStrategy.Calendar)
-            {
-                // Confirming a calendar rule records the fact and nothing else; a pending
-                // future trigger stays exactly where the calendar put it.
-                next = reminder.NextTriggerAt > now
-                    ? reminder.NextTriggerAt
-                    : ReminderScheduleCalculator.NextFromCalendar(plan, now);
-            }
-            else
-            {
-                next = ReminderScheduleCalculator.NextFromCompletion(plan, performedAt);
-
-                // The interval now counts from what actually happened. Leaving the anchor on
-                // StartAt would make week parity and the interval disagree after the first
-                // late completion.
-                if (next.HasValue) reminder.ScheduleAnchorAt = next.Value;
-            }
+            // The interval now counts from what actually happened. Leaving the anchor on StartAt
+            // would make week parity and the interval disagree after the first late completion.
+            if (reminder.RecalcStrategy != RecalcStrategy.Calendar && next.HasValue)
+                reminder.ScheduleAnchorAt = next.Value;
 
             if (next is null || (reminder.EndAt.HasValue && next > reminder.EndAt))
             {

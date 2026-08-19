@@ -181,6 +181,83 @@ public class ReminderRecalculationServiceTests
     }
 
     [Fact]
+    public async Task An_early_completion_that_does_not_move_the_trigger_leaves_the_slot_alone()
+    {
+        // Daily feeding due tomorrow 07:00, fed today at 13:20: the interval lands back on
+        // tomorrow 07:00, so that push is still wanted and the run must go elsewhere.
+        var tomorrow = new DateTime(2026, 8, 20, 7, 0, 0, DateTimeKind.Utc);
+        var reminder = BuildReminder(
+            RecalcStrategy.FromCompletion,
+            intervalN: 1,
+            type: ReminderType.Feeding,
+            nextTriggerAt: tomorrow);
+        reminder.TimeOfDay = new TimeSpan(7, 0, 0);
+        var (service, repo) = BuildService(reminder);
+
+        var performedAt = new DateTime(2026, 8, 19, 13, 20, 42, DateTimeKind.Utc);
+        await service.RegisterCompletionAsync(reminder.Id, performedAt);
+
+        var run = Assert.Single(repo.Runs);
+        Assert.Equal(performedAt, run.ScheduledFor);
+        Assert.Equal(tomorrow, reminder.NextTriggerAt);
+    }
+
+    [Fact]
+    public async Task Confirming_a_calendar_rule_early_does_not_consume_the_pending_slot()
+    {
+        // Calendar rules never move a future trigger, so the run can never be filed on it.
+        var pending = DateTime.UtcNow.AddDays(2);
+        var reminder = BuildReminder(
+            RecalcStrategy.Calendar, type: ReminderType.Brushing, nextTriggerAt: pending);
+        var (service, repo) = BuildService(reminder);
+
+        var performedAt = DateTime.UtcNow.AddHours(-1);
+        await service.RegisterCompletionAsync(reminder.Id, performedAt);
+
+        var run = Assert.Single(repo.Runs);
+        Assert.Equal(performedAt, run.ScheduledFor);
+        Assert.NotEqual(pending, run.ScheduledFor);
+    }
+
+    [Fact]
+    public async Task A_second_completion_the_same_day_does_not_skip_an_occurrence()
+    {
+        // Done is tapped, then the feeding log is saved too, carrying its own fedAt seconds
+        // later. Treated as a fresh completion it would close the next occurrence as well.
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, type: ReminderType.Feeding);
+        var (service, repo) = BuildService(reminder);
+
+        await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 12, 0, 0, DateTimeKind.Utc));
+        var triggerAfterFirst = reminder.NextTriggerAt;
+
+        var second = await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 12, 0, 40, DateTimeKind.Utc));
+
+        Assert.True(second!.AlreadyRecorded);
+        Assert.Single(repo.Runs);
+        Assert.Equal(triggerAfterFirst, reminder.NextTriggerAt);
+    }
+
+    [Fact]
+    public async Task Completions_are_told_apart_by_the_users_day_not_by_a_fixed_gap()
+    {
+        // 23:00 and 01:00 Moscow are two hours apart and belong to two different days. A window
+        // measured in hours would merge them; the rule is one occurrence per local day.
+        var reminder = BuildReminder(RecalcStrategy.Calendar, type: ReminderType.Feeding);
+        var (service, repo) = BuildService(reminder);
+
+        await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 20, 0, 0, DateTimeKind.Utc));
+
+        var second = await service.RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 3, 4, 22, 0, 0, DateTimeKind.Utc));
+
+        Assert.False(second!.AlreadyRecorded);
+        Assert.Equal(2, repo.Runs.Count);
+    }
+
+    [Fact]
     public async Task Completion_past_the_end_date_finishes_the_series()
     {
         var reminder = BuildReminder(

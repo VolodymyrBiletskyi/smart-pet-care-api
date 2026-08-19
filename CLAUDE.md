@@ -62,20 +62,45 @@ All trigger dates come from `ReminderScheduleCalculator`, counted from
 
 Recalculation has one implementation (`IReminderRecalculationService`) and
 several callers, all keyed on the performed date so registering the same
-completion twice changes nothing. Which caller applies depends on where the
-log belongs:
+completion twice changes nothing. Every type can be completed through
+`POST /api/reminders/{id}/complete`; what the completion additionally files
+depends on the type:
 
-| Reminder type | Completed by |
+| Reminder type | `/complete` also files |
 |---|---|
-| Vaccination, ParasiteTreatment, Deworming, VetVisit | `POST /api/reminders/{id}/complete` — files the HealthRecord itself |
-| Grooming, Activity, Medication, anything else | `POST /api/reminders/{id}/complete` — the closed run is the log |
-| Weighing | `POST /api/pets/{petId}/weight-history` with `reminderId` |
-| Feeding | `POST /api/pets/{petId}/feeding-logs` with `reminderId` |
+| Vaccination, ParasiteTreatment, Deworming, VetVisit | a HealthRecord |
+| Grooming, Activity, Medication, anything else | nothing — the closed run is the log |
+| Weighing, Feeding | nothing — the measurement is optional, see below |
 
-The last two carry a measurement the completion payload has no room for, so
-`/complete` rejects them rather than closing the occurrence and silently
-dropping the weight. A HealthRecord created by hand with a `reminderId`
-works the same way, for treatments given with no rule behind them.
+Weighing and Feeding have a richer path as well: `POST
+/api/pets/{petId}/weight-history` and `POST /api/pets/{petId}/feeding-logs`,
+both with `reminderId`, close the occurrence *and* store the measurement.
+That path is optional on purpose. Requiring it would mean a user answering a
+push cannot tick the reminder off in one tap, and the portion they invent to
+get past the form is worse than no portion at all — it reaches the classifier
+and costs tokens to produce nonsense. A completion with no log stays out of
+the nutrition summary and the feeding analysis, both of which read
+`FeedingLogs`. A HealthRecord created by hand with a `reminderId` closes an
+occurrence the same way, for treatments given with no rule behind them.
+
+A completion that arrives before the occurrence ever fired has to create the
+run itself. It is filed on the pending trigger only when the recalculated
+trigger moves *past* that instant — "I did Saturday's bath on Thursday". When
+the recalculation lands back on the pending instant, the completion was an
+extra event rather than the coming occurrence done early, so the run is filed
+at the time it happened and the pending trigger survives. Daily rules
+confirmed the evening before hit this, and `Calendar` rules always do, since
+they leave a future trigger untouched by definition. Filing on the pending
+slot there would swallow a notification the user still wants and collide with
+the scheduler's own row on the unique `(ReminderId, ScheduledFor)` index.
+
+Because a completion can arrive twice from two different endpoints — Done on
+the push, then the feeding log saved a minute later — the duplicate guard
+matches on the **local day** of the performed date rather than the exact
+instant. No rule the calculator can express fires twice in one local day, so
+same day means same occurrence. Matching exactly would let the second call
+through, and it would not merely duplicate history: it materialises the next
+occurrence and closes that too, skipping a slot.
 
 Classifier integration documentation:
 

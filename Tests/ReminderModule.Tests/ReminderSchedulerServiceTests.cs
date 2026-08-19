@@ -1,6 +1,7 @@
 using Xunit;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.NotificationModule.Domain;
+using smart_pet_care_api.Modules.ReminderModule.Domain;
 using smart_pet_care_api.Modules.ReminderModule.Scheduler;
 using static smart_pet_care_api.Models.Enums;
 
@@ -93,6 +94,42 @@ public class ReminderSchedulerServiceTests
             reminder, DateTime.UtcNow, repo, new FakeNotificationService());
 
         Assert.Equal(ReminderRunStatus.Completed, done.Status);
+    }
+
+    [Fact]
+    public async Task An_early_completion_does_not_block_the_slot_the_scheduler_will_insert()
+    {
+        // Ticked off the afternoon before, then the scheduler reaches 09:00. Both rows land in
+        // ReminderRun, so the unique (ReminderId, ScheduledFor) index means they have to differ
+        // — matching ones abort the tick and wedge the reminder into a retry loop.
+        var trigger = new DateTime(2026, 8, 20, 7, 0, 0, DateTimeKind.Utc);
+        var reminder = new Reminder
+        {
+            PetId = Guid.NewGuid(),
+            Title = "test block",
+            Type = ReminderType.Feeding,
+            RepeatType = RepeatType.Daily,
+            IntervalN = 1,
+            RecalcStrategy = RecalcStrategy.FromCompletion,
+            TimeOfDay = new TimeSpan(7, 0, 0),
+            UtcOffsetMinutes = 120,
+            StartAt = trigger,
+            ScheduleAnchorAt = trigger,
+            NextTriggerAt = trigger,
+            Status = ReminderStatus.Active
+        };
+
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+
+        await new ReminderRecalculationService(repo).RegisterCompletionAsync(
+            reminder.Id, new DateTime(2026, 8, 19, 13, 20, 42, DateTimeKind.Utc));
+
+        await ReminderSchedulerService.FireReminderAsync(
+            reminder, trigger, repo, new FakeNotificationService());
+
+        Assert.Equal(2, repo.Runs.Count);
+        Assert.Equal(2, repo.Runs.Select(r => r.ScheduledFor).Distinct().Count());
     }
 
     [Fact]

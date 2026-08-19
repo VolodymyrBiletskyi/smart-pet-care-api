@@ -120,10 +120,14 @@ internal sealed class FakeReminderRepository : IReminderRepository
                     or ReminderRunStatus.Delivered)
             .ToList());
 
-    public Task<ReminderRun?> GetCompletedRunByPerformedAtAsync(Guid reminderId, DateTime performedAtUtc) =>
-        Task.FromResult(Runs.FirstOrDefault(r => r.ReminderId == reminderId
-            && r.Status == ReminderRunStatus.Completed
-            && r.PerformedAt == performedAtUtc));
+    public Task<ReminderRun?> GetCompletedRunInRangeAsync(Guid reminderId, DateTime fromUtc, DateTime toUtc) =>
+        Task.FromResult(Runs
+            .Where(r => r.ReminderId == reminderId
+                && r.Status == ReminderRunStatus.Completed
+                && r.PerformedAt >= fromUtc
+                && r.PerformedAt < toUtc)
+            .OrderByDescending(r => r.PerformedAt)
+            .FirstOrDefault());
 }
 
 internal sealed class FakePetRepository : IPetRepository
