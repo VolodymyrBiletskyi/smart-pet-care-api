@@ -39,10 +39,6 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
                 throw new InvalidOperationException("Reminder not found");
 
-            // Every type can be ticked off here, weighing and feeding included. Their logs stay
-            // optional: a user who wants the portion or the weight recorded posts the log itself
-            // with a reminderId, and a user answering a push in one tap gets the fact and nothing
-            // more. Demanding the measurement would only buy invented numbers.
             var performedAt = ReminderMapper.NormalizeToUtc(dto.PerformedAt ?? DateTime.UtcNow);
             if (performedAt > DateTime.UtcNow.Add(FutureTolerance))
                 throw new ArgumentException("PerformedAt cannot be in the future");
@@ -60,9 +56,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var outcome = await _recalculation.RegisterCompletionAsync(reminderId, performedAt, dto.Note)
                 ?? throw new InvalidOperationException("Reminder not found");
 
-            // The already-recorded branch looks the record up by the stored run's date, not by
-            // the one that just arrived: a repeat completion only has to fall on the same day to
-            // count as the same one, so the two timestamps need not match to the tick.
+            // Looked up by the stored run's date: a repeat completion only has to share the day,
+            // so the incoming timestamp need not match to the tick.
             var healthRecordId = outcome.AlreadyRecorded
                 ? await FindExistingRecordIdAsync(reminder, outcome.Run.PerformedAt ?? performedAt)
                 : await FileHealthRecordAsync(outcome.Reminder, performedAt, dto);

@@ -99,10 +99,9 @@ public class ReminderSchedulerServiceTests
     [Fact]
     public async Task An_early_completion_does_not_block_the_slot_the_scheduler_will_insert()
     {
-        // Create a daily feeding rule for 09:00 (+02:00), tick it off the afternoon before, then
-        // let the scheduler reach that 09:00. Both rows land in ReminderRun, and the unique
-        // (ReminderId, ScheduledFor) index means they have to differ: matching ones would abort
-        // the tick, leave NextTriggerAt untouched and wedge the reminder into a retry loop.
+        // Ticked off the afternoon before, then the scheduler reaches 09:00. Both rows land in
+        // ReminderRun, so the unique (ReminderId, ScheduledFor) index means they have to differ
+        // — matching ones abort the tick and wedge the reminder into a retry loop.
         var trigger = new DateTime(2026, 8, 20, 7, 0, 0, DateTimeKind.Utc);
         var reminder = new Reminder
         {

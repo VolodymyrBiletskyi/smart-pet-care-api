@@ -183,10 +183,8 @@ public class ReminderRecalculationServiceTests
     [Fact]
     public async Task An_early_completion_that_does_not_move_the_trigger_leaves_the_slot_alone()
     {
-        // Daily feeding due tomorrow 07:00, fed today at 13:20. The interval counted from the
-        // performed date lands back on tomorrow 07:00, so that push is still wanted. Filing the
-        // run on it would both swallow the push and duplicate the slot the scheduler will
-        // insert tomorrow, which the unique (ReminderId, ScheduledFor) index rejects.
+        // Daily feeding due tomorrow 07:00, fed today at 13:20: the interval lands back on
+        // tomorrow 07:00, so that push is still wanted and the run must go elsewhere.
         var tomorrow = new DateTime(2026, 8, 20, 7, 0, 0, DateTimeKind.Utc);
         var reminder = BuildReminder(
             RecalcStrategy.FromCompletion,
@@ -224,9 +222,8 @@ public class ReminderRecalculationServiceTests
     [Fact]
     public async Task A_second_completion_the_same_day_does_not_skip_an_occurrence()
     {
-        // Done is tapped on the push, then the user changes their mind and saves the feeding log
-        // too. The log carries its own fedAt, seconds later. Treating that as a fresh completion
-        // would materialise the *next* occurrence and close it, moving the schedule twice.
+        // Done is tapped, then the feeding log is saved too, carrying its own fedAt seconds
+        // later. Treated as a fresh completion it would close the next occurrence as well.
         var reminder = BuildReminder(RecalcStrategy.FromCompletion, type: ReminderType.Feeding);
         var (service, repo) = BuildService(reminder);
 
