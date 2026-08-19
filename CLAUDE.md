@@ -83,6 +83,17 @@ the nutrition summary and the feeding analysis, both of which read
 `FeedingLogs`. A HealthRecord created by hand with a `reminderId` closes an
 occurrence the same way, for treatments given with no rule behind them.
 
+A completion that arrives before the occurrence ever fired has to create the
+run itself. It is filed on the pending trigger only when the recalculated
+trigger moves *past* that instant — "I did Saturday's bath on Thursday". When
+the recalculation lands back on the pending instant, the completion was an
+extra event rather than the coming occurrence done early, so the run is filed
+at the time it happened and the pending trigger survives. Daily rules
+confirmed the evening before hit this, and `Calendar` rules always do, since
+they leave a future trigger untouched by definition. Filing on the pending
+slot there would swallow a notification the user still wants and collide with
+the scheduler's own row on the unique `(ReminderId, ScheduledFor)` index.
+
 Because a completion can arrive twice from two different endpoints — Done on
 the push, then the feeding log saved a minute later — the duplicate guard
 matches on the **local day** of the performed date rather than the exact

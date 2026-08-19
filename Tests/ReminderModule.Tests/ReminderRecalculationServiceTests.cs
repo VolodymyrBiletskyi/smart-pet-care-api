@@ -181,6 +181,47 @@ public class ReminderRecalculationServiceTests
     }
 
     [Fact]
+    public async Task An_early_completion_that_does_not_move_the_trigger_leaves_the_slot_alone()
+    {
+        // Daily feeding due tomorrow 07:00, fed today at 13:20. The interval counted from the
+        // performed date lands back on tomorrow 07:00, so that push is still wanted. Filing the
+        // run on it would both swallow the push and duplicate the slot the scheduler will
+        // insert tomorrow, which the unique (ReminderId, ScheduledFor) index rejects.
+        var tomorrow = new DateTime(2026, 8, 20, 7, 0, 0, DateTimeKind.Utc);
+        var reminder = BuildReminder(
+            RecalcStrategy.FromCompletion,
+            intervalN: 1,
+            type: ReminderType.Feeding,
+            nextTriggerAt: tomorrow);
+        reminder.TimeOfDay = new TimeSpan(7, 0, 0);
+        var (service, repo) = BuildService(reminder);
+
+        var performedAt = new DateTime(2026, 8, 19, 13, 20, 42, DateTimeKind.Utc);
+        await service.RegisterCompletionAsync(reminder.Id, performedAt);
+
+        var run = Assert.Single(repo.Runs);
+        Assert.Equal(performedAt, run.ScheduledFor);
+        Assert.Equal(tomorrow, reminder.NextTriggerAt);
+    }
+
+    [Fact]
+    public async Task Confirming_a_calendar_rule_early_does_not_consume_the_pending_slot()
+    {
+        // Calendar rules never move a future trigger, so the run can never be filed on it.
+        var pending = DateTime.UtcNow.AddDays(2);
+        var reminder = BuildReminder(
+            RecalcStrategy.Calendar, type: ReminderType.Brushing, nextTriggerAt: pending);
+        var (service, repo) = BuildService(reminder);
+
+        var performedAt = DateTime.UtcNow.AddHours(-1);
+        await service.RegisterCompletionAsync(reminder.Id, performedAt);
+
+        var run = Assert.Single(repo.Runs);
+        Assert.Equal(performedAt, run.ScheduledFor);
+        Assert.NotEqual(pending, run.ScheduledFor);
+    }
+
+    [Fact]
     public async Task A_second_completion_the_same_day_does_not_skip_an_occurrence()
     {
         // Done is tapped on the push, then the user changes their mind and saves the feeding log
