@@ -46,8 +46,10 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
 
             var log = FeedingLogMapper.ToEntity(dto, petId);
 
-            // Feeding has its own log, so the reminder is closed from here rather than by a
-            // generic complete call that would have nowhere to put the portion.
+            // The richer of the two ways to close a feeding reminder: this one carries the
+            // portion, /complete records the fact alone. Registering a completion the generic
+            // endpoint already handled today is a no-op, so the log still saves and the
+            // schedule does not move twice.
             if (dto.ReminderId is { } reminderId)
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(

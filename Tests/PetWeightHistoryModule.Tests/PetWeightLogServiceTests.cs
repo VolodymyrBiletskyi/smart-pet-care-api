@@ -489,8 +489,8 @@ public class PetWeightLogServiceTests
     [Fact]
     public async Task CreateAsync_WithReminderId_ClosesTheWeighingReminderFromTheMeasurementDate()
     {
-        // Weighing carries a number the generic complete payload cannot hold, so creating the
-        // measurement is what closes the reminder.
+        // Posting the measurement closes the reminder as well, so a user who does log the
+        // weight never has to confirm it twice.
         var repo = new FakePetWeightLogRepository();
         var recalculation = new FakeReminderRecalculationService();
         var service = new PetWeightLogService(repo, recalculation);
