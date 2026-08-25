@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ApiPublicUrl=${API_PUBLIC_URL:-http://localhost:8080}
       - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=smartPetCareDb;Username=postgres;Password=${DB_PASSWORD}
       - JwtOptions__SecretKey=${JWT_SECRET}
