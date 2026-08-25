@@ -33,6 +33,7 @@ namespace smart_pet_care_api.Data
         public DbSet<ActivityDaily> ActivityDailies { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<SleepLog> SleepLogs { get; set; }
+        public DbSet<PetWellnessAssessment> PetWellnessAssessments { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<EmailConfirmationCode> EmailConfirmationCodes { get; set; }
 

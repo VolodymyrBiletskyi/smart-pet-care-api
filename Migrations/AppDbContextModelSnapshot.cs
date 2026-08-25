@@ -882,6 +882,31 @@ namespace smart_pet_care_api.Migrations
                     b.ToTable("PetMedicationScheduleTimes", (string)null);
                 });
 
+            modelBuilder.Entity("smart_pet_care_api.Models.PetWellnessAssessment", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+                    b.Property<string>("Band").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("CalculationVersion").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<DateTime>("CreatedAt").ValueGeneratedOnAdd().HasColumnType("timestamp with time zone").HasDefaultValueSql("now()");
+                    b.Property<decimal>("DataCoverage").HasPrecision(5, 4).HasColumnType("numeric(5,4)");
+                    b.Property<DateTime>("EvaluatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("PetId").HasColumnType("uuid");
+                    b.Property<string>("ResponseJson").IsRequired().HasColumnType("jsonb");
+                    b.Property<string>("ScoreStatus").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<string>("Trend").HasMaxLength(32).HasColumnType("character varying(32)");
+                    b.Property<int?>("WellnessScore").HasColumnType("integer");
+                    b.Property<DateOnly?>("WindowEndDate").HasColumnType("date");
+                    b.Property<DateOnly?>("WindowStartDate").HasColumnType("date");
+
+                    b.HasKey("Id");
+                    b.HasIndex("PetId", "EvaluatedAt").IsDescending(false, true);
+                    b.ToTable("PetWellnessAssessments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PetWellnessAssessments_Coverage", "\"DataCoverage\" >= 0 AND \"DataCoverage\" <= 1");
+                            t.HasCheckConstraint("CK_PetWellnessAssessments_Score", "\"WellnessScore\" IS NULL OR (\"WellnessScore\" >= 0 AND \"WellnessScore\" <= 100)");
+                        });
+                });
+
             modelBuilder.Entity("smart_pet_care_api.Models.PetWeightLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1416,6 +1441,17 @@ namespace smart_pet_care_api.Migrations
                         .WithMany()
                         .HasForeignKey("ReminderId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("smart_pet_care_api.Models.PetWellnessAssessment", b =>
+                {
+                    b.HasOne("smart_pet_care_api.Models.Pet", "Pet")
+                        .WithMany()
+                        .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pet");
                 });
 
             modelBuilder.Entity("smart_pet_care_api.Models.RefreshToken", b =>

@@ -21,6 +21,7 @@ using smart_pet_care_api.Modules.PetModule;
 using smart_pet_care_api.Modules.PetWeightHistoryModule;
 using smart_pet_care_api.Modules.ReminderModule;
 using smart_pet_care_api.Modules.UserModule;
+using smart_pet_care_api.Modules.WellnessModule;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,7 @@ builder.Services.AddNutritionModule();
 builder.Services.AddNotificationModule(builder.Configuration);
 builder.Services.AddClassifier(builder.Configuration);
 builder.Services.AddChatModule();
+builder.Services.AddWellnessModule();
 builder.Services.AddScalarConfig();
 builder.Services.Configure<CloudinaryOptions>(options =>
 {

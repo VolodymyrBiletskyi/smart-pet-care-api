@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 
 namespace smart_pet_care_api.Infrastructure.Classifier;
@@ -45,6 +46,17 @@ public sealed class ClassifierClient : IClassifierClient
             "feeding-summary",
             request,
             ValidateFeedingSummaryResponse,
+            cancellationToken);
+    }
+
+    public Task<ClassifierWellnessResponse> CalculateWellnessAsync(
+        ClassifierWellnessRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<ClassifierWellnessRequest, ClassifierWellnessResponse>(
+            "wellness",
+            request,
+            ValidateWellnessResponse,
             cancellationToken);
     }
 
@@ -440,6 +452,38 @@ public sealed class ClassifierClient : IClassifierClient
         return response.Disclaimer is null
             ? "disclaimer is missing"
             : null;
+    }
+
+    private static string? ValidateWellnessResponse(ClassifierWellnessResponse? response)
+    {
+        if (response is null) return "body was null or empty";
+        if (!Enum.IsDefined(response.ScoreStatus)) return "scoreStatus is missing or invalid";
+        if (response.DataCoverage is < 0 or > 1) return "dataCoverage is outside 0..1";
+        if (string.IsNullOrWhiteSpace(response.CalculationVersion)) return "calculationVersion is missing";
+        if (!Regex.IsMatch(response.CalculationVersion, "^\\d+\\.\\d+\\.\\d+$", RegexOptions.CultureInvariant))
+            return "calculationVersion is not in x.y.z format";
+        if (response.EvaluatedAt == default) return "evaluatedAt is missing";
+        if (response.Breakdown is null) return "breakdown is missing";
+        if (response.Narrative is null) return "narrative is missing";
+        if (response.Recommendations is null) return "recommendations is missing";
+        if (response.Disclaimer is null) return "disclaimer is missing";
+        if (response.WellnessScore is < 0 or > 100) return "wellnessScore is outside 0..100";
+        if (response.ScoreStatus == ClassifierWellnessScoreStatus.InsufficientData
+            && (response.WellnessScore is not null || response.Band is not null))
+            return "insufficient-data response contains a score or band";
+        if (response.ScoreStatus != ClassifierWellnessScoreStatus.InsufficientData
+            && (response.WellnessScore is null || response.Band is null))
+            return "scored response is missing wellnessScore or band";
+
+        foreach (var item in response.Breakdown.Items())
+        {
+            if (item is null) return "breakdown contains a null dimension";
+            if (!Enum.IsDefined(item.Availability)) return "breakdown contains invalid availability";
+            if (item.ReasonCodes is null || item.ReasonCodes.Count == 0)
+                return "breakdown dimension has no reasonCodes";
+        }
+
+        return null;
     }
 
     private static ClassifierInvalidResponseException MalformedResponse(

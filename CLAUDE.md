@@ -172,6 +172,7 @@ Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`
 - `docs/feeding-summary-contract-v1.md`
+- `docs/wellness-contract-v1.md` (proposed for coordinated .NET/Python implementation)
 
 The classifier exposes four routes: `predict`, `chat`, `wellness` and
 `feeding-summary`. Only `chat` and `feeding-summary` are wired up.
