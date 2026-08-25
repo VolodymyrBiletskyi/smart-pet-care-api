@@ -69,6 +69,13 @@ A successful response is stored in `PetWellnessAssessments`: indexed metadata
 supports current/history queries and the complete classifier response is kept
 as JSONB. Failed or invalid responses are not persisted.
 
+The public API does not expose classifier metadata or the raw breakdown. Each
+assessment is projected to the frontend contract containing `wellnessScore`,
+`band`, `scoreStatus`, one enum state per scored dimension, `narrative`,
+`recommendations`, flattened `reminderSuggestions` and `disclaimer`.
+Classifier reminders and tracking recommendations with suggested reminder
+types are combined into `reminderSuggestions`.
+
 - `POST /api/pets/{petId}/wellness/recalculate`
 - `GET /api/pets/{petId}/wellness/current`
 - `GET /api/pets/{petId}/wellness/history?page=1&pageSize=20`

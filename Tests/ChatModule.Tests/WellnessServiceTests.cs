@@ -19,7 +19,24 @@ public sealed class WellnessServiceTests
         var result = await service.RecalculateAsync(
             petId, Guid.NewGuid(), null, TestContext.Current.CancellationToken);
 
-        Assert.Equal(82, result.Result.WellnessScore);
+        Assert.Equal(82, result.WellnessScore);
+        Assert.Equal(ClassifierWellnessBand.Excellent, result.Band);
+        Assert.Equal(ClassifierWellnessScoreStatus.Complete, result.ScoreStatus);
+        Assert.Equal(ClassifierWellnessReasonCode.ActivityTargetMet, result.States.Activity);
+        Assert.Equal("Stable.", result.Narrative);
+        Assert.Equal(["Keep the routine."], result.Recommendations);
+        Assert.Collection(
+            result.ReminderSuggestions,
+            item =>
+            {
+                Assert.Equal(ClassifierWellnessReminderType.Feeding, item.Type);
+                Assert.Equal("Keep meal times consistent.", item.Text);
+            },
+            item =>
+            {
+                Assert.Equal(ClassifierWellnessReminderType.Bathing, item.Type);
+                Assert.Equal("Track grooming care.", item.Text);
+            });
         var stored = Assert.Single(await db.PetWellnessAssessments.ToListAsync(
             TestContext.Current.CancellationToken));
         Assert.Equal("1.0.0", stored.CalculationVersion);
@@ -153,7 +170,25 @@ public sealed class WellnessServiceTests
                 Baseline = item
             },
             Narrative = "Stable.",
-            Recommendations = [],
+            Recommendations = ["Keep the routine."],
+            Reminders =
+            [
+                new ClassifierWellnessReminder
+                {
+                    Reminder = ClassifierWellnessReminderType.Feeding,
+                    Text = "Keep meal times consistent."
+                }
+            ],
+            TrackingRecommendations =
+            [
+                new ClassifierWellnessTrackingRecommendation
+                {
+                    Dimension = ClassifierWellnessDimension.RoutineCare,
+                    Text = "Track grooming care.",
+                    RequiredInputs = ["routineCare"],
+                    SuggestedReminderTypes = [ClassifierWellnessReminderType.Bathing]
+                }
+            ],
             Disclaimer = "Not veterinary advice."
         };
     }

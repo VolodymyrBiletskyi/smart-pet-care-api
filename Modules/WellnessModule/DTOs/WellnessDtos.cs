@@ -9,16 +9,37 @@ public sealed record WellnessRecalculationRequestDto
     public string? CurrentSymptoms { get; init; }
 }
 
-public sealed record WellnessAssessmentResponseDto
+public sealed record WellnessResponseDto
 {
-    public required Guid AssessmentId { get; init; }
-    public required Guid PetId { get; init; }
-    public required ClassifierWellnessResponse Result { get; init; }
+    public int? WellnessScore { get; init; }
+    public ClassifierWellnessBand? Band { get; init; }
+    public required ClassifierWellnessScoreStatus ScoreStatus { get; init; }
+    public required WellnessStatesDto States { get; init; }
+    public required string Narrative { get; init; }
+    public required IReadOnlyList<string> Recommendations { get; init; }
+    public required IReadOnlyList<WellnessReminderSuggestionDto> ReminderSuggestions { get; init; }
+    public required string Disclaimer { get; init; }
+}
+
+public sealed record WellnessStatesDto
+{
+    public required ClassifierWellnessReasonCode Activity { get; init; }
+    public required ClassifierWellnessReasonCode Sleep { get; init; }
+    public required ClassifierWellnessReasonCode Diet { get; init; }
+    public required ClassifierWellnessReasonCode Symptoms { get; init; }
+    public required ClassifierWellnessReasonCode PreventiveCare { get; init; }
+    public required ClassifierWellnessReasonCode Baseline { get; init; }
+}
+
+public sealed record WellnessReminderSuggestionDto
+{
+    public required ClassifierWellnessReminderType Type { get; init; }
+    public required string Text { get; init; }
 }
 
 public sealed record WellnessHistoryResponseDto
 {
-    public required IReadOnlyList<WellnessAssessmentResponseDto> Items { get; init; }
+    public required IReadOnlyList<WellnessResponseDto> Items { get; init; }
     public required int Page { get; init; }
     public required int PageSize { get; init; }
     public required int TotalCount { get; init; }

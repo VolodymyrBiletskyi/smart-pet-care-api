@@ -17,7 +17,7 @@ public sealed class WellnessController(
     ILogger<WellnessController> logger) : ControllerBase
 {
     [HttpPost("recalculate")]
-    [ProducesResponseType(typeof(WellnessAssessmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WellnessResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status429TooManyRequests)]
@@ -63,7 +63,7 @@ public sealed class WellnessController(
     }
 
     [HttpGet("current")]
-    [ProducesResponseType(typeof(WellnessAssessmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WellnessResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Current(Guid petId, CancellationToken cancellationToken)
     {
