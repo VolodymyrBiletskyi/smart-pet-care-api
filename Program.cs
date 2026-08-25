@@ -7,6 +7,7 @@ using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Cloudinary;
+using smart_pet_care_api.Modules.ActivityModule;
 using smart_pet_care_api.Modules.AuthModule;
 using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.ChatModule;
@@ -37,6 +38,7 @@ builder.Services.AddReminderModule();
 builder.Services.AddFeedingModule();
 builder.Services.AddHealthModule();
 builder.Services.AddJournalModule();
+builder.Services.AddActivityModule();
 builder.Services.AddPetWeightHistoryModule();
 builder.Services.AddNutritionModule();
 builder.Services.AddNotificationModule(builder.Configuration);
@@ -103,10 +105,12 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     Console.WriteLine("\n🚀 API started!");
 
-    foreach (var url in app.Urls)
-    {
-        Console.WriteLine($"👉 Scalar available at: {url}/scalar/v1");
-    }
+    var publicUrl = app.Configuration["ApiPublicUrl"]?.TrimEnd('/')
+        ?? (app.Environment.IsProduction()
+            ? "https://smart-pet-care.duckdns.org"
+            : "http://localhost:8080");
+
+    Console.WriteLine($"👉 Scalar available at: {publicUrl}/scalar/v1");
 
     Console.WriteLine();
 });

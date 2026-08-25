@@ -26,7 +26,13 @@
       "PowerShell(dotnet build *)",
       "PowerShell(dotnet ef migrations *)",
       "WebFetch(domain:txmrwave5a.execute-api.us-east-1.amazonaws.com)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(dotnet --version)",
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit *)",
+      "Bash(docker exec smart-pet-care-api-db-1 *)",
+      "Bash(git push *)",
+      "Bash(git merge --no-ff bugfix/reminder-scheduler-scope-per-reminder -m 'Merge scheduler isolation fix into the activity branch *)"
     ]
   },
   "disabledMcpjsonServers": [

@@ -45,6 +45,27 @@ the recalculation service (completion closing an occurrence, early and
 backdated completion, idempotency, end-of-series) and the completion service
 (health record filing, type mapping, ownership).
 
+Activity module tests are in `Tests/ActivityModule.Tests/`. They cover the
+CRUD service (ownership, validation, UTC normalisation, persistence), the
+repository (date-range and source filters, tracking behaviour), the
+controller status mapping and the swappable activity source.
+
+### Activity logs
+
+`ActivityLog` is a plain note — one walk, one play session — with an optional
+step count, place and free text. It is not `ActivityDaily`, which is the
+per-day aggregate the wearable-device section of the spec calls for and which
+nothing writes to yet.
+
+Where the numbers come from is behind `IActivitySourceProvider`, picked per
+request by `IActivitySourceResolver` from the `source` field. Only
+`ManualActivitySourceProvider` is registered, so any other source is a 400
+until its integration lands. A collar integration is one more provider
+registration in `ActivityModuleExtensions`; `ActivityLogService` does not
+change. Validation runs on the `ActivityReading` the provider returned, not on
+the request body, so a device feed answers to the same rules as a typed-in
+note.
+
 ### Reminder recalculation
 
 `Reminder.RecalcStrategy` decides what a completion does to the schedule:
