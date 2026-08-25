@@ -37,22 +37,34 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
 
         private async Task ProcessDueRemindersAsync()
         {
-            using var scope = _scopeFactory.CreateScope();
-            var reminderRepo = scope.ServiceProvider.GetRequiredService<IReminderRepository>();
-            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
             var now = DateTime.UtcNow;
-            var dueReminders = await reminderRepo.GetDueRemindersAsync(now);
 
-            foreach (var reminder in dueReminders)
+            List<Guid> dueIds;
+            using (var queryScope = _scopeFactory.CreateScope())
             {
+                var queryRepo = queryScope.ServiceProvider.GetRequiredService<IReminderRepository>();
+                dueIds = (await queryRepo.GetDueRemindersAsync(now)).Select(r => r.Id).ToList();
+            }
+
+            foreach (var reminderId in dueIds)
+            {
+                // One scope, and so one DbContext, per reminder. EF leaves a failed insert in the
+                // change tracker, so a shared context would carry a rejected run into the next
+                // reminder's SaveChanges and take down every reminder queued behind it.
+                using var scope = _scopeFactory.CreateScope();
+                var reminderRepo = scope.ServiceProvider.GetRequiredService<IReminderRepository>();
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
                 try
                 {
+                    var reminder = await reminderRepo.GetByIdAsync(reminderId);
+                    if (reminder is null || reminder.NextTriggerAt is null) continue;
+
                     await FireReminderAsync(reminder, now, reminderRepo, notificationService);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to process reminder {ReminderId}", reminder.Id);
+                    _logger.LogError(ex, "Failed to process reminder {ReminderId}", reminderId);
                 }
             }
         }
