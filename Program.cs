@@ -105,10 +105,12 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     Console.WriteLine("\n🚀 API started!");
 
-    foreach (var url in app.Urls)
-    {
-        Console.WriteLine($"👉 Scalar available at: {url}/scalar/v1");
-    }
+    var publicUrl = app.Configuration["ApiPublicUrl"]?.TrimEnd('/')
+        ?? (app.Environment.IsProduction()
+            ? "https://smart-pet-care.duckdns.org"
+            : "http://localhost:8080");
+
+    Console.WriteLine($"👉 Scalar available at: {publicUrl}/scalar/v1");
 
     Console.WriteLine();
 });
