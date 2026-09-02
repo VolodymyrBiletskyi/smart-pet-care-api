@@ -11,6 +11,10 @@ public class ActivityLogConfiguration : IEntityTypeConfiguration<ActivityLog>
             t.HasCheckConstraint(
                 "CK_ActivityLogs_StepsNonNegative",
                 "\"Steps\" IS NULL OR \"Steps\" >= 0");
+
+            t.HasCheckConstraint(
+                "CK_ActivityLogs_DurationMinutesInRange",
+                "\"DurationMinutes\" IS NULL OR (\"DurationMinutes\" > 0 AND \"DurationMinutes\" <= 1440)");
         });
 
         builder.HasKey(a => a.Id);

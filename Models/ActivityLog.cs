@@ -18,6 +18,17 @@ namespace smart_pet_care_api.Models
 
         public int? Steps { get; set; }
 
+        /// <summary>What the session was. Null on rows written before types existed.</summary>
+        public ActivityType? Type { get; set; }
+
+        /// <summary>
+        /// Filled in from <see cref="Type"/> when the caller left it out and there is a
+        /// duration to weight; see <c>ActivityLogService</c>.
+        /// </summary>
+        public ActivityIntensity? Intensity { get; set; }
+
+        public int? DurationMinutes { get; set; }
+
         public string? Location { get; set; }
 
         public string? Note { get; set; }

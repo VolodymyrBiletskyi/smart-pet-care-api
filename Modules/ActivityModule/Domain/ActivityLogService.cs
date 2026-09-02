@@ -12,6 +12,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
         private const int MaxSteps = 1_000_000;
         private const int MaxLocationLength = 200;
         private const int MaxNoteLength = 2000;
+        private const int MaxDurationMinutes = 1440;
 
         private readonly IActivityLogRepository _repo;
         private readonly IActivitySourceResolver _sources;
@@ -66,7 +67,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             // as a typed-in note rather than getting a free pass on its way to the database.
             ValidateReading(reading);
 
-            var log = ActivityLogMapper.ToEntity(reading, petId, provider.Source);
+            var log = ActivityLogMapper.ToEntity(ResolveIntensity(reading), petId, provider.Source);
 
             await _repo.AddAsync(log);
             await _repo.SaveChangesAsync();
@@ -114,9 +115,38 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             if (reading.Note is { Length: > MaxNoteLength })
                 throw new ArgumentException($"Note must be {MaxNoteLength} characters or less");
 
-            // A row with no steps, no place and no text records nothing at all.
-            if (reading.Steps is null && reading.Location is null && reading.Note is null)
-                throw new ArgumentException("At least one of Steps, Location or Note is required");
+            if (reading.Type is { } type && !Enum.IsDefined(type))
+                throw new ArgumentException("Type is invalid");
+
+            if (reading.Intensity is { } intensity && !Enum.IsDefined(intensity))
+                throw new ArgumentException("Intensity is invalid");
+
+            if (reading.DurationMinutes is { } duration)
+            {
+                if (duration <= 0)
+                    throw new ArgumentException("DurationMinutes must be greater than zero");
+
+                // One log is one session. A longer span is a day's worth of them and belongs
+                // in as many rows, or the intensity of the whole stretch is a fiction.
+                if (duration > MaxDurationMinutes)
+                    throw new ArgumentException($"DurationMinutes must be {MaxDurationMinutes} or less");
+            }
+
+            // A row with no activity, no duration, no steps, no place and no text records
+            // nothing at all.
+            if (reading.Steps is null && reading.Location is null && reading.Note is null
+                && reading.Type is null && reading.DurationMinutes is null)
+                throw new ArgumentException("At least one of Type, DurationMinutes, Steps, Location or Note is required");
         }
+
+        /// <summary>
+        /// A duration with no intensity weighs nothing and drops out of the score, so one is
+        /// filled in from the activity type. Making the field required instead would buy a
+        /// number the user picked to get past the form.
+        /// </summary>
+        private static ActivityReading ResolveIntensity(ActivityReading reading) =>
+            reading.DurationMinutes is null || reading.Intensity is not null
+                ? reading
+                : reading with { Intensity = ActivityEffort.DefaultIntensityFor(reading.Type) };
     }
 }

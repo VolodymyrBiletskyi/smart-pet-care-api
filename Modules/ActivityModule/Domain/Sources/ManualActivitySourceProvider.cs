@@ -18,7 +18,10 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain.Sources
                 ActivityLogMapper.NormalizeToUtc(dto.RecordedAt),
                 dto.Steps,
                 Trim(dto.Location),
-                Trim(dto.Note));
+                Trim(dto.Note),
+                dto.Type,
+                dto.Intensity,
+                dto.DurationMinutes);
 
             return Task.FromResult(reading);
         }
