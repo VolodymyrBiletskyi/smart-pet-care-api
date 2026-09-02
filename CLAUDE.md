@@ -48,7 +48,8 @@ backdated completion, idempotency, end-of-series) and the completion service
 Activity module tests are in `Tests/ActivityModule.Tests/`. They cover the
 CRUD service (ownership, validation, UTC normalisation, persistence), the
 repository (date-range and source filters, tracking behaviour), the
-controller status mapping and the swappable activity source.
+controller status mapping, the swappable activity source, the effort maths
+(intensity weights, defaulting) and the sleep log with its daily cap.
 
 ### Activity logs
 
@@ -56,6 +57,50 @@ controller status mapping and the swappable activity source.
 step count, place and free text. It is not `ActivityDaily`, which is the
 per-day aggregate the wearable-device section of the spec calls for and which
 nothing writes to yet.
+
+### Activity type, intensity and effort
+
+A session also carries an optional `Type`, `Intensity` and `DurationMinutes`.
+Only the last two are arithmetic: `ActivityEffort` turns them into
+`ActiveMinutes` (duration × 0.4 / 0.7 / 1.0), which is the figure a wellness
+score sums over a day. It is derived on read, never stored, so the weights can
+be retuned without a backfill.
+
+`ActivityType` is a label — for history and for chat context — and is
+deliberately absent from that sum. Two consequences worth keeping:
+
+- A walk done at a run is not a different type, it is a harder one, so
+  obedience class and competition prep share `Training`, and the "we just went
+  out and came back" walk shares `Walk` with the one that was all running.
+- `Other` plus a `Note` costs nothing, because an activity the enum never
+  anticipated still scores exactly like one it did. Rejecting unknown
+  activities would buy no accuracy at all.
+
+`Intensity` is intensity rather than difficulty on purpose: how hard a session
+was *for this pet* depends on age, weight and condition, which is what the
+score computes — asking the user for it would feed the answer back into
+itself.
+
+When a duration is present and no intensity was sent, one is derived from the
+type (`Walk` → Low, `Run`/`Swimming` → High, everything else → Moderate).
+Making the field required would buy a number the user picked to get past the
+form; a duration with no intensity would silently weigh nothing.
+
+### Sleep logs
+
+Sleep is `SleepLog` — `POST /api/pets/{petId}/sleep-logs` — and not an
+`ActivityType`. It shares none of `ActivityLog`'s shape (no steps, no place, no
+intensity) and the score reads it as a daily total rather than as a session, so
+folding it in would make every reader of `ActivityLogs` filter sleep rows out.
+
+A row is a local day plus hours; the day is stored as UTC midnight with the
+caller's date taken at face value, since converting would move evening entries
+onto the wrong date for half the world. Several rows may share a date — naps,
+and eventually a collar feed — so the ceiling is on the day's **sum**, not on
+the row. That sum check is what catches the same night entered twice, which is
+the mistake a unique index would have caught, without banning nap-by-nap
+logging. A device integration still writes `ActivityDaily.SleepHours`, not this
+table.
 
 Where the numbers come from is behind `IActivitySourceProvider`, picked per
 request by `IActivitySourceResolver` from the `source` field. Only

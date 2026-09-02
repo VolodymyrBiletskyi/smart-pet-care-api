@@ -194,6 +194,35 @@ namespace smart_pet_care_api.Models
             Mock
         }
 
+        /// <summary>
+        /// What the pet did. This is a label for history and for chat context only — the
+        /// effort behind a session is <see cref="ActivityIntensity"/> times the duration,
+        /// and the type never enters that sum. Which is why <see cref="Other"/> is safe:
+        /// an activity nobody anticipated still scores like any other.
+        /// Stored as an integer, so new values must be appended.
+        /// </summary>
+        public enum ActivityType
+        {
+            Walk,
+            Play,
+            Training,
+            Swimming,
+            Run,
+            Other
+        }
+
+        /// <summary>
+        /// How hard the pet worked. Intensity rather than difficulty on purpose: how hard it
+        /// was *for this pet* depends on age, weight and condition, which is what the wellness
+        /// score computes — asking the user for it would feed the answer back into itself.
+        /// </summary>
+        public enum ActivityIntensity
+        {
+            Low,
+            Moderate,
+            High
+        }
+
         public enum ConditionType
         {
             Chronic,

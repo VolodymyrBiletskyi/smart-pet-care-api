@@ -70,6 +70,74 @@ internal sealed class FakeActivityLogService : IActivityLogService
         Delete(petId, activityLogId, userId);
 }
 
+internal sealed class FakeSleepLogRepository : ISleepLogRepository
+{
+    public bool PetBelongsToUser { get; set; } = true;
+    public IReadOnlyList<SleepLog> Logs { get; set; } = [];
+    public SleepLog? Log { get; set; }
+    public SleepLog? TrackedLog { get; set; }
+    public SleepLog? AddedLog { get; private set; }
+    public SleepLog? DeletedLog { get; private set; }
+    public decimal LoggedHours { get; set; }
+    public int SaveChangesCalls { get; private set; }
+    public DateTime? RequestedFrom { get; private set; }
+    public DateTime? RequestedTo { get; private set; }
+    public DateTime? RequestedHoursDate { get; private set; }
+
+    public Task<bool> PetBelongsToUserAsync(Guid petId, Guid userId) => Task.FromResult(PetBelongsToUser);
+
+    public Task<IReadOnlyList<SleepLog>> GetByPetIdAsync(Guid petId, DateTime? from = null, DateTime? to = null)
+    {
+        RequestedFrom = from;
+        RequestedTo = to;
+        return Task.FromResult(Logs);
+    }
+
+    public Task<SleepLog?> GetByIdAsync(Guid id) => Task.FromResult(Log);
+
+    public Task<SleepLog?> GetTrackedByIdAsync(Guid id) => Task.FromResult(TrackedLog);
+
+    public Task<decimal> GetLoggedHoursAsync(Guid petId, DateTime sleepDate)
+    {
+        RequestedHoursDate = sleepDate;
+        return Task.FromResult(LoggedHours);
+    }
+
+    public Task<SleepLog> AddAsync(SleepLog entity)
+    {
+        AddedLog = entity;
+        return Task.FromResult(entity);
+    }
+
+    public void Delete(SleepLog entity) => DeletedLog = entity;
+
+    public Task<int> SaveChangesAsync()
+    {
+        SaveChangesCalls++;
+        return Task.FromResult(1);
+    }
+}
+
+internal sealed class FakeSleepLogService : ISleepLogService
+{
+    public Func<Guid, Guid, DateTime?, DateTime?, Task<IReadOnlyList<SleepLogResponseDto>>> GetByPetId { get; set; } =
+        (_, _, _, _) => Task.FromResult<IReadOnlyList<SleepLogResponseDto>>([]);
+    public Func<Guid, Guid, Guid, Task<SleepLogResponseDto?>> GetById { get; set; } =
+        (_, _, _) => Task.FromResult<SleepLogResponseDto?>(new SleepLogResponseDto());
+    public Func<Guid, Guid, CreateSleepLogDto, Task<SleepLogResponseDto>> Create { get; set; } =
+        (_, _, _) => Task.FromResult(new SleepLogResponseDto());
+    public Func<Guid, Guid, Guid, Task<bool>> Delete { get; set; } = (_, _, _) => Task.FromResult(true);
+
+    public Task<IReadOnlyList<SleepLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, DateTime? from = null, DateTime? to = null) =>
+        GetByPetId(petId, userId, from, to);
+    public Task<SleepLogResponseDto?> GetByIdAsync(Guid petId, Guid sleepLogId, Guid userId) =>
+        GetById(petId, sleepLogId, userId);
+    public Task<SleepLogResponseDto> CreateAsync(Guid petId, Guid userId, CreateSleepLogDto dto) =>
+        Create(petId, userId, dto);
+    public Task<bool> DeleteAsync(Guid petId, Guid sleepLogId, Guid userId) =>
+        Delete(petId, sleepLogId, userId);
+}
+
 /// <summary>
 /// Stands in for a future device integration: it ignores the request body and answers with
 /// whatever reading the test hands it, which is exactly what a collar API call would do.

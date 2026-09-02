@@ -34,6 +34,7 @@ namespace smart_pet_care_api.Models
         public ICollection<PetEvent> PetEvents { get; set; } = new List<PetEvent>();
         public ICollection<ActivityDaily> ActivityDailies { get; set; } = new List<ActivityDaily>();
         public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
+        public ICollection<SleepLog> SleepLogs { get; set; } = new List<SleepLog>();
         public ICollection<FeedingLog> FeedingLogs { get; set; } = new List<FeedingLog>();
         public ICollection<HealthRecord> HealthRecords { get; set; } = new List<HealthRecord>();
         public ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();

@@ -21,6 +21,8 @@ public class ActivityModuleExtensionsTests
         AssertScoped<IActivityLogService, ActivityLogService>(services);
         AssertScoped<IActivitySourceProvider, ManualActivitySourceProvider>(services);
         AssertScoped<IActivitySourceResolver, ActivitySourceResolver>(services);
+        AssertScoped<ISleepLogRepository, SleepLogRepository>(services);
+        AssertScoped<ISleepLogService, SleepLogService>(services);
     }
 
     /// <summary>

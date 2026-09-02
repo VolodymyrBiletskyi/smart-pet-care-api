@@ -1,3 +1,5 @@
+using static smart_pet_care_api.Models.Enums;
+
 namespace smart_pet_care_api.Modules.ActivityModule.Domain.Sources
 {
     /// <summary>
@@ -9,5 +11,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain.Sources
         DateTime RecordedAt,
         int? Steps,
         string? Location,
-        string? Note);
+        string? Note,
+        ActivityType? Type = null,
+        ActivityIntensity? Intensity = null,
+        int? DurationMinutes = null);
 }

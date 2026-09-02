@@ -91,6 +91,141 @@ public class ActivityLogServiceTests
         Assert.Equal(0, repo.SaveChangesCalls);
     }
 
+    [Fact]
+    public async Task CreateAsync_PersistsTypeIntensityAndDuration()
+    {
+        var repo = new FakeActivityLogRepository();
+
+        var result = await Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
+        {
+            RecordedAt = DateTime.UtcNow.AddHours(-1),
+            Type = ActivityType.Swimming,
+            Intensity = ActivityIntensity.Moderate,
+            DurationMinutes = 30
+        });
+
+        Assert.NotNull(repo.AddedLog);
+        var added = repo.AddedLog!;
+        Assert.Equal(ActivityType.Swimming, added.Type);
+        Assert.Equal(ActivityIntensity.Moderate, added.Intensity);
+        Assert.Equal(30, added.DurationMinutes);
+
+        // 30 minutes at 0.7.
+        Assert.Equal(21, result.ActiveMinutes);
+    }
+
+    /// <summary>
+    /// A named activity with a duration is a complete log on its own — most walks are logged
+    /// from a phone with no step counter anywhere near the dog.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_AcceptsATypeAndDurationWithNothingElse()
+    {
+        var repo = new FakeActivityLogRepository();
+
+        await Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
+        {
+            RecordedAt = DateTime.UtcNow.AddMinutes(-40),
+            Type = ActivityType.Walk,
+            DurationMinutes = 40
+        });
+
+        Assert.NotNull(repo.AddedLog);
+        var added = repo.AddedLog!;
+        Assert.Null(added.Steps);
+        Assert.Null(added.Location);
+        Assert.Null(added.Note);
+    }
+
+    [Theory]
+    [InlineData(ActivityType.Walk, ActivityIntensity.Low)]
+    [InlineData(ActivityType.Run, ActivityIntensity.High)]
+    [InlineData(ActivityType.Swimming, ActivityIntensity.High)]
+    [InlineData(ActivityType.Training, ActivityIntensity.Moderate)]
+    [InlineData(ActivityType.Play, ActivityIntensity.Moderate)]
+    [InlineData(ActivityType.Other, ActivityIntensity.Moderate)]
+    [InlineData(null, ActivityIntensity.Moderate)]
+    public async Task CreateAsync_DerivesIntensityFromTypeWhenOmitted(ActivityType? type, ActivityIntensity expected)
+    {
+        var repo = new FakeActivityLogRepository();
+
+        await Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
+        {
+            RecordedAt = DateTime.UtcNow.AddMinutes(-20),
+            Type = type,
+            DurationMinutes = 20
+        });
+
+        Assert.NotNull(repo.AddedLog);
+        Assert.Equal(expected, repo.AddedLog!.Intensity);
+    }
+
+    [Fact]
+    public async Task CreateAsync_KeepsAnExplicitIntensityOverTheDefault()
+    {
+        var repo = new FakeActivityLogRepository();
+
+        await Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
+        {
+            RecordedAt = DateTime.UtcNow.AddMinutes(-25),
+            Type = ActivityType.Walk,
+            Intensity = ActivityIntensity.High,
+            DurationMinutes = 25
+        });
+
+        Assert.NotNull(repo.AddedLog);
+        Assert.Equal(ActivityIntensity.High, repo.AddedLog!.Intensity);
+    }
+
+    /// <summary>
+    /// Nothing to weight means nothing to guess at: a type with no duration keeps a null
+    /// intensity rather than acquiring one the caller never stated.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_LeavesIntensityNullWithoutADuration()
+    {
+        var repo = new FakeActivityLogRepository();
+
+        var result = await Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
+        {
+            RecordedAt = DateTime.UtcNow.AddMinutes(-15),
+            Type = ActivityType.Play
+        });
+
+        Assert.NotNull(repo.AddedLog);
+        Assert.Null(repo.AddedLog!.Intensity);
+        Assert.Null(result.ActiveMinutes);
+    }
+
+    [Theory]
+    [InlineData(0, "greater than zero")]
+    [InlineData(-5, "greater than zero")]
+    [InlineData(1441, "1440 or less")]
+    public async Task CreateAsync_RejectsDurationOutsideRange(int duration, string expectedFragment)
+    {
+        var repo = new FakeActivityLogRepository();
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            Service(repo).CreateAsync(_petId, _userId, Dto(durationMinutes: duration)));
+
+        Assert.Contains(expectedFragment, ex.Message);
+        Assert.Null(repo.AddedLog);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsUndefinedTypeAndIntensity()
+    {
+        var repo = new FakeActivityLogRepository();
+        var service = Service(repo);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateAsync(_petId, _userId, Dto(type: (ActivityType)42)));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateAsync(_petId, _userId, Dto(intensity: (ActivityIntensity)42)));
+
+        Assert.Null(repo.AddedLog);
+    }
+
     [Theory]
     [InlineData(-1, "negative")]
     [InlineData(1_000_001, "1000000 or less")]
@@ -299,13 +434,19 @@ public class ActivityLogServiceTests
         int? steps = 1000,
         string? location = null,
         string? note = null,
-        ActivitySource? source = null) => new()
+        ActivitySource? source = null,
+        ActivityType? type = null,
+        ActivityIntensity? intensity = null,
+        int? durationMinutes = null) => new()
     {
         RecordedAt = recordedAt ?? DateTime.UtcNow.AddHours(-1),
         Steps = steps,
         Location = location,
         Note = note,
-        Source = source
+        Source = source,
+        Type = type,
+        Intensity = intensity,
+        DurationMinutes = durationMinutes
     };
 
     private ActivityLog NewLog(Guid? petId = null) => new()
