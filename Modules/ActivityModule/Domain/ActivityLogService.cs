@@ -75,6 +75,30 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             return log.ToDto();
         }
 
+        public async Task<ActivityLogResponseDto> UpdateAsync(Guid petId, Guid activityLogId, Guid userId, PatchActivityLogDto dto)
+        {
+            await EnsurePetBelongsToUserAsync(petId, userId);
+            EnsurePatchHasFields(dto);
+
+            var log = await _repo.GetTrackedByIdAsync(activityLogId);
+            if (log is null || log.PetId != petId)
+                throw new InvalidOperationException("Activity log not found");
+
+            log.PatchEntity(dto);
+
+            // Validated as a whole rather than field by field: the rules that matter are about
+            // the row that results — "a log has to record something" cannot be checked against
+            // a single cleared field. No provider runs here; an edit is the user's own words.
+            ValidateReading(log.ToReading());
+
+            if (log.DurationMinutes is not null && log.Intensity is null)
+                log.Intensity = ActivityEffort.DefaultIntensityFor(log.Type);
+
+            await _repo.SaveChangesAsync();
+
+            return log.ToDto();
+        }
+
         public async Task<bool> DeleteAsync(Guid petId, Guid activityLogId, Guid userId)
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
@@ -93,6 +117,20 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
                 throw new InvalidOperationException("Pet not found");
+        }
+
+        private static void EnsurePatchHasFields(PatchActivityLogDto dto)
+        {
+            if (!dto.RecordedAt.IsSet
+                && !dto.Steps.IsSet
+                && !dto.Type.IsSet
+                && !dto.Intensity.IsSet
+                && !dto.DurationMinutes.IsSet
+                && !dto.Location.IsSet
+                && !dto.Note.IsSet)
+            {
+                throw new ArgumentException("At least one field must be provided");
+            }
         }
 
         private static void ValidateReading(ActivityReading reading)

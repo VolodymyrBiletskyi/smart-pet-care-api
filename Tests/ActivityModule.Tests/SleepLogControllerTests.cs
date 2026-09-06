@@ -117,6 +117,50 @@ public class SleepLogControllerTests
         Assert.IsType<ApiErrorResponse>(missing.Value);
     }
 
+    [Fact]
+    public async Task Update_ReturnsOkAndForwardsTheIds()
+    {
+        var updated = new SleepLogResponseDto { Id = _logId };
+        var dto = new PatchSleepLogDto();
+        var forwarded = false;
+        var service = new FakeSleepLogService
+        {
+            Update = (petId, logId, userId, actualDto) =>
+            {
+                forwarded = petId == _petId && logId == _logId && userId == _userId && ReferenceEquals(actualDto, dto);
+                return Task.FromResult(updated);
+            }
+        };
+
+        var result = await Controller(service).Update(_petId, _logId, dto);
+
+        Assert.Same(updated, Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(forwarded);
+    }
+
+    /// <summary>
+    /// An edit that busts the day's 24 hours is a 400 for the same reason a create is: the day
+    /// is a value the request got wrong, not a resource to conflict with.
+    /// </summary>
+    [Theory]
+    [InlineData(true, 404)]
+    [InlineData(false, 400)]
+    public async Task Update_MapsDomainErrors(bool notFound, int expectedStatus)
+    {
+        var service = new FakeSleepLogService
+        {
+            Update = (_, _, _, _) => notFound
+                ? Task.FromException<SleepLogResponseDto>(new InvalidOperationException("Sleep log not found"))
+                : Task.FromException<SleepLogResponseDto>(new ArgumentException("would total more than 24 hours"))
+        };
+
+        var result = await Controller(service).Update(_petId, _logId, new PatchSleepLogDto());
+
+        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(expectedStatus, objectResult.StatusCode);
+        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+    }
+
     private SleepLogController Controller(ISleepLogService service)
     {
         var identity = new ClaimsIdentity([new Claim("userId", _userId.ToString())], "test");

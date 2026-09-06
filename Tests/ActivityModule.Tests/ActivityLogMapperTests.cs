@@ -46,7 +46,8 @@ public class ActivityLogMapperTests
             Intensity = ActivityIntensity.Low,
             DurationMinutes = 50,
             Source = ActivitySource.Manual,
-            CreatedAt = DateTime.UtcNow.AddDays(-1)
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            UpdatedAt = DateTime.UtcNow.AddHours(-2)
         };
 
         var dto = log.ToDto();
@@ -62,6 +63,7 @@ public class ActivityLogMapperTests
         Assert.Equal(log.DurationMinutes, dto.DurationMinutes);
         Assert.Equal(log.Source, dto.Source);
         Assert.Equal(log.CreatedAt, dto.CreatedAt);
+        Assert.Equal(log.UpdatedAt, dto.UpdatedAt);
 
         // 50 minutes at 0.4.
         Assert.Equal(20, dto.ActiveMinutes);

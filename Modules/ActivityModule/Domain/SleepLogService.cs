@@ -57,6 +57,25 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             return log.ToDto();
         }
 
+        public async Task<SleepLogResponseDto> UpdateAsync(Guid petId, Guid sleepLogId, Guid userId, PatchSleepLogDto dto)
+        {
+            await EnsurePetBelongsToUserAsync(petId, userId);
+            EnsurePatchHasFields(dto);
+
+            var log = await _repo.GetTrackedByIdAsync(sleepLogId);
+            if (log is null || log.PetId != petId)
+                throw new InvalidOperationException("Sleep log not found");
+
+            log.PatchEntity(dto);
+
+            Validate(log);
+            await EnsureDayFitsAsync(log, excludeSelf: true);
+
+            await _repo.SaveChangesAsync();
+
+            return log.ToDto();
+        }
+
         public async Task<bool> DeleteAsync(Guid petId, Guid sleepLogId, Guid userId)
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
@@ -75,6 +94,12 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
                 throw new InvalidOperationException("Pet not found");
+        }
+
+        private static void EnsurePatchHasFields(PatchSleepLogDto dto)
+        {
+            if (!dto.SleepDate.IsSet && !dto.Hours.IsSet && !dto.Note.IsSet)
+                throw new ArgumentException("At least one field must be provided");
         }
 
         private static void Validate(SleepLog log)
@@ -97,9 +122,12 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
         /// mistake a unique index would have caught — the same night entered twice — without
         /// forbidding the nap-by-nap logging a collar feed will want.
         /// </summary>
-        private async Task EnsureDayFitsAsync(SleepLog log)
+        private async Task EnsureDayFitsAsync(SleepLog log, bool excludeSelf = false)
         {
-            var alreadyLogged = await _repo.GetLoggedHoursAsync(log.PetId, log.SleepDate);
+            var alreadyLogged = await _repo.GetLoggedHoursAsync(
+                log.PetId,
+                log.SleepDate,
+                excludeSelf ? log.Id : null);
 
             if (alreadyLogged + log.Hours > MaxHoursPerDay)
                 throw new ArgumentException(

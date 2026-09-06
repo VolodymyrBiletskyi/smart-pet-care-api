@@ -29,5 +29,7 @@ namespace smart_pet_care_api.Models
         public ActivitySource Source { get; set; } = ActivitySource.Manual;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; }
     }
 }

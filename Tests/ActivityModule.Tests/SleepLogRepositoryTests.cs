@@ -68,6 +68,26 @@ public class SleepLogRepositoryTests
     }
 
     /// <summary>
+    /// What an edit needs: the row being changed must not be weighed against the version of
+    /// itself still sitting in the table.
+    /// </summary>
+    [Fact]
+    public async Task GetLoggedHoursAsync_CanLeaveOneRowOutOfTheSum()
+    {
+        await using var db = CreateContext();
+        var pet = NewPet(Guid.NewGuid());
+        db.Pets.Add(pet);
+        var day = Day(-1);
+        var edited = NewLog(pet.Id, day, 6.5m);
+        db.SleepLogs.AddRange(edited, NewLog(pet.Id, day, 3.25m));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var repo = new SleepLogRepository(db);
+
+        Assert.Equal(3.25m, await repo.GetLoggedHoursAsync(pet.Id, day, edited.Id));
+        Assert.Equal(9.75m, await repo.GetLoggedHoursAsync(pet.Id, day, Guid.NewGuid()));
+    }
+
+    /// <summary>
     /// A day nobody has logged sums to zero rather than throwing, so the first entry of the
     /// day goes through the same cap check as the second.
     /// </summary>

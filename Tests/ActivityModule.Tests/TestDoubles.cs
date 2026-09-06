@@ -58,6 +58,8 @@ internal sealed class FakeActivityLogService : IActivityLogService
         (_, _, _) => Task.FromResult<ActivityLogResponseDto?>(new ActivityLogResponseDto());
     public Func<Guid, Guid, CreateActivityLogDto, Task<ActivityLogResponseDto>> Create { get; set; } =
         (_, _, _) => Task.FromResult(new ActivityLogResponseDto());
+    public Func<Guid, Guid, Guid, PatchActivityLogDto, Task<ActivityLogResponseDto>> Update { get; set; } =
+        (_, _, _, _) => Task.FromResult(new ActivityLogResponseDto());
     public Func<Guid, Guid, Guid, Task<bool>> Delete { get; set; } = (_, _, _) => Task.FromResult(true);
 
     public Task<IReadOnlyList<ActivityLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, DateTime? from = null, DateTime? to = null, ActivitySource? source = null) =>
@@ -66,6 +68,8 @@ internal sealed class FakeActivityLogService : IActivityLogService
         GetById(petId, activityLogId, userId);
     public Task<ActivityLogResponseDto> CreateAsync(Guid petId, Guid userId, CreateActivityLogDto dto) =>
         Create(petId, userId, dto);
+    public Task<ActivityLogResponseDto> UpdateAsync(Guid petId, Guid activityLogId, Guid userId, PatchActivityLogDto dto) =>
+        Update(petId, activityLogId, userId, dto);
     public Task<bool> DeleteAsync(Guid petId, Guid activityLogId, Guid userId) =>
         Delete(petId, activityLogId, userId);
 }
@@ -83,6 +87,7 @@ internal sealed class FakeSleepLogRepository : ISleepLogRepository
     public DateTime? RequestedFrom { get; private set; }
     public DateTime? RequestedTo { get; private set; }
     public DateTime? RequestedHoursDate { get; private set; }
+    public Guid? RequestedHoursExclusion { get; private set; }
 
     public Task<bool> PetBelongsToUserAsync(Guid petId, Guid userId) => Task.FromResult(PetBelongsToUser);
 
@@ -97,9 +102,10 @@ internal sealed class FakeSleepLogRepository : ISleepLogRepository
 
     public Task<SleepLog?> GetTrackedByIdAsync(Guid id) => Task.FromResult(TrackedLog);
 
-    public Task<decimal> GetLoggedHoursAsync(Guid petId, DateTime sleepDate)
+    public Task<decimal> GetLoggedHoursAsync(Guid petId, DateTime sleepDate, Guid? excludeSleepLogId = null)
     {
         RequestedHoursDate = sleepDate;
+        RequestedHoursExclusion = excludeSleepLogId;
         return Task.FromResult(LoggedHours);
     }
 
@@ -126,6 +132,8 @@ internal sealed class FakeSleepLogService : ISleepLogService
         (_, _, _) => Task.FromResult<SleepLogResponseDto?>(new SleepLogResponseDto());
     public Func<Guid, Guid, CreateSleepLogDto, Task<SleepLogResponseDto>> Create { get; set; } =
         (_, _, _) => Task.FromResult(new SleepLogResponseDto());
+    public Func<Guid, Guid, Guid, PatchSleepLogDto, Task<SleepLogResponseDto>> Update { get; set; } =
+        (_, _, _, _) => Task.FromResult(new SleepLogResponseDto());
     public Func<Guid, Guid, Guid, Task<bool>> Delete { get; set; } = (_, _, _) => Task.FromResult(true);
 
     public Task<IReadOnlyList<SleepLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, DateTime? from = null, DateTime? to = null) =>
@@ -134,6 +142,8 @@ internal sealed class FakeSleepLogService : ISleepLogService
         GetById(petId, sleepLogId, userId);
     public Task<SleepLogResponseDto> CreateAsync(Guid petId, Guid userId, CreateSleepLogDto dto) =>
         Create(petId, userId, dto);
+    public Task<SleepLogResponseDto> UpdateAsync(Guid petId, Guid sleepLogId, Guid userId, PatchSleepLogDto dto) =>
+        Update(petId, sleepLogId, userId, dto);
     public Task<bool> DeleteAsync(Guid petId, Guid sleepLogId, Guid userId) =>
         Delete(petId, sleepLogId, userId);
 }

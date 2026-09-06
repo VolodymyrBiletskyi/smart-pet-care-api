@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
 using smart_pet_care_api.Modules.ActivityModule.DTOs.Requests;
@@ -207,12 +208,133 @@ public class SleepLogServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPetIdAsync(_petId, _userId));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(_petId, _userId, Dto()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateAsync(_petId, Guid.NewGuid(), _userId, Patch(hours: PatchField<decimal>.Set(8m))));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
 
         Assert.Null(repo.AddedLog);
         Assert.Null(repo.DeletedLog);
         Assert.Equal(0, repo.SaveChangesCalls);
     }
+
+    [Fact]
+    public async Task UpdateAsync_TouchesOnlyTheFieldsSentAndStampsUpdatedAt()
+    {
+        var log = NewLog();
+        log.Note = "Restless night";
+        var repo = new FakeSleepLogRepository { TrackedLog = log };
+
+        var result = await new SleepLogService(repo).UpdateAsync(_petId, log.Id, _userId,
+            Patch(hours: PatchField<decimal>.Set(9.5m)));
+
+        Assert.Equal(9.5m, log.Hours);
+        Assert.Equal("Restless night", log.Note);
+        Assert.Equal(ActivitySource.Manual, log.Source);
+        Assert.InRange(Assert.NotNull(log.UpdatedAt), DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(1));
+        Assert.Equal(1, repo.SaveChangesCalls);
+        Assert.Equal(9.5m, result.Hours);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NormalizesANewDateAndWeighsThatDayNotTheOld()
+    {
+        var log = NewLog();
+        var repo = new FakeSleepLogRepository { TrackedLog = log };
+        var moved = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(-4).AddHours(23), DateTimeKind.Local);
+
+        await new SleepLogService(repo).UpdateAsync(_petId, log.Id, _userId,
+            Patch(sleepDate: PatchField<DateTime>.Set(moved)));
+
+        Assert.Equal(moved.Date, log.SleepDate);
+        Assert.Equal(DateTimeKind.Utc, log.SleepDate.Kind);
+        Assert.Equal(moved.Date, Assert.NotNull(repo.RequestedHoursDate));
+    }
+
+    /// <summary>
+    /// The row being edited is still in the table, so weighing the new hours against a total
+    /// that includes the old ones would reject every correction upwards.
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_LeavesTheRowOutOfItsOwnDayTotal()
+    {
+        var log = NewLog();
+        var repo = new FakeSleepLogRepository { TrackedLog = log, LoggedHours = 20m };
+
+        await new SleepLogService(repo).UpdateAsync(_petId, log.Id, _userId,
+            Patch(hours: PatchField<decimal>.Set(4m)));
+
+        Assert.Equal(log.Id, repo.RequestedHoursExclusion);
+        Assert.Equal(1, repo.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RejectsAnEditThatOverflowsTheDay()
+    {
+        var log = NewLog();
+        var repo = new FakeSleepLogRepository { TrackedLog = log, LoggedHours = 20m };
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            new SleepLogService(repo).UpdateAsync(_petId, log.Id, _userId,
+                Patch(hours: PatchField<decimal>.Set(5m))));
+
+        Assert.Contains("more than 24 hours", ex.Message);
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RejectsABodyThatSetsNothing()
+    {
+        var repo = new FakeSleepLogRepository { TrackedLog = NewLog() };
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            new SleepLogService(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchSleepLogDto()));
+
+        Assert.Contains("At least one field", ex.Message);
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_HoldsTheSameValueRulesAsCreate()
+    {
+        await AssertRejects(Patch(hours: PatchField<decimal>.Set(0m)));
+        await AssertRejects(Patch(hours: PatchField<decimal>.Set(25m)));
+        await AssertRejects(Patch(sleepDate: PatchField<DateTime>.Set(DateTime.UtcNow.AddDays(1))));
+        await AssertRejects(Patch(note: PatchField<string?>.Set(new string('x', 2001))));
+
+        async Task AssertRejects(PatchSleepLogDto dto)
+        {
+            var repo = new FakeSleepLogRepository { TrackedLog = NewLog() };
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                new SleepLogService(repo).UpdateAsync(_petId, repo.TrackedLog!.Id, _userId, dto));
+            Assert.Equal(0, repo.SaveChangesCalls);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ReportsMissingAndForeignLogsAsNotFound()
+    {
+        var repo = new FakeSleepLogRepository();
+        var patch = Patch(hours: PatchField<decimal>.Set(8m));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new SleepLogService(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, patch));
+
+        repo.TrackedLog = NewLog(Guid.NewGuid());
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new SleepLogService(repo).UpdateAsync(_petId, repo.TrackedLog.Id, _userId, patch));
+
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    private static PatchSleepLogDto Patch(
+        PatchField<DateTime> sleepDate = default,
+        PatchField<decimal> hours = default,
+        PatchField<string?> note = default) => new()
+    {
+        SleepDate = sleepDate,
+        Hours = hours,
+        Note = note
+    };
 
     private static CreateSleepLogDto Dto(
         DateTime? sleepDate = null,
