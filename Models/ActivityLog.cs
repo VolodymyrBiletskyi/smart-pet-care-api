@@ -33,9 +33,14 @@ namespace smart_pet_care_api.Models
 
         public string? Note { get; set; }
 
-        /// <summary>Which provider produced the reading. Manual until a device is wired up.</summary>
+        /// <summary>
+        /// Which provider produced the reading. Manual until a device is wired up. Not
+        /// patchable: it records where the row came from, not what it says.
+        /// </summary>
         public ActivitySource Source { get; set; } = ActivitySource.Manual;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; }
     }
 }

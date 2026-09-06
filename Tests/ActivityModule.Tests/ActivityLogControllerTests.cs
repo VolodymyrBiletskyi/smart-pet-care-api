@@ -118,6 +118,46 @@ public class ActivityLogControllerTests
         Assert.IsType<ApiErrorResponse>(missing.Value);
     }
 
+    [Fact]
+    public async Task Update_ReturnsOkAndForwardsTheIds()
+    {
+        var updated = new ActivityLogResponseDto { Id = _logId };
+        var dto = new PatchActivityLogDto();
+        var forwarded = false;
+        var service = new FakeActivityLogService
+        {
+            Update = (petId, logId, userId, actualDto) =>
+            {
+                forwarded = petId == _petId && logId == _logId && userId == _userId && ReferenceEquals(actualDto, dto);
+                return Task.FromResult(updated);
+            }
+        };
+
+        var result = await Controller(service).Update(_petId, _logId, dto);
+
+        Assert.Same(updated, Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(forwarded);
+    }
+
+    [Theory]
+    [InlineData(true, 404)]
+    [InlineData(false, 400)]
+    public async Task Update_MapsDomainErrors(bool notFound, int expectedStatus)
+    {
+        var service = new FakeActivityLogService
+        {
+            Update = (_, _, _, _) => notFound
+                ? Task.FromException<ActivityLogResponseDto>(new InvalidOperationException("Activity log not found"))
+                : Task.FromException<ActivityLogResponseDto>(new ArgumentException("At least one field must be provided"))
+        };
+
+        var result = await Controller(service).Update(_petId, _logId, new PatchActivityLogDto());
+
+        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(expectedStatus, objectResult.StatusCode);
+        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+    }
+
     private ActivityLogController Controller(IActivityLogService service)
     {
         var identity = new ClaimsIdentity([new Claim("userId", _userId.ToString())], "test");

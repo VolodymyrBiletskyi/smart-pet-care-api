@@ -49,7 +49,9 @@ Activity module tests are in `Tests/ActivityModule.Tests/`. They cover the
 CRUD service (ownership, validation, UTC normalisation, persistence), the
 repository (date-range and source filters, tracking behaviour), the
 controller status mapping, the swappable activity source, the effort maths
-(intensity weights, defaulting) and the sleep log with its daily cap.
+(intensity weights, defaulting), the sleep log with its daily cap, and the
+patch paths (partial application, clearing, whole-row revalidation, intensity
+re-derivation, self-exclusion from the sleep day total).
 
 ### Activity logs
 
@@ -85,6 +87,26 @@ When a duration is present and no intensity was sent, one is derived from the
 type (`Walk` → Low, `Run`/`Swimming` → High, everything else → Moderate).
 Making the field required would buy a number the user picked to get past the
 form; a duration with no intensity would silently weigh nothing.
+
+### Editing logs
+
+Both logs take a `PATCH` on the item route, using the repo's `PatchField<T>`
+convention: absent leaves the field alone, `null` clears it, an empty body is a
+400. `Source` is not patchable — it records which provider produced the row, not
+what the row says, so a hand-edit cannot turn a typed note into a collar
+reading.
+
+A patch is validated as a whole row rather than field by field, through the same
+`ValidateReading` the create path uses: the rules that matter are about the row
+that results, and "a log has to record something" cannot be checked against a
+single cleared field. The intensity derivation runs again on the result, so
+adding a duration — or clearing an intensity that still has one — fills the
+intensity back in rather than leaving the session unweighted.
+
+The sleep day cap is re-checked on every edit with the edited row excluded from
+the day's sum (`GetLoggedHoursAsync`'s `excludeSleepLogId`). Without that, a row
+would be weighed against the version of itself still in the table and no
+correction upwards would ever pass.
 
 ### Sleep logs
 

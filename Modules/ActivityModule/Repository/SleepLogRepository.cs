@@ -49,12 +49,16 @@ namespace smart_pet_care_api.Modules.ActivityModule.Repository
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
-        public async Task<decimal> GetLoggedHoursAsync(Guid petId, DateTime sleepDate)
+        public async Task<decimal> GetLoggedHoursAsync(Guid petId, DateTime sleepDate, Guid? excludeSleepLogId = null)
         {
-            return await _dbContext.SleepLogs
+            var query = _dbContext.SleepLogs
                 .AsNoTracking()
-                .Where(s => s.PetId == petId && s.SleepDate == sleepDate)
-                .SumAsync(s => (decimal?)s.Hours) ?? 0m;
+                .Where(s => s.PetId == petId && s.SleepDate == sleepDate);
+
+            if (excludeSleepLogId is { } excludedId)
+                query = query.Where(s => s.Id != excludedId);
+
+            return await query.SumAsync(s => (decimal?)s.Hours) ?? 0m;
         }
 
         public async Task<SleepLog> AddAsync(SleepLog entity)

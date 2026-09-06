@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
 using smart_pet_care_api.Modules.ActivityModule.Domain.Sources;
@@ -419,6 +420,8 @@ public class ActivityLogServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPetIdAsync(_petId, _userId));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(_petId, _userId, Dto()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateAsync(_petId, Guid.NewGuid(), _userId, Patch(steps: PatchField<int?>.Set(10))));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
 
         Assert.Null(repo.AddedLog);
@@ -426,8 +429,176 @@ public class ActivityLogServiceTests
         Assert.Equal(0, repo.SaveChangesCalls);
     }
 
+    [Fact]
+    public async Task UpdateAsync_TouchesOnlyTheFieldsSentAndStampsUpdatedAt()
+    {
+        var log = NewLog();
+        log.Location = "Yard";
+        log.Note = "Short one";
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        var result = await Service(repo).UpdateAsync(_petId, log.Id, _userId, Patch(
+            steps: PatchField<int?>.Set(5500),
+            location: PatchField<string?>.Set("  Central Park  ")));
+
+        Assert.Equal(5500, log.Steps);
+        Assert.Equal("Central Park", log.Location);
+        Assert.Equal("Short one", log.Note);
+        Assert.Equal(ActivitySource.Manual, log.Source);
+        Assert.InRange(Assert.NotNull(log.UpdatedAt), DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(1));
+        Assert.Equal(1, repo.SaveChangesCalls);
+        Assert.Equal(5500, result.Steps);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ClearsAFieldSentAsNull()
+    {
+        var log = NewLog();
+        log.Note = "Chased a seagull";
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        await Service(repo).UpdateAsync(_petId, log.Id, _userId, Patch(note: PatchField<string?>.Set(null)));
+
+        Assert.Null(log.Note);
+        Assert.Equal(3000, log.Steps);
+    }
+
+    /// <summary>
+    /// The same rule as on create: a duration nobody weighted drops out of the score entirely,
+    /// so an intensity is derived from the type rather than left empty.
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_DerivesAnIntensityForANewlyAddedDuration()
+    {
+        var log = NewLog();
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        await Service(repo).UpdateAsync(_petId, log.Id, _userId, Patch(
+            type: PatchField<ActivityType?>.Set(ActivityType.Swimming),
+            durationMinutes: PatchField<int?>.Set(30)));
+
+        Assert.Equal(ActivityIntensity.High, log.Intensity);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RederivesTheIntensityWhenItIsClearedUnderALivingDuration()
+    {
+        var log = NewLog();
+        log.Type = ActivityType.Walk;
+        log.DurationMinutes = 40;
+        log.Intensity = ActivityIntensity.High;
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        await Service(repo).UpdateAsync(_petId, log.Id, _userId,
+            Patch(intensity: PatchField<ActivityIntensity?>.Set(null)));
+
+        Assert.Equal(ActivityIntensity.Low, log.Intensity);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_KeepsAnIntensityThatOutlivesItsDuration()
+    {
+        var log = NewLog();
+        log.DurationMinutes = 40;
+        log.Intensity = ActivityIntensity.High;
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        var result = await Service(repo).UpdateAsync(_petId, log.Id, _userId,
+            Patch(durationMinutes: PatchField<int?>.Set(null)));
+
+        Assert.Equal(ActivityIntensity.High, log.Intensity);
+        Assert.Null(result.ActiveMinutes);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RejectsABodyThatSetsNothing()
+    {
+        var repo = new FakeActivityLogRepository { TrackedLog = NewLog() };
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            Service(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchActivityLogDto()));
+
+        Assert.Contains("At least one field", ex.Message);
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    /// <summary>
+    /// The patch is judged by the row it produces, not by the field that changed: clearing the
+    /// only thing a log recorded leaves a row that says nothing, which create rejects too.
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_RejectsAPatchThatEmptiesTheLog()
+    {
+        var log = NewLog();
+        var repo = new FakeActivityLogRepository { TrackedLog = log };
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            Service(repo).UpdateAsync(_petId, log.Id, _userId, Patch(steps: PatchField<int?>.Set(null))));
+
+        Assert.Contains("At least one of", ex.Message);
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_HoldsTheSameValueRulesAsCreate()
+    {
+        var service = Service(new FakeActivityLogRepository());
+
+        await AssertRejects(Patch(recordedAt: PatchField<DateTime>.Set(DateTime.UtcNow.AddHours(1))));
+        await AssertRejects(Patch(steps: PatchField<int?>.Set(-1)));
+        await AssertRejects(Patch(steps: PatchField<int?>.Set(1_000_001)));
+        await AssertRejects(Patch(durationMinutes: PatchField<int?>.Set(0)));
+        await AssertRejects(Patch(durationMinutes: PatchField<int?>.Set(1441)));
+        await AssertRejects(Patch(location: PatchField<string?>.Set(new string('x', 201))));
+        await AssertRejects(Patch(note: PatchField<string?>.Set(new string('x', 2001))));
+        await AssertRejects(Patch(type: PatchField<ActivityType?>.Set((ActivityType)99)));
+        await AssertRejects(Patch(intensity: PatchField<ActivityIntensity?>.Set((ActivityIntensity)99)));
+
+        async Task AssertRejects(PatchActivityLogDto dto)
+        {
+            var repo = new FakeActivityLogRepository { TrackedLog = NewLog() };
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                Service(repo).UpdateAsync(_petId, repo.TrackedLog!.Id, _userId, dto));
+            Assert.Equal(0, repo.SaveChangesCalls);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ReportsMissingAndForeignLogsAsNotFound()
+    {
+        var repo = new FakeActivityLogRepository();
+        var patch = Patch(steps: PatchField<int?>.Set(10));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, patch));
+
+        repo.TrackedLog = NewLog(Guid.NewGuid());
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(repo).UpdateAsync(_petId, repo.TrackedLog.Id, _userId, patch));
+
+        Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
     private static ActivityLogService Service(FakeActivityLogRepository repo) =>
         new(repo, new ActivitySourceResolver([new ManualActivitySourceProvider()]));
+
+    private static PatchActivityLogDto Patch(
+        PatchField<DateTime> recordedAt = default,
+        PatchField<int?> steps = default,
+        PatchField<ActivityType?> type = default,
+        PatchField<ActivityIntensity?> intensity = default,
+        PatchField<int?> durationMinutes = default,
+        PatchField<string?> location = default,
+        PatchField<string?> note = default) => new()
+    {
+        RecordedAt = recordedAt,
+        Steps = steps,
+        Type = type,
+        Intensity = intensity,
+        DurationMinutes = durationMinutes,
+        Location = location,
+        Note = note
+    };
 
     private static CreateActivityLogDto Dto(
         DateTime? recordedAt = null,

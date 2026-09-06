@@ -11,5 +11,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.DTOs.Responses
         public string? Note { get; set; }
         public ActivitySource Source { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>Null until the log is edited.</summary>
+        public DateTime? UpdatedAt { get; set; }
     }
 }

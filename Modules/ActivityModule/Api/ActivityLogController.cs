@@ -93,6 +93,30 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
             }
         }
 
+        [HttpPatch("{activityLogId:guid}")]
+        [ProducesResponseType(typeof(ActivityLogResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Update(Guid petId, Guid activityLogId, [FromBody] PatchActivityLogDto dto)
+        {
+            var userId = User.GetUserId();
+
+            try
+            {
+                var updated = await _service.UpdateAsync(petId, activityLogId, userId, dto);
+                return Ok(updated);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(Error(ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(Error(ex.Message));
+            }
+        }
+
         [HttpDelete("{activityLogId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]

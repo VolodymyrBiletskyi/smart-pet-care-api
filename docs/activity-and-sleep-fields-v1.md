@@ -3,7 +3,7 @@
 Status: implemented. This document is the field-level reference for everything
 added on `feature/activity-intensity-and-sleep-logs` — the three new
 `ActivityLog` fields, the derived `activeMinutes`, and the new `SleepLog`
-entity and endpoints.
+entity and endpoints — plus the `PATCH` endpoints and `updatedAt` that followed.
 
 It is written to be handed to a client developer or a code-generating model
 without further context, so each field states not only its type and rules but
@@ -43,7 +43,7 @@ actually changes numbers.
 # Part 1 — Activity logs
 
 `GET|POST /api/pets/{petId}/activity-logs`
-`GET|DELETE /api/pets/{petId}/activity-logs/{activityLogId}`
+`GET|PATCH|DELETE /api/pets/{petId}/activity-logs/{activityLogId}`
 
 Three new request fields (`type`, `intensity`, `durationMinutes`) and one new
 response-only field (`activeMinutes`).
@@ -219,6 +219,50 @@ system, because a husky's and a pug's differ by multiples.
 | `Source is invalid.` | `source` is not a known value |
 | `Activity source Device is not supported yet.` | Known source with no provider registered |
 
+## Editing a log — `PATCH`
+
+```jsonc
+PATCH /api/pets/{petId}/activity-logs/{activityLogId}
+{
+  "durationMinutes": 75,
+  "note": null
+}
+// 200 OK — the full log, same shape as GET
+```
+
+Three-state semantics, which is the whole point of the verb:
+
+| Field in the body | Effect |
+|---|---|
+| absent | left exactly as it was |
+| a value | replaces the stored value |
+| `null` | clears the stored value |
+
+So `{"note": null}` erases the note, while a body that never mentions `note`
+leaves it alone. An empty body — nothing set at all — is a `400`, not a no-op:
+it is a client bug, and answering `200` would hide it.
+
+Rules a client should plan for:
+
+- **`source` cannot be patched.** It records which provider produced the row,
+  and a hand-typed note does not become a collar reading because someone edited
+  it. Sending it is ignored rather than rejected.
+- **The row is validated as a whole, not field by field.** Every rule in the
+  table above is re-checked against the log that results, so clearing the only
+  field a log recorded fails with
+  `At least one of Type, DurationMinutes, Steps, Location or Note is required.`
+  even though the request itself set exactly one field.
+- **Intensity is re-derived, exactly as on create.** Adding a
+  `durationMinutes` to a log that has no `intensity` fills one in from the
+  `type`. So does clearing `intensity` while a duration remains — the server
+  will not leave a duration unweighted, because an unweighted duration
+  contributes nothing to the score. If you want a specific intensity, send it.
+- **Clearing `durationMinutes` keeps `intensity`.** `activeMinutes` simply goes
+  back to `null`; nothing is lost if the duration is re-added later.
+
+Extra `400`: `At least one field must be provided.` — empty patch body.
+`404` if the log does not exist or belongs to another pet.
+
 ## Worked example
 
 ```jsonc
@@ -245,7 +289,8 @@ system, because a husky's and a pug's differ by multiples.
   "location": "Park",
   "note": null,
   "source": "Manual",
-  "createdAt": "2026-09-02T07:31:47.5809896Z"
+  "createdAt": "2026-09-02T07:31:47.5809896Z",
+  "updatedAt": null          // set on the first PATCH
 }
 ```
 
@@ -254,7 +299,7 @@ system, because a husky's and a pug's differ by multiples.
 # Part 2 — Sleep logs
 
 `GET|POST /api/pets/{petId}/sleep-logs`
-`GET|DELETE /api/pets/{petId}/sleep-logs/{sleepLogId}`
+`GET|PATCH|DELETE /api/pets/{petId}/sleep-logs/{sleepLogId}`
 
 A new entity, so every field below is new.
 
@@ -329,10 +374,35 @@ day should do exactly that.
 - A device feed currently writes `ActivityDaily.SleepHours` — a different table,
   not this one.
 
-## `id`, `petId`, `createdAt` — response only
+## `id`, `petId`, `createdAt`, `updatedAt` — response only
 
 Standard: server-assigned `Guid`s and a UTC creation timestamp. `petId` mirrors
-the route parameter.
+the route parameter. `updatedAt` is `null` until the log is edited and is set on
+every successful `PATCH`, so a UI can mark corrected entries.
+
+## Editing a log — `PATCH`
+
+```jsonc
+PATCH /api/pets/{petId}/sleep-logs/{sleepLogId}
+{ "hours": 9.5 }
+// 200 OK — the full log, same shape as GET
+```
+
+The three-state semantics are the same as for activity logs: a field left out of
+the body is untouched, `null` clears it, and an empty body is a `400`. `source`
+is not patchable for the same reason.
+
+The one rule specific to sleep is the 24-hour day cap, which is re-checked on
+every edit **with the edited row left out of the sum**. Two consequences:
+
+- Correcting a night upwards works. A row of 6 hours on a day already holding
+  20 in total is weighed as `20 − 6 = 14` against the new value, not against 20,
+  so raising it to 9 succeeds where a naive check would refuse.
+- Moving a row to another date checks the *new* day's total, not the old one's.
+  The old day simply loses those hours.
+
+Extra `400`: `At least one field must be provided.` — empty patch body.
+`404` if the log does not exist or belongs to another pet.
 
 ## Query parameters on `GET`
 
@@ -375,7 +445,8 @@ delete the existing entry.
   "hours": 12.5,
   "note": "Restless night",             // trimmed
   "source": "Manual",
-  "createdAt": "2026-09-02T07:31:47.5809896Z"
+  "createdAt": "2026-09-02T07:31:47.5809896Z",
+  "updatedAt": null                     // set on the first PATCH
 }
 ```
 

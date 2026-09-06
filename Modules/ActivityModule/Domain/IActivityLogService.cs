@@ -9,6 +9,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
         Task<IReadOnlyList<ActivityLogResponseDto>> GetByPetIdAsync(Guid petId, Guid userId, DateTime? from = null, DateTime? to = null, ActivitySource? source = null);
         Task<ActivityLogResponseDto?> GetByIdAsync(Guid petId, Guid activityLogId, Guid userId);
         Task<ActivityLogResponseDto> CreateAsync(Guid petId, Guid userId, CreateActivityLogDto dto);
+        Task<ActivityLogResponseDto> UpdateAsync(Guid petId, Guid activityLogId, Guid userId, PatchActivityLogDto dto);
         Task<bool> DeleteAsync(Guid petId, Guid activityLogId, Guid userId);
     }
 }
