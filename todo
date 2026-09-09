@@ -7,7 +7,7 @@ Reminders(separate Reminder and reminderRuns)//done?
 Upcoming PetEvents //done?
 AI sessions(Health, questions,other questions) // done?
 DailyActivity // done?
-Wellness score
+Wellness score // done
 Notes for daily activity (in future modify) //done?
 Feeding logs(first stage) approximately calories,type of food etc.. // done
 
@@ -46,3 +46,4 @@ Do the feeding schedule
 Split repository responsibilities in v2: move pet ownership/current-pet access out of PetWeightLogRepository into a pet-focused repository, and apply the same split to FeedingLogRepository.
 Add species/breed-specific weight guidance in v2 as soft warnings, not hard validation limits.
 Create a project guide that documents architecture decisions, module conventions, tradeoffs, and implementation nuances such as repository boundaries, indexing choices, validation rules, and migration patterns.
+- TODO: Remove the legacy ActivityDaily model, EF configuration, DbSet, navigation and table in a dedicated migration after confirming that no deployed wearable/device integration depends on them. Wellness reads ActivityLogs and SleepLogs directly and must not use ActivityDailies.

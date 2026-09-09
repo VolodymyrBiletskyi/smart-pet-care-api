@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
+using smart_pet_care_api.Modules.ActivityModule.Domain;
 using static smart_pet_care_api.Models.Enums;
 
 namespace smart_pet_care_api.Modules.WellnessModule.Domain;
@@ -38,10 +39,16 @@ public sealed class WellnessDataAggregator(AppDbContext dbContext) : IWellnessDa
         var windowStart = DateTime.SpecifyKind(startDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
         var windowEndExclusive = DateTime.SpecifyKind(endDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
 
-        var activities = await dbContext.ActivityDailies.AsNoTracking()
+        var activityLogs = await dbContext.ActivityLogs.AsNoTracking()
             .Where(item => item.PetId == petId
-                && item.ActivityDate >= windowStart
-                && item.ActivityDate < windowEndExclusive)
+                && item.RecordedAt >= windowStart
+                && item.RecordedAt < windowEndExclusive)
+            .ToListAsync(cancellationToken);
+
+        var sleepLogs = await dbContext.SleepLogs.AsNoTracking()
+            .Where(item => item.PetId == petId
+                && item.SleepDate >= windowStart
+                && item.SleepDate < windowEndExclusive)
             .ToListAsync(cancellationToken);
 
         var feedings = await dbContext.FeedingLogs.AsNoTracking()
@@ -114,7 +121,7 @@ public sealed class WellnessDataAggregator(AppDbContext dbContext) : IWellnessDa
         return new ClassifierWellnessRequest
         {
             Pet = MapPet(pet, evaluatedAt),
-            Activity = MapActivity(activities),
+            Activity = MapActivity(activityLogs, sleepLogs),
             Feeding = MapFeeding(feedings, endDate),
             ActiveConditions = conditions.Select(item => new ClassifierWellnessCondition
             {
@@ -151,16 +158,61 @@ public sealed class WellnessDataAggregator(AppDbContext dbContext) : IWellnessDa
             : null
     };
 
-    private static ClassifierWellnessActivity? MapActivity(IReadOnlyList<ActivityDaily> rows)
+    private static ClassifierWellnessActivity? MapActivity(
+        IReadOnlyList<ActivityLog> activityLogs,
+        IReadOnlyList<SleepLog> sleepLogs)
     {
-        if (rows.Count == 0) return null;
+        var activityByDay = activityLogs
+            .Select(item => new
+            {
+                Date = item.RecordedAt.Date,
+                item.Steps,
+                ActiveMinutes = ActivityEffort.ActiveMinutes(item.DurationMinutes, item.Intensity)
+            })
+            .Where(item => item.Steps.HasValue || item.ActiveMinutes.HasValue)
+            .GroupBy(item => item.Date)
+            .Select(group => new
+            {
+                Date = group.Key,
+                Steps = SumNullable(group.Select(item => item.Steps)),
+                ActiveMinutes = SumNullable(group.Select(item => item.ActiveMinutes))
+            })
+            .ToList();
+
+        var sleepByDay = sleepLogs
+            .GroupBy(item => item.SleepDate.Date)
+            .Select(group => new
+            {
+                Date = group.Key,
+                Hours = group.Sum(item => item.Hours)
+            })
+            .ToList();
+
+        if (activityByDay.Count == 0 && sleepByDay.Count == 0) return null;
+
         return new ClassifierWellnessActivity
         {
-            AvgStepsPerDay = Average(rows.Where(item => item.Steps.HasValue).Select(item => (decimal)item.Steps!.Value)),
-            AvgActiveMinutesPerDay = Average(rows.Where(item => item.ActiveMinutes.HasValue).Select(item => item.ActiveMinutes!.Value)),
-            AvgSleepHoursPerDay = Average(rows.Where(item => item.SleepHours.HasValue).Select(item => item.SleepHours!.Value)),
-            DaysTracked = rows.Select(item => item.ActivityDate.Date).Distinct().Count()
+            AvgStepsPerDay = Average(activityByDay
+                .Where(item => item.Steps.HasValue)
+                .Select(item => (decimal)item.Steps!.Value)),
+            AvgActiveMinutesPerDay = Average(activityByDay
+                .Where(item => item.ActiveMinutes.HasValue)
+                .Select(item => (decimal)item.ActiveMinutes!.Value)),
+            AvgSleepHoursPerDay = Average(sleepByDay.Select(item => item.Hours)),
+            DaysTracked = activityByDay.Select(item => item.Date)
+                .Concat(sleepByDay.Select(item => item.Date))
+                .Distinct()
+                .Count()
         };
+    }
+
+    private static int? SumNullable(IEnumerable<int?> values)
+    {
+        var materialized = values
+            .Where(value => value.HasValue)
+            .Select(value => value!.Value)
+            .ToList();
+        return materialized.Count == 0 ? null : materialized.Sum();
     }
 
     private static ClassifierWellnessFeeding? MapFeeding(IReadOnlyList<FeedingLog> rows, DateOnly endDate)

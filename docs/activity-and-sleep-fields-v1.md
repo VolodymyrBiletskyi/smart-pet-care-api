@@ -381,19 +381,13 @@ delete the existing entry.
 
 ---
 
-# Not covered by this branch
+# Wellness integration
 
-The wellness score itself does not exist. `Models/WealnessScore.cs` defines a
-`WellnessScore` entity and nothing writes to it; the classifier's `wellness`
-route is not wired up.
+Wellness reads `ActivityLogs` and `SleepLogs` directly over its evaluation
+window. It sums session steps and intensity-weighted active minutes per day,
+sums sleep rows per day, and then sends the daily averages to the classifier.
+The legacy `ActivityDaily` model is not part of this flow.
 
-Two decisions are therefore still open, and a client should not assume either
-way:
-
-- **Which source wins for a day.** `ActivityDaily` already has stored
-  `ActiveMinutes` and `SleepHours` columns intended for a wearable feed, and
-  nothing writes to them yet. A day could eventually have both a device
-  aggregate and manual logs; the precedence rule is not written.
-- **What the score compares against.** There are no per-species or per-breed
-  activity or sleep targets in the system. Any "goal" shown in a UI today would
-  be invented by that UI.
+There are no backend-owned per-species or per-breed activity or sleep targets.
+The classifier owns that interpretation, so a client must not invent or apply
+its own scoring thresholds.

@@ -40,9 +40,13 @@ DELETE FROM "FeedingLogs"
 WHERE "PetId" = :'pet_id'::uuid
   AND "Description" = '[wellness-e2e-seed:v1]';
 
-DELETE FROM "ActivityDailies"
+DELETE FROM "SleepLogs"
 WHERE "PetId" = :'pet_id'::uuid
-  AND "RawPayload" = '{"fixture":"wellness-e2e-v1"}';
+  AND "Note" = '[wellness-e2e-seed:v1]';
+
+DELETE FROM "ActivityLogs"
+WHERE "PetId" = :'pet_id'::uuid
+  AND "Note" = '[wellness-e2e-seed:v1]';
 
 COMMIT;
 

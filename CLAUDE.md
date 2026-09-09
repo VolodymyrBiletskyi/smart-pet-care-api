@@ -53,10 +53,9 @@ controller status mapping, the swappable activity source, the effort maths
 
 ### Activity logs
 
-`ActivityLog` is a plain note — one walk, one play session — with an optional
-step count, place and free text. It is not `ActivityDaily`, which is the
-per-day aggregate the wearable-device section of the spec calls for and which
-nothing writes to yet.
+`ActivityLog` is one walk, play session or other activity record, with optional
+steps, duration, intensity, place and free text. Wellness aggregates these
+session logs directly; it does not read the legacy `ActivityDaily` model.
 
 ### Activity type, intensity and effort
 
@@ -99,8 +98,8 @@ onto the wrong date for half the world. Several rows may share a date — naps,
 and eventually a collar feed — so the ceiling is on the day's **sum**, not on
 the row. That sum check is what catches the same night entered twice, which is
 the mistake a unique index would have caught, without banning nap-by-nap
-logging. A device integration still writes `ActivityDaily.SleepHours`, not this
-table.
+logging. Wellness sums these rows per day and includes their average in the
+classifier request.
 
 Where the numbers come from is behind `IActivitySourceProvider`, picked per
 request by `IActivitySourceResolver` from the `source` field. Only
@@ -172,10 +171,10 @@ Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`
 - `docs/feeding-summary-contract-v1.md`
-- `docs/wellness-contract-v1.md` (proposed for coordinated .NET/Python implementation)
+- `docs/wellness-contract-v1.md`
 
 The classifier exposes four routes: `predict`, `chat`, `wellness` and
-`feeding-summary`. Only `chat` and `feeding-summary` are wired up.
+`feeding-summary`. The backend wires `chat`, `wellness` and `feeding-summary`.
 
 ## Architecture
 

@@ -57,9 +57,35 @@ public sealed class WellnessDataAggregatorTests
             WeightKg = 20
         };
         db.Pets.Add(pet);
-        db.ActivityDailies.AddRange(
-            new ActivityDaily { PetId = pet.Id, ActivityDate = Utc(2026, 8, 23), Steps = 8000, ActiveMinutes = 60, SleepHours = 10 },
-            new ActivityDaily { PetId = pet.Id, ActivityDate = Utc(2026, 8, 24), Steps = 10000, ActiveMinutes = 80, SleepHours = 12 });
+        db.ActivityLogs.AddRange(
+            new ActivityLog
+            {
+                PetId = pet.Id,
+                RecordedAt = Utc(2026, 8, 23),
+                Steps = 3000,
+                DurationMinutes = 30,
+                Intensity = ActivityIntensity.High
+            },
+            new ActivityLog
+            {
+                PetId = pet.Id,
+                RecordedAt = Utc(2026, 8, 23).AddHours(12),
+                Steps = 5000,
+                DurationMinutes = 30,
+                Intensity = ActivityIntensity.High
+            },
+            new ActivityLog
+            {
+                PetId = pet.Id,
+                RecordedAt = Utc(2026, 8, 24),
+                Steps = 10000,
+                DurationMinutes = 80,
+                Intensity = ActivityIntensity.High
+            });
+        db.SleepLogs.AddRange(
+            new SleepLog { PetId = pet.Id, SleepDate = Utc(2026, 8, 23), Hours = 8 },
+            new SleepLog { PetId = pet.Id, SleepDate = Utc(2026, 8, 23), Hours = 2 },
+            new SleepLog { PetId = pet.Id, SleepDate = Utc(2026, 8, 24), Hours = 12 });
         db.FeedingLogs.AddRange(
             new FeedingLog { PetId = pet.Id, FedAt = Utc(2026, 8, 23), FoodType = FoodType.DryFood, ApproxCalories = 300 },
             new FeedingLog { PetId = pet.Id, FedAt = Utc(2026, 8, 24), FoodType = FoodType.WetFood, ApproxCalories = 300 });
@@ -118,6 +144,8 @@ public sealed class WellnessDataAggregatorTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(9000, request.Activity!.AvgStepsPerDay);
+        Assert.Equal(70, request.Activity.AvgActiveMinutesPerDay);
+        Assert.Equal(11, request.Activity.AvgSleepHoursPerDay);
         Assert.Equal(2, request.Activity.DaysTracked);
         Assert.Equal(0.07m, request.Feeding!.AvgMealsPerDay);
         Assert.Equal(20m, request.Feeding.AvgCaloriesPerDay);
@@ -132,6 +160,46 @@ public sealed class WellnessDataAggregatorTests
         Assert.Null(request.RoutineCare.Single(item => item.Type == ClassifierWellnessReminderType.Brushing).LastDoneAt);
         Assert.Equal(77, request.PreviousScore);
         Assert.Equal("low appetite", request.CurrentSymptoms);
+    }
+
+    [Fact]
+    public async Task AggregateAsync_UsesSleepWithoutActivityAndIgnoresNoteOnlyActivity()
+    {
+        await using var db = CreateContext();
+        var userId = Guid.NewGuid();
+        var pet = new Pet
+        {
+            UserId = userId,
+            Name = "Nori",
+            Species = AnimalSpecies.Cat
+        };
+        db.Pets.Add(pet);
+        db.ActivityLogs.Add(new ActivityLog
+        {
+            PetId = pet.Id,
+            RecordedAt = Utc(2026, 8, 24),
+            Note = "Rest day"
+        });
+        db.SleepLogs.Add(new SleepLog
+        {
+            PetId = pet.Id,
+            SleepDate = Utc(2026, 8, 24),
+            Hours = 13.5m
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var request = await new WellnessDataAggregator(db).AggregateAsync(
+            pet.Id,
+            userId,
+            null,
+            new DateTimeOffset(2026, 8, 24, 12, 0, 0, TimeSpan.Zero),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(request.Activity);
+        Assert.Null(request.Activity.AvgStepsPerDay);
+        Assert.Null(request.Activity.AvgActiveMinutesPerDay);
+        Assert.Equal(13.5m, request.Activity.AvgSleepHoursPerDay);
+        Assert.Equal(1, request.Activity.DaysTracked);
     }
 
     [Fact]

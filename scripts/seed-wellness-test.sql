@@ -47,27 +47,49 @@ DELETE FROM "FeedingLogs"
 WHERE "PetId" = :'pet_id'::uuid
   AND "Description" = '[wellness-e2e-seed:v1]';
 
-DELETE FROM "ActivityDailies"
+DELETE FROM "SleepLogs"
 WHERE "PetId" = :'pet_id'::uuid
-  AND "RawPayload" = '{"fixture":"wellness-e2e-v1"}';
+  AND "Note" = '[wellness-e2e-seed:v1]';
 
--- Activity and sleep: one row for each day in the complete 30-day wellness
--- evaluation window. Source=5 is ActivitySource.Mock.
-INSERT INTO "ActivityDailies"
-    ("Id", "PetId", "ActivityDate", "Steps", "ActiveMinutes", "SleepHours", "Source", "RawPayload", "CreatedAt")
+DELETE FROM "ActivityLogs"
+WHERE "PetId" = :'pet_id'::uuid
+  AND "Note" = '[wellness-e2e-seed:v1]';
+
+-- Activity: one high-intensity session for each day in the complete 30-day
+-- wellness evaluation window. Source=0 is ActivitySource.Manual. ActiveMinutes
+-- is derived by the backend from DurationMinutes and Intensity rather than stored.
+INSERT INTO "ActivityLogs"
+    ("Id", "PetId", "RecordedAt", "Steps", "Type", "Intensity", "DurationMinutes", "Location", "Note", "Source", "CreatedAt")
 SELECT
     md5(context.pet_id::text || ':wellness-e2e-v1:activity:' || day_offset)::uuid,
     context.pet_id,
-    (context.seed_date - day_offset)::timestamp AT TIME ZONE 'UTC',
+    ((context.seed_date - day_offset) + time '12:00') AT TIME ZONE 'UTC',
     8000 + (day_offset % 5) * 400,
+    4,
+    2,
     55 + (day_offset % 4) * 5,
-    9 + (day_offset % 3) * 0.5,
-    5,
-    '{"fixture":"wellness-e2e-v1"}',
+    NULL,
+    '[wellness-e2e-seed:v1]',
+    0,
     now()
 FROM wellness_seed_context AS context
 CROSS JOIN generate_series(0, 29) AS days(day_offset)
-ON CONFLICT DO NOTHING;
+ON CONFLICT ("Id") DO NOTHING;
+
+-- Sleep: one manual daily total for the same window.
+INSERT INTO "SleepLogs"
+    ("Id", "PetId", "SleepDate", "Hours", "Note", "Source", "CreatedAt")
+SELECT
+    md5(context.pet_id::text || ':wellness-e2e-v1:sleep:' || day_offset)::uuid,
+    context.pet_id,
+    (context.seed_date - day_offset)::timestamp AT TIME ZONE 'UTC',
+    9 + (day_offset % 3) * 0.5,
+    '[wellness-e2e-seed:v1]',
+    0,
+    now()
+FROM wellness_seed_context AS context
+CROSS JOIN generate_series(0, 29) AS days(day_offset)
+ON CONFLICT ("Id") DO NOTHING;
 
 -- Feeding: two meals per day throughout the same 30-day window. FoodType 0/1
 -- are DryFood/WetFood; PortionUnit=0 is Gram.
@@ -131,9 +153,13 @@ ON CONFLICT ("Id") DO NOTHING;
 
 COMMIT;
 
-SELECT 'ActivityDailies' AS table_name, count(*) AS fixture_rows
-FROM "ActivityDailies"
-WHERE "PetId" = :'pet_id'::uuid AND "RawPayload" = '{"fixture":"wellness-e2e-v1"}'
+SELECT 'ActivityLogs' AS table_name, count(*) AS fixture_rows
+FROM "ActivityLogs"
+WHERE "PetId" = :'pet_id'::uuid AND "Note" = '[wellness-e2e-seed:v1]'
+UNION ALL
+SELECT 'SleepLogs', count(*)
+FROM "SleepLogs"
+WHERE "PetId" = :'pet_id'::uuid AND "Note" = '[wellness-e2e-seed:v1]'
 UNION ALL
 SELECT 'FeedingLogs', count(*)
 FROM "FeedingLogs"

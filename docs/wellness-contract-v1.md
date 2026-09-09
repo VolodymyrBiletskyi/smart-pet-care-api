@@ -21,14 +21,17 @@ integration always sends 30 dates. Preventive-care flags use completed pet
 events from the previous 12 months, matching the Python schema description.
 
 `currentSymptoms` is optional caller-supplied free text (maximum 4000
-characters). The C# API does not infer it from health records. Missing activity,
-feeding and preventive-care datasets are sent as omitted properties; empty
-condition, medication and weight collections are sent as arrays.
+characters). The C# API does not infer it from health records. Activity input is
+derived from `ActivityLogs` (steps plus intensity-weighted duration) and
+`SleepLogs`; the legacy `ActivityDailies` table is not a wellness source.
+Missing activity, feeding and preventive-care datasets are sent as omitted
+properties; empty condition, medication and weight collections are sent as
+arrays.
 
 The request contains:
 
 - `pet` (required): species, breed, age, sex, current weight and behavioral notes;
-- optional aggregated `activity` and `feeding`;
+- optional aggregated `activity`/sleep and `feeding`;
 - active conditions and medications;
 - weight history;
 - optional preventive-care flags and current symptoms;
