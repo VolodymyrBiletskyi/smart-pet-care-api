@@ -11,4 +11,9 @@ public interface IClassifierClient
     Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
         ClassifierFeedingSummaryRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<ClassifierWellnessResponse> CalculateWellnessAsync(
+        ClassifierWellnessRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This classifier client does not implement wellness calculation.");
 }
