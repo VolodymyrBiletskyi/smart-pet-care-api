@@ -203,6 +203,13 @@ The classifier exposes four routes: `predict`, `chat`, `wellness` and
 A wellness score needs thirty days of several unrelated tables at once, so
 `scripts/seed-wellness-test.sql` fills them for one existing pet:
 
+```bash
+docker compose exec -T db psql -U postgres -d smartPetCareDb \
+  -v pet_id=<uuid> -v fill_pet_profile=1 < scripts/seed-wellness-test.sql
+```
+
+PowerShell has no input redirection for native commands, so there it is a pipe:
+
 ```powershell
 Get-Content -Raw scripts/seed-wellness-test.sql |
   docker compose exec -T db psql -U postgres -d smartPetCareDb -v pet_id=<uuid> -v fill_pet_profile=1

@@ -3,7 +3,11 @@
 -- Usage with a locally installed psql:
 --   psql "<postgres-connection-uri>" -v pet_id=00000000-0000-0000-0000-000000000000 -f scripts/seed-wellness-test.sql
 --
--- Usage with the repository's Docker Compose database (PowerShell):
+-- Usage with the repository's Docker Compose database (bash, e.g. on the server):
+--   docker compose exec -T db psql -U postgres -d smartPetCareDb \
+--     -v pet_id=00000000-0000-0000-0000-000000000000 < scripts/seed-wellness-test.sql
+--
+-- The same through PowerShell, which has no input redirection for native commands:
 --   Get-Content -Raw scripts/seed-wellness-test.sql |
 --     docker compose exec -T db psql -U postgres -d smartPetCareDb -v pet_id=00000000-0000-0000-0000-000000000000
 --
