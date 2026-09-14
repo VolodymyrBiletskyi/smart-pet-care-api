@@ -6,6 +6,10 @@
 --
 --   psql "<postgres-connection-uri>" -v pet_id=00000000-0000-0000-0000-000000000000 -f scripts/cleanup-wellness-test.sql
 --
+-- bash + Docker Compose (e.g. on the server):
+--   docker compose exec -T db psql -U postgres -d smartPetCareDb \
+--     -v pet_id=00000000-0000-0000-0000-000000000000 < scripts/cleanup-wellness-test.sql
+--
 -- PowerShell + Docker Compose:
 --   Get-Content -Raw scripts/cleanup-wellness-test.sql |
 --     docker compose exec -T db psql -U postgres -d smartPetCareDb -v pet_id=00000000-0000-0000-0000-000000000000
