@@ -198,6 +198,35 @@ Classifier integration documentation:
 The classifier exposes four routes: `predict`, `chat`, `wellness` and
 `feeding-summary`. The backend wires `chat`, `wellness` and `feeding-summary`.
 
+### Wellness test fixture
+
+A wellness score needs thirty days of several unrelated tables at once, so
+`scripts/seed-wellness-test.sql` fills them for one existing pet:
+
+```powershell
+Get-Content -Raw scripts/seed-wellness-test.sql |
+  docker compose exec -T db psql -U postgres -d smartPetCareDb -v pet_id=<uuid> -v fill_pet_profile=1
+```
+
+It covers every dimension the aggregator reads — activity and sleep across the
+whole window, two meals a day, weight history, preventive-care events, an active
+condition, a medication with its reminder runs (26 of 30 doses taken, so
+adherence is a ratio rather than a perfect score) and routine-care reminders
+with a deliberate spread, including one never done and a grooming rule older
+than the grooming event that has to override it.
+
+Every row carries the marker `[wellness-e2e-seed:v1]` in a free-text column and a
+deterministic ID derived from the pet, which is what makes a re-run replace the
+previous fixture and leave user-created rows alone.
+`scripts/cleanup-wellness-test.sql` removes it again, and takes an optional
+`-v assessment_id=<uuid>` to drop the assessment a recalculation stored.
+
+`-v fill_pet_profile=1` is the one thing that writes to the pet itself, and only
+where a field is empty: species, breed, birth date, sex, weight and behavioural
+notes. Age and weight decide what counts as enough activity for this pet, so a
+name-only pet scores against defaults until they are set. The cleanup script
+does not revert them — once set they are the pet's own profile.
+
 ## Architecture
 
 This is a **.NET 10 Web API** for a pet care management system using a **feature-based modular structure**.
