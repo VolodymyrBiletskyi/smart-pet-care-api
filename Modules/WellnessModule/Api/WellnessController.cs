@@ -16,36 +16,59 @@ public sealed class WellnessController(
     IWellnessService wellnessService,
     ILogger<WellnessController> logger) : ControllerBase
 {
-    [HttpPost("recalculate")]
+    [HttpPost("evaluation")]
     [ProducesResponseType(typeof(WellnessResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status502BadGateway)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> Recalculate(
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    public Task<IActionResult> Evaluation(
         Guid petId,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] WellnessRecalculationRequestDto? request,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] WellnessEvaluationRequestDto? request,
+        CancellationToken cancellationToken) =>
+        RunEvaluationAsync(petId, request, cancellationToken);
+
+    private async Task<IActionResult> RunEvaluationAsync(
+        Guid petId,
+        WellnessEvaluationRequestDto? request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await wellnessService.RecalculateAsync(
+            var result = await wellnessService.EvaluateAsync(
                 petId, User.GetUserId(), request?.CurrentSymptoms, cancellationToken);
             return Ok(result);
         }
+        catch (WellnessEvaluationAlreadyExistsException exception)
+        {
+            return Conflict(Error(exception.Message, "wellness_evaluation_already_exists"));
+        }
+        catch (WellnessInsufficientDataException exception)
+        {
+            return StatusCode(
+                StatusCodes.Status422UnprocessableEntity,
+                Error(exception.Message, "wellness_insufficient_data"));
+        }
         catch (InvalidOperationException exception)
         {
-            return NotFound(Error(exception.Message));
+            return NotFound(Error(exception.Message, "pet_not_found"));
         }
         catch (ArgumentException exception)
         {
-            return BadRequest(Error(exception.Message));
+            return BadRequest(Error(exception.Message, "wellness_evaluation_invalid"));
         }
         catch (ClassifierRateLimitedException exception)
         {
             SetRetryAfter(exception.RetryAfterSeconds);
-            return StatusCode(StatusCodes.Status429TooManyRequests, Error("Wellness calculation is rate limited"));
+            return StatusCode(
+                StatusCodes.Status429TooManyRequests,
+                Error(
+                    "Wellness evaluation is rate limited",
+                    "wellness_service_rate_limited",
+                    exception.RetryAfterSeconds));
         }
         catch (ClassifierInvalidResponseException exception)
         {
@@ -53,12 +76,19 @@ public sealed class WellnessController(
                 "Wellness classifier returned an invalid response for pet {PetId}: {ValidationReason}",
                 petId,
                 exception.ValidationReason ?? "validation reason was not provided");
-            return StatusCode(StatusCodes.Status502BadGateway, Error("The wellness service returned an invalid response"));
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                Error("The wellness service returned an invalid response", "wellness_service_invalid_response"));
         }
         catch (ClassifierUnavailableException exception)
         {
             SetRetryAfter(exception.RetryAfterSeconds);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, Error("The wellness service is unavailable"));
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                Error(
+                    "The wellness service is unavailable",
+                    "wellness_service_unavailable",
+                    exception.RetryAfterSeconds));
         }
     }
 
@@ -71,11 +101,13 @@ public sealed class WellnessController(
         {
             var result = await wellnessService.GetCurrentAsync(
                 petId, User.GetUserId(), cancellationToken);
-            return result is null ? NotFound(Error("Wellness assessment not found")) : Ok(result);
+            return result is null
+                ? NotFound(Error("Wellness assessment not found", "wellness_evaluation_not_found"))
+                : Ok(result);
         }
         catch (InvalidOperationException exception)
         {
-            return NotFound(Error(exception.Message));
+            return NotFound(Error(exception.Message, "pet_not_found"));
         }
     }
 
@@ -96,11 +128,11 @@ public sealed class WellnessController(
         }
         catch (InvalidOperationException exception)
         {
-            return NotFound(Error(exception.Message));
+            return NotFound(Error(exception.Message, "pet_not_found"));
         }
         catch (ArgumentException exception)
         {
-            return BadRequest(Error(exception.Message));
+            return BadRequest(Error(exception.Message, "wellness_history_query_invalid"));
         }
     }
 
@@ -109,5 +141,9 @@ public sealed class WellnessController(
         if (seconds is >= 0) Response.Headers.RetryAfter = seconds.Value.ToString();
     }
 
-    private static ApiErrorResponse Error(string message) => ApiErrorResponse.FromMessage(message);
+    private static ApiErrorResponse Error(
+        string message,
+        string? code = null,
+        int? retryAfterSeconds = null) =>
+        ApiErrorResponse.FromMessage(message, code, retryAfterSeconds);
 }

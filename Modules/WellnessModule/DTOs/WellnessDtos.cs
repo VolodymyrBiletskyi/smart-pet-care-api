@@ -3,7 +3,7 @@ using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 
 namespace smart_pet_care_api.Modules.WellnessModule.DTOs;
 
-public sealed record WellnessRecalculationRequestDto
+public sealed record WellnessEvaluationRequestDto
 {
     [MaxLength(4000)]
     public string? CurrentSymptoms { get; init; }

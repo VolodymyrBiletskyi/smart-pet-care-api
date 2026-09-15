@@ -4,7 +4,7 @@ namespace smart_pet_care_api.Modules.WellnessModule.Domain;
 
 public interface IWellnessService
 {
-    Task<WellnessResponseDto> RecalculateAsync(
+    Task<WellnessResponseDto> EvaluateAsync(
         Guid petId, Guid userId, string? currentSymptoms, CancellationToken cancellationToken = default);
     Task<WellnessResponseDto?> GetCurrentAsync(
         Guid petId, Guid userId, CancellationToken cancellationToken = default);

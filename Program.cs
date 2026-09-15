@@ -76,6 +76,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
         return new BadRequestObjectResult(new ApiErrorResponse
         {
+            Code = "request_validation_failed",
             Message = "Request validation failed.",
             Errors = errors
         });
