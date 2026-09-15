@@ -79,11 +79,25 @@ assessment is projected to the frontend contract containing `wellnessScore`,
 Classifier reminders and tracking recommendations with suggested reminder
 types are combined into `reminderSuggestions`.
 
-- `POST /api/pets/{petId}/wellness/recalculate`
+- `POST /api/pets/{petId}/wellness/evaluation` for the initial assessment;
 - `GET /api/pets/{petId}/wellness/current`
 - `GET /api/pets/{petId}/wellness/history?page=1&pageSize=20`
 
-Recalculation accepts `{ "currentSymptoms": "..." }` or an empty/null body.
-Calls for the same pet are serialized within one application process. Python
-429, invalid responses and availability failures map to public 429, 502 and 503
-responses respectively.
+Evaluation accepts `{ "currentSymptoms": "..." }` or an empty/null body. An
+evaluation can only be created once. A classifier `INSUFFICIENT_DATA` result is
+not persisted and returns `422` with `code: wellness_insufficient_data`, so the
+caller can add information and try again. If an evaluation already exists, the
+write returns `409` with `code: wellness_evaluation_already_exists`; the caller
+can then read the latest result from `GET /current`. Calls for the same pet are
+serialized within one application process.
+
+Public errors include a stable `code` that the frontend can map to localized
+copy. `message` remains available as a backward-compatible English fallback.
+Python 429, invalid responses and availability failures map to public 429, 502
+and 503 responses respectively.
+
+Wellness write error codes are `pet_not_found`,
+`wellness_evaluation_already_exists`,
+`wellness_insufficient_data`, `wellness_evaluation_invalid`,
+`wellness_service_rate_limited`,
+`wellness_service_invalid_response`, and `wellness_service_unavailable`.

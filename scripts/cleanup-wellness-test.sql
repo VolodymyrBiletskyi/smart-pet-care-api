@@ -16,7 +16,7 @@
 --
 -- Recalculation responses are stored separately in PetWellnessAssessments and
 -- cannot be recognized by the fixture marker. To remove the exact assessment
--- returned by POST /api/pets/{petId}/wellness/recalculate, additionally pass:
+-- returned by POST /api/pets/{petId}/wellness/evaluation, additionally pass:
 --   -v assessment_id=<assessmentId-from-the-response>
 
 \if :{?pet_id}

@@ -13,7 +13,7 @@ public sealed class WellnessService(
     AppDbContext dbContext,
     IWellnessDataAggregator aggregator,
     IClassifierClient classifierClient,
-    WellnessCalculationLock calculationLock,
+    WellnessEvaluationLock evaluationLock,
     TimeProvider timeProvider) : IWellnessService
 {
     public const int DefaultPageSize = 20;
@@ -24,20 +24,41 @@ public sealed class WellnessService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public async Task<WellnessResponseDto> RecalculateAsync(
+    public Task<WellnessResponseDto> EvaluateAsync(
         Guid petId,
         Guid userId,
         string? currentSymptoms,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        EvaluateCoreAsync(petId, userId, currentSymptoms, cancellationToken);
+
+    private async Task<WellnessResponseDto> EvaluateCoreAsync(
+        Guid petId,
+        Guid userId,
+        string? currentSymptoms,
+        CancellationToken cancellationToken)
     {
         if (currentSymptoms is { Length: > 4000 })
             throw new ArgumentException("CurrentSymptoms cannot exceed 4000 characters");
 
-        using var lease = await calculationLock.AcquireAsync(petId, cancellationToken);
+        using var lease = await evaluationLock.AcquireAsync(petId, cancellationToken);
         var evaluatedAt = timeProvider.GetUtcNow();
+
+        await EnsurePetBelongsToUserAsync(petId, userId, cancellationToken);
+        var latestEvaluationAt = await dbContext.PetWellnessAssessments.AsNoTracking()
+            .Where(item => item.PetId == petId)
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => (DateTime?)item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestEvaluationAt is not null)
+            throw new WellnessEvaluationAlreadyExistsException();
+
         var request = await aggregator.AggregateAsync(
             petId, userId, currentSymptoms, evaluatedAt, cancellationToken);
         var response = await classifierClient.CalculateWellnessAsync(request, cancellationToken);
+
+        if (response.ScoreStatus == ClassifierWellnessScoreStatus.InsufficientData)
+            throw new WellnessInsufficientDataException();
 
         var assessment = new PetWellnessAssessment
         {

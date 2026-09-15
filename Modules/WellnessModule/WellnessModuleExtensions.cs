@@ -6,7 +6,7 @@ public static class WellnessModuleExtensions
 {
     public static IServiceCollection AddWellnessModule(this IServiceCollection services)
     {
-        services.AddSingleton<WellnessCalculationLock>();
+        services.AddSingleton<WellnessEvaluationLock>();
         services.AddScoped<IWellnessDataAggregator, WellnessDataAggregator>();
         services.AddScoped<IWellnessService, WellnessService>();
         return services;
