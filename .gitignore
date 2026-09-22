@@ -32,6 +32,9 @@ docker-compose.dev.yml
 
 nginx/.htpasswd
 
+# Database dumps and per-release manifests, written on the server
+backups/
+
 api/Data/DbSeeder.cs
 
 .fake

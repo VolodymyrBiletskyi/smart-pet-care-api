@@ -1,0 +1,4 @@
+# The shell scripts run on the Linux host, so they must keep LF endings even
+# when they are edited from Windows.
+*.sh text eol=lf
+*.sql text eol=lf

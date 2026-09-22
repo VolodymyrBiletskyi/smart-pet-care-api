@@ -271,6 +271,24 @@ New modules should follow this layout and register their services in a dedicated
 - Migrations are in `Migrations/`; the app runs `db.Database.Migrate()` at startup automatically
 - Connection string comes from `appsettings.json` or the `DB_PASSWORD` env var in Docker
 
+### Backups and rollback
+
+Because migrations are applied automatically at startup, a deploy changes the
+code and the schema in one step and neither reverts on its own. The procedure —
+what is dumped when, and which of the three rollback cases applies (bad code /
+bad migration / bad data) — is in `docs/backup-and-rollback.md`.
+
+```bash
+bash scripts/backup-db.sh [label]          # dump, verify, prune, upload to S3
+bash scripts/restore-db.sh <dump> [--yes]  # drop, recreate, restore; leaves api stopped
+bash scripts/rollback.sh --last            # back to the previously deployed commit
+```
+
+Dumps and per-release manifests live in `backups/` on the server (gitignored,
+mounted into the db container as `/backups`). The deploy workflow takes one
+before every release and records the commit it replaced in
+`backups/.last-deployed-sha`.
+
 ### Authentication
 
 Dual auth strategy — JWT cookies + Google OAuth:

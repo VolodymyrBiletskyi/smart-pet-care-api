@@ -23,12 +23,50 @@ jobs:
 
             cd /home/ubuntu/smart-pet-care-api
 
+            # Recorded before git moves the checkout: after the reset there is
+            # no other way to find out which release was running.
+            PREV_SHA=$(git rev-parse HEAD)
+
             git fetch origin main
             git reset --hard origin/main
-            
+            NEW_SHA=$(git rev-parse HEAD)
+            SHORT_SHA=$(git rev-parse --short=7 HEAD)
+
+            mkdir -p backups/releases
+
+            # The api applies migrations on startup, so this dump is the only
+            # point between "new code on disk" and "schema changed" where the
+            # old database still exists. A failure here fails the deploy.
+            if [ -n "$(docker compose ps -q db)" ]; then
+              bash scripts/backup-db.sh "predeploy-$SHORT_SHA"
+            else
+              echo "db container is not running, skipping the pre-deploy dump"
+            fi
+
+            # What an incident needs to know at 2am: what was running before,
+            # and which migrations this release brings with it.
+            {
+              echo "deployed_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo "new_sha:     $NEW_SHA"
+              echo "prev_sha:    $PREV_SHA"
+              echo "subject:     $(git log -1 --format=%s)"
+              echo "new_migrations:"
+              git diff --name-only "$PREV_SHA" "$NEW_SHA" -- Migrations/ \
+                | grep -v -e '\.Designer\.cs$' -e 'ModelSnapshot\.cs$' \
+                | sed 's/^/  - /' || true
+            } > "backups/releases/$(date -u +%Y%m%dT%H%M%SZ)-$SHORT_SHA.txt"
+
+            # Re-installed every deploy so the schedule survives a rebuilt host.
+            CRON_CMD="cd /home/ubuntu/smart-pet-care-api && bash scripts/backup-db.sh scheduled >> backups/backup.log 2>&1"
+            ( crontab -l 2>/dev/null | grep -v 'scripts/backup-db.sh' || true; \
+              echo "17 3 * * * $CRON_CMD" ) | crontab -
+
             docker compose down
             docker compose up -d --build
             docker image prune -f
+
+            # Only now: the rollback target is the release that last came up.
+            echo "$PREV_SHA" > backups/.last-deployed-sha
 
             docker compose ps
             echo "Deployment completed successfully!"
