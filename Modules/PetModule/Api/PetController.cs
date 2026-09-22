@@ -38,7 +38,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         {
             var userId = User.GetUserId();
             var pet = await _petService.GetByIdAsync(id, userId);
-            if (pet == null) return NotFound(Error("Pet not found."));
+            if (pet == null) return NotFound(Error("Pet not found.", "pet_not_found"));
             return Ok(pet);
         }
 
@@ -56,7 +56,7 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -75,11 +75,11 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, "pet_not_found"));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -105,15 +105,17 @@ namespace smart_pet_care_api.Modules.PetModule.Api
             }
             catch (CloudinaryUploadException ex)
             {
-                return StatusCode(StatusCodes.Status502BadGateway, Error(ex.Message));
+                return StatusCode(
+                    StatusCodes.Status502BadGateway,
+                    Error(ex.Message, "pet_photo_upload_failed"));
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, "pet_not_found"));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -125,11 +127,30 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         {
             var userId = User.GetUserId();
             var deleted = await _petService.DeleteAsync(id, userId);
-            if (!deleted) return NotFound(Error("Pet not found."));
+            if (!deleted) return NotFound(Error("Pet not found.", "pet_not_found"));
             return NoContent();
         }
 
-        private static ApiErrorResponse Error(string message) =>
-            ApiErrorResponse.FromMessage(message);
+        private static ApiErrorResponse Error(string message, string code) =>
+            ApiErrorResponse.FromMessage(message, code);
+
+        private static string ValidationErrorCode(string message) => message switch
+        {
+            "Name is required" => "pet_name_required",
+            "Species is required" => "pet_species_required",
+            "Species is invalid" => "pet_species_invalid",
+            "At least one field must be provided" => "pet_update_empty",
+            "Name cannot be empty" => "pet_name_empty",
+            "PhotoUrl cannot be empty" => "pet_photo_url_empty",
+            "PhotoPublicId cannot be empty" => "pet_photo_public_id_empty",
+            "BirthDate cannot be in the future" => "pet_birth_date_in_future",
+            "WeightKg must be greater than zero" => "pet_weight_not_positive",
+            "WeightKg cannot be greater than 230" => "pet_weight_too_large",
+            "Sex is invalid" => "pet_sex_invalid",
+            "Photo is required" => "pet_photo_required",
+            "Photo must be a JPEG, PNG, or WEBP image" => "pet_photo_type_invalid",
+            "Photo size must be 5MB or less" => "pet_photo_too_large",
+            _ => "pet_validation_failed"
+        };
     }
 }

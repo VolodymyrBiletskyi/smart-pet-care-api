@@ -32,6 +32,7 @@ public class FeedingLogValidationTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("feeding_time_required", error.Code);
         Assert.Equal("FedAt is required.", error.Message);
     }
 
@@ -49,6 +50,7 @@ public class FeedingLogValidationTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("feeding_time_required", error.Code);
         Assert.Equal("FedAt is required.", error.Message);
     }
 
@@ -59,6 +61,7 @@ public class FeedingLogValidationTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("feeding_update_empty", error.Code);
         Assert.Equal("At least one field must be provided.", error.Message);
     }
 

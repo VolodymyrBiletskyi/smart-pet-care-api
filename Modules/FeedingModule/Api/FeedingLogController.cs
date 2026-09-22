@@ -34,7 +34,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
         }
 
@@ -48,12 +48,12 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             {
                 var userId = User.GetUserId();
                 var log = await _service.GetByIdAsync(petId, logId, userId);
-                if (log is null) return NotFound(Error("Feeding log not found"));
+                if (log is null) return NotFound(Error("Feeding log not found", "feeding_log_not_found"));
                 return Ok(log);
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
         }
 
@@ -72,11 +72,11 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -95,11 +95,11 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -113,16 +113,36 @@ namespace smart_pet_care_api.Modules.FeedingModule.Api
             {
                 var userId = User.GetUserId();
                 var deleted = await _service.DeleteAsync(petId, logId, userId);
-                if (!deleted) return NotFound(Error("Feeding log not found"));
+                if (!deleted) return NotFound(Error("Feeding log not found", "feeding_log_not_found"));
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
         }
 
-        private static ApiErrorResponse Error(string message) =>
-            ApiErrorResponse.FromMessage(message);
+        private static ApiErrorResponse Error(string message, string code) =>
+            ApiErrorResponse.FromMessage(message, code);
+
+        private static string NotFoundErrorCode(string message) => message switch
+        {
+            "Pet not found" => "pet_not_found",
+            "Reminder not found" => "reminder_not_found",
+            _ => "feeding_log_not_found"
+        };
+
+        private static string ValidationErrorCode(string message) => message switch
+        {
+            "PortionUnit is required when PortionAmount is specified" => "feeding_portion_unit_required",
+            "At least one field must be provided" => "feeding_update_empty",
+            "FedAt is required" => "feeding_time_required",
+            "FedAt cannot be more than 10 minutes in the future" => "feeding_time_too_far_in_future",
+            "PortionAmount cannot be negative" => "feeding_portion_amount_negative",
+            "ApproxCalories cannot be negative" => "feeding_calories_negative",
+            "FoodType is invalid" => "feeding_food_type_invalid",
+            "PortionUnit is invalid" => "feeding_portion_unit_invalid",
+            _ => "feeding_validation_failed"
+        };
     }
 }

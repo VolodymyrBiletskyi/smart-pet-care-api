@@ -14,7 +14,7 @@ namespace smart_pet_care_api.Modules.ChatModule.Tests;
 public sealed class WellnessControllerTests
 {
     [Fact]
-    public async Task Evaluation_ReturnsWellnessAndForwardsAuthenticatedUser()
+    public async Task GetOrCreateEvaluation_ReturnsWellnessAndForwardsAuthenticatedUser()
     {
         var userId = Guid.NewGuid();
         var petId = Guid.NewGuid();
@@ -22,20 +22,36 @@ public sealed class WellnessControllerTests
         var service = new StubWellnessService { EvaluationResult = expected };
         var controller = CreateController(service, userId);
 
-        var action = await controller.Evaluation(
+        var action = await controller.GetOrCreateEvaluation(
             petId,
-            new WellnessEvaluationRequestDto { CurrentSymptoms = "low appetite" },
             TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<OkObjectResult>(action);
         Assert.Same(expected, ok.Value);
         Assert.Equal(petId, service.PetId);
         Assert.Equal(userId, service.UserId);
-        Assert.Equal("low appetite", service.CurrentSymptoms);
     }
 
     [Fact]
-    public async Task Evaluation_WhenRateLimited_Returns429WithCodeAndRetryAfter()
+    public async Task GetOrCreateEvaluation_WhenInformationIsInsufficient_Returns422()
+    {
+        var controller = CreateController(new StubWellnessService
+        {
+            EvaluationException = new WellnessInsufficientDataException()
+        });
+
+        var action = await controller.GetOrCreateEvaluation(
+            Guid.NewGuid(),
+            TestContext.Current.CancellationToken);
+
+        var result = Assert.IsType<ObjectResult>(action);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
+        var error = Assert.IsType<ApiErrorResponse>(result.Value);
+        Assert.Equal("wellness_insufficient_data", error.Code);
+    }
+
+    [Fact]
+    public async Task GetOrCreateEvaluation_WhenRateLimited_Returns429WithCodeAndRetryAfter()
     {
         var controller = CreateController(new StubWellnessService
         {
@@ -45,9 +61,8 @@ public sealed class WellnessControllerTests
                 retryAfterSeconds: 30)
         });
 
-        var action = await controller.Evaluation(
+        var action = await controller.GetOrCreateEvaluation(
             Guid.NewGuid(),
-            null,
             TestContext.Current.CancellationToken);
 
         var result = Assert.IsType<ObjectResult>(action);
@@ -59,7 +74,7 @@ public sealed class WellnessControllerTests
     }
 
     [Fact]
-    public async Task Evaluation_WhenClassifierResponseIsInvalid_Returns502()
+    public async Task GetOrCreateEvaluation_WhenClassifierResponseIsInvalid_Returns502()
     {
         var controller = CreateController(new StubWellnessService
         {
@@ -68,9 +83,8 @@ public sealed class WellnessControllerTests
                 validationReason: "breakdown.activity.reasonCodes is empty")
         });
 
-        var action = await controller.Evaluation(
+        var action = await controller.GetOrCreateEvaluation(
             Guid.NewGuid(),
-            null,
             TestContext.Current.CancellationToken);
 
         var result = Assert.IsType<ObjectResult>(action);
@@ -78,7 +92,7 @@ public sealed class WellnessControllerTests
     }
 
     [Fact]
-    public async Task Evaluation_WhenClassifierUnavailable_Returns503AndRetryAfter()
+    public async Task GetOrCreateEvaluation_WhenClassifierUnavailable_Returns503AndRetryAfter()
     {
         var controller = CreateController(new StubWellnessService
         {
@@ -87,63 +101,13 @@ public sealed class WellnessControllerTests
                 retryAfterSeconds: 20)
         });
 
-        var action = await controller.Evaluation(
+        var action = await controller.GetOrCreateEvaluation(
             Guid.NewGuid(),
-            null,
             TestContext.Current.CancellationToken);
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
         Assert.Equal("20", controller.Response.Headers.RetryAfter.ToString());
-    }
-
-    [Fact]
-    public async Task Evaluation_WhenInformationIsInsufficient_ReturnsTranslatableError()
-    {
-        var controller = CreateController(new StubWellnessService
-        {
-            EvaluationException = new WellnessInsufficientDataException()
-        });
-
-        var action = await controller.Evaluation(
-            Guid.NewGuid(),
-            null,
-            TestContext.Current.CancellationToken);
-
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
-        var error = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal("wellness_insufficient_data", error.Code);
-    }
-
-    [Fact]
-    public async Task Evaluation_WhenEvaluationExists_ReturnsTranslatableConflict()
-    {
-        var controller = CreateController(new StubWellnessService
-        {
-            EvaluationException = new WellnessEvaluationAlreadyExistsException()
-        });
-
-        var action = await controller.Evaluation(
-            Guid.NewGuid(),
-            null,
-            TestContext.Current.CancellationToken);
-
-        var conflict = Assert.IsType<ConflictObjectResult>(action);
-        var error = Assert.IsType<ApiErrorResponse>(conflict.Value);
-        Assert.Equal("wellness_evaluation_already_exists", error.Code);
-    }
-
-    [Fact]
-    public async Task Current_WhenAssessmentDoesNotExist_Returns404()
-    {
-        var controller = CreateController(new StubWellnessService());
-
-        var action = await controller.Current(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        Assert.IsType<NotFoundObjectResult>(action);
     }
 
     [Fact]
@@ -237,28 +201,19 @@ public sealed class WellnessControllerTests
         public Exception? HistoryException { get; init; }
         public Guid? PetId { get; private set; }
         public Guid? UserId { get; private set; }
-        public string? CurrentSymptoms { get; private set; }
         public int? Page { get; private set; }
         public int? PageSize { get; private set; }
 
-        public Task<WellnessResponseDto> EvaluateAsync(
+        public Task<WellnessResponseDto> GetOrCreateEvaluationAsync(
             Guid petId,
             Guid userId,
-            string? currentSymptoms,
             CancellationToken cancellationToken = default)
         {
             PetId = petId;
             UserId = userId;
-            CurrentSymptoms = currentSymptoms;
             if (EvaluationException is not null) throw EvaluationException;
             return Task.FromResult(EvaluationResult ?? CreateResponse());
         }
-
-        public Task<WellnessResponseDto?> GetCurrentAsync(
-            Guid petId,
-            Guid userId,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult<WellnessResponseDto?>(null);
 
         public Task<WellnessHistoryResponseDto> GetHistoryAsync(
             Guid petId,

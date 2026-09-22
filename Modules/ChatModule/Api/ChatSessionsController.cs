@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.ChatModule.Domain;
 using smart_pet_care_api.Modules.ChatModule.DTOs;
@@ -31,7 +32,7 @@ public sealed class ChatSessionsController(IChatService chatService) : Controlle
         typeof(ChatSessionDetailsResponseDto),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSession(
         Guid sessionId,
         CancellationToken cancellationToken)
@@ -47,15 +48,15 @@ public sealed class ChatSessionsController(IChatService chatService) : Controlle
         }
         catch (KeyNotFoundException exception)
         {
-            return NotFound(new { message = exception.Message });
+            return NotFound(Error(exception.Message, "chat_session_not_found"));
         }
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(ChatSessionResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateSession(
         [FromBody] CreateChatSessionRequest request,
         CancellationToken cancellationToken)
@@ -72,11 +73,14 @@ public sealed class ChatSessionsController(IChatService chatService) : Controlle
         }
         catch (ArgumentException exception)
         {
-            return BadRequest(new { message = exception.Message });
+            return BadRequest(Error(exception.Message, "chat_pet_id_required"));
         }
         catch (KeyNotFoundException exception)
         {
-            return NotFound(new { message = exception.Message });
+            return NotFound(Error(exception.Message, "pet_not_found"));
         }
     }
+
+    private static ApiErrorResponse Error(string message, string code) =>
+        ApiErrorResponse.FromMessage(message, code);
 }

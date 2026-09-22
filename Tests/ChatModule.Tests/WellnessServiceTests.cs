@@ -11,7 +11,7 @@ namespace smart_pet_care_api.Modules.ChatModule.Tests;
 public sealed class WellnessServiceTests
 {
     [Fact]
-    public async Task EvaluateAsync_PersistsValidClassifierResponse()
+    public async Task GetOrCreateEvaluationAsync_PersistsValidClassifierResponse()
     {
         await using var db = CreateContext();
         var petId = Guid.NewGuid();
@@ -19,8 +19,8 @@ public sealed class WellnessServiceTests
         await AddPetAsync(db, petId, userId);
         var service = CreateService(db, new RecordingClassifier());
 
-        var result = await service.EvaluateAsync(
-            petId, userId, null, TestContext.Current.CancellationToken);
+        var result = await service.GetOrCreateEvaluationAsync(
+            petId, userId, TestContext.Current.CancellationToken);
 
         Assert.Equal(82, result.WellnessScore);
         Assert.Equal(ClassifierWellnessBand.Excellent, result.Band);
@@ -47,7 +47,7 @@ public sealed class WellnessServiceTests
     }
 
     [Fact]
-    public async Task EvaluateAsync_DoesNotPersistFailedCalculation()
+    public async Task GetOrCreateEvaluationAsync_DoesNotPersistFailedCalculation()
     {
         await using var db = CreateContext();
         var petId = Guid.NewGuid();
@@ -56,33 +56,15 @@ public sealed class WellnessServiceTests
         var service = CreateService(db, new RecordingClassifier(shouldFail: true));
 
         await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
-            service.EvaluateAsync(
-                petId, userId, null, TestContext.Current.CancellationToken));
+            service.GetOrCreateEvaluationAsync(
+                petId, userId, TestContext.Current.CancellationToken));
 
         Assert.Empty(await db.PetWellnessAssessments.ToListAsync(
             TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task EvaluateAsync_SerializesConcurrentCallsAndAllowsOnlyOneInitialEvaluation()
-    {
-        await using var db = CreateContext();
-        var classifier = new RecordingClassifier(delay: TimeSpan.FromMilliseconds(75));
-        var service = CreateService(db, classifier);
-        var petId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
-        await AddPetAsync(db, petId, userId);
-
-        await Assert.ThrowsAsync<WellnessEvaluationAlreadyExistsException>(() => Task.WhenAll(
-            service.EvaluateAsync(petId, userId, null, TestContext.Current.CancellationToken),
-            service.EvaluateAsync(petId, userId, null, TestContext.Current.CancellationToken)));
-
-        Assert.Equal(1, classifier.MaximumConcurrentCalls);
-        Assert.Equal(1, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task EvaluateAsync_WhenInformationIsInsufficient_DoesNotPersistResult()
+    public async Task GetOrCreateEvaluationAsync_WhenInformationIsInsufficient_DoesNotPersistResult()
     {
         await using var db = CreateContext();
         var petId = Guid.NewGuid();
@@ -91,25 +73,70 @@ public sealed class WellnessServiceTests
         var service = CreateService(db, new RecordingClassifier(insufficientData: true));
 
         await Assert.ThrowsAsync<WellnessInsufficientDataException>(() =>
-            service.EvaluateAsync(petId, userId, null, TestContext.Current.CancellationToken));
+            service.GetOrCreateEvaluationAsync(petId, userId, TestContext.Current.CancellationToken));
 
         Assert.Empty(await db.PetWellnessAssessments.ToListAsync(
             TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task EvaluateAsync_WhenInitialEvaluationExists_RejectsDuplicate()
+    public async Task GetOrCreateEvaluationAsync_WhenRecentEvaluationExists_ReturnsItWithoutCallingClassifier()
     {
         await using var db = CreateContext();
         var petId = Guid.NewGuid();
         var userId = Guid.NewGuid();
-        var now = new DateTimeOffset(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+        var createdAt = new DateTimeOffset(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
         await AddPetAsync(db, petId, userId);
-        await AddAssessmentAsync(db, petId, now - TimeSpan.FromDays(10));
-        var service = CreateService(db, new RecordingClassifier(), now);
+        await CreateService(db, new RecordingClassifier(), createdAt).GetOrCreateEvaluationAsync(
+            petId, userId, TestContext.Current.CancellationToken);
+        var classifier = new RecordingClassifier();
+        var service = CreateService(db, classifier, createdAt.AddDays(2));
 
-        await Assert.ThrowsAsync<WellnessEvaluationAlreadyExistsException>(() =>
-            service.EvaluateAsync(petId, userId, null, TestContext.Current.CancellationToken));
+        var result = await service.GetOrCreateEvaluationAsync(
+            petId, userId, TestContext.Current.CancellationToken);
+
+        Assert.Equal(82, result.WellnessScore);
+        Assert.Equal(0, classifier.TotalCalls);
+        Assert.Equal(1, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetOrCreateEvaluationAsync_WhenThreeDaysHavePassed_CreatesNewEvaluation()
+    {
+        await using var db = CreateContext();
+        var petId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var createdAt = new DateTimeOffset(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+        await AddPetAsync(db, petId, userId);
+        await CreateService(db, new RecordingClassifier(), createdAt).GetOrCreateEvaluationAsync(
+            petId, userId, TestContext.Current.CancellationToken);
+        var classifier = new RecordingClassifier();
+        var service = CreateService(db, classifier, createdAt.AddDays(3));
+
+        await service.GetOrCreateEvaluationAsync(
+            petId, userId, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, classifier.TotalCalls);
+        Assert.Equal(2, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetOrCreateEvaluationAsync_SerializesConcurrentCallsAndReturnsOneEvaluation()
+    {
+        await using var db = CreateContext();
+        var petId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var classifier = new RecordingClassifier(delay: TimeSpan.FromMilliseconds(75));
+        var service = CreateService(db, classifier);
+        await AddPetAsync(db, petId, userId);
+
+        var results = await Task.WhenAll(
+            service.GetOrCreateEvaluationAsync(petId, userId, TestContext.Current.CancellationToken),
+            service.GetOrCreateEvaluationAsync(petId, userId, TestContext.Current.CancellationToken));
+
+        Assert.Equal(2, results.Length);
+        Assert.Equal(1, classifier.TotalCalls);
+        Assert.Equal(1, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
     }
 
     private static WellnessService CreateService(
@@ -126,24 +153,6 @@ public sealed class WellnessServiceTests
     private static async Task AddPetAsync(AppDbContext db, Guid petId, Guid userId)
     {
         db.Pets.Add(new Pet { Id = petId, UserId = userId, Name = "Milo" });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
-
-    private static async Task AddAssessmentAsync(
-        AppDbContext db,
-        Guid petId,
-        DateTimeOffset createdAt)
-    {
-        db.PetWellnessAssessments.Add(new PetWellnessAssessment
-        {
-            PetId = petId,
-            ScoreStatus = "Complete",
-            DataCoverage = 1,
-            CalculationVersion = "1.0.0",
-            EvaluatedAt = createdAt.UtcDateTime,
-            ResponseJson = "{}",
-            CreatedAt = createdAt.UtcDateTime
-        });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -173,8 +182,7 @@ public sealed class WellnessServiceTests
         bool insufficientData = false)
         : IClassifierClient
     {
-        private int activeCalls;
-        public int MaximumConcurrentCalls { get; private set; }
+        public int TotalCalls { get; private set; }
 
         public Task<ClassifierChatResponse> ChatAsync(
             ClassifierChatRequest request, CancellationToken cancellationToken = default) =>
@@ -187,29 +195,21 @@ public sealed class WellnessServiceTests
         public async Task<ClassifierWellnessResponse> CalculateWellnessAsync(
             ClassifierWellnessRequest request, CancellationToken cancellationToken = default)
         {
+            TotalCalls++;
             if (shouldFail)
                 throw new ClassifierUnavailableException("Unavailable", HttpStatusCode.ServiceUnavailable);
 
-            var active = Interlocked.Increment(ref activeCalls);
-            MaximumConcurrentCalls = Math.Max(MaximumConcurrentCalls, active);
-            try
-            {
-                if (delay is { } duration) await Task.Delay(duration, cancellationToken);
-                var response = CreateResponse();
-                return insufficientData
-                    ? response with
-                    {
-                        WellnessScore = null,
-                        Band = null,
-                        BandLabel = null,
-                        ScoreStatus = ClassifierWellnessScoreStatus.InsufficientData
-                    }
-                    : response;
-            }
-            finally
-            {
-                Interlocked.Decrement(ref activeCalls);
-            }
+            if (delay is { } duration) await Task.Delay(duration, cancellationToken);
+            var response = CreateResponse();
+            return insufficientData
+                ? response with
+                {
+                    WellnessScore = null,
+                    Band = null,
+                    BandLabel = null,
+                    ScoreStatus = ClassifierWellnessScoreStatus.InsufficientData
+                }
+                : response;
         }
     }
 

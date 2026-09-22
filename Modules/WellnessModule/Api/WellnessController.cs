@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -16,35 +15,26 @@ public sealed class WellnessController(
     IWellnessService wellnessService,
     ILogger<WellnessController> logger) : ControllerBase
 {
-    [HttpPost("evaluation")]
+    [HttpGet("evaluation")]
     [ProducesResponseType(typeof(WellnessResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status502BadGateway)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status503ServiceUnavailable)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public Task<IActionResult> Evaluation(
+    public Task<IActionResult> GetOrCreateEvaluation(
         Guid petId,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] WellnessEvaluationRequestDto? request,
         CancellationToken cancellationToken) =>
-        RunEvaluationAsync(petId, request, cancellationToken);
+        RunGetOrCreateEvaluationAsync(petId, cancellationToken);
 
-    private async Task<IActionResult> RunEvaluationAsync(
+    private async Task<IActionResult> RunGetOrCreateEvaluationAsync(
         Guid petId,
-        WellnessEvaluationRequestDto? request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await wellnessService.EvaluateAsync(
-                petId, User.GetUserId(), request?.CurrentSymptoms, cancellationToken);
-            return Ok(result);
-        }
-        catch (WellnessEvaluationAlreadyExistsException exception)
-        {
-            return Conflict(Error(exception.Message, "wellness_evaluation_already_exists"));
+            return Ok(await wellnessService.GetOrCreateEvaluationAsync(
+                petId, User.GetUserId(), cancellationToken));
         }
         catch (WellnessInsufficientDataException exception)
         {
@@ -55,10 +45,6 @@ public sealed class WellnessController(
         catch (InvalidOperationException exception)
         {
             return NotFound(Error(exception.Message, "pet_not_found"));
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(Error(exception.Message, "wellness_evaluation_invalid"));
         }
         catch (ClassifierRateLimitedException exception)
         {
@@ -89,25 +75,6 @@ public sealed class WellnessController(
                     "The wellness service is unavailable",
                     "wellness_service_unavailable",
                     exception.RetryAfterSeconds));
-        }
-    }
-
-    [HttpGet("current")]
-    [ProducesResponseType(typeof(WellnessResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Current(Guid petId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await wellnessService.GetCurrentAsync(
-                petId, User.GetUserId(), cancellationToken);
-            return result is null
-                ? NotFound(Error("Wellness assessment not found", "wellness_evaluation_not_found"))
-                : Ok(result);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return NotFound(Error(exception.Message, "pet_not_found"));
         }
     }
 

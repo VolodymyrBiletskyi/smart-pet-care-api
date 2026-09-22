@@ -117,6 +117,7 @@ public class PetWeightLogControllerTests
 
         var conflict = Assert.IsType<ConflictObjectResult>(result);
         var response = Assert.IsType<ApiErrorResponse>(conflict.Value);
+        Assert.Equal("weight_log_measurement_time_conflict", response.Code);
         Assert.Equal("A weight log for this pet already exists at the same measurement time.", response.Message);
     }
 
@@ -181,6 +182,7 @@ public class PetWeightLogControllerTests
         var result = await Controller(service).Delete(_petId, _logId);
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         var response = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("weight_log_not_found", response.Code);
         Assert.Equal("Weight log not found.", response.Message);
     }
 
@@ -196,6 +198,7 @@ public class PetWeightLogControllerTests
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         var response = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("pet_not_found", response.Code);
         Assert.Equal("Pet not found.", response.Message);
     }
 
@@ -211,6 +214,7 @@ public class PetWeightLogControllerTests
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
         var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("authentication_token_invalid", response.Code);
         Assert.Equal("Authentication token is invalid.", response.Message);
     }
 
@@ -230,6 +234,7 @@ public class PetWeightLogControllerTests
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
         var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("authentication_token_invalid", response.Code);
         Assert.Equal("Authentication token is invalid.", response.Message);
     }
 

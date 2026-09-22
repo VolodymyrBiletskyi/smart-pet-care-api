@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
@@ -79,7 +80,9 @@ public sealed class ChatControllersTests
             Guid.NewGuid(),
             TestContext.Current.CancellationToken);
 
-        Assert.IsType<ConflictObjectResult>(action);
+        var conflict = Assert.IsType<ConflictObjectResult>(action);
+        var error = Assert.IsType<ApiErrorResponse>(conflict.Value);
+        Assert.Equal("chat_message_not_retryable", error.Code);
     }
 
     [Fact]
@@ -125,7 +128,9 @@ public sealed class ChatControllersTests
             Guid.NewGuid(),
             TestContext.Current.CancellationToken);
 
-        Assert.IsType<NotFoundObjectResult>(action);
+        var notFound = Assert.IsType<NotFoundObjectResult>(action);
+        var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("chat_session_not_found", error.Code);
     }
 
     [Fact]
