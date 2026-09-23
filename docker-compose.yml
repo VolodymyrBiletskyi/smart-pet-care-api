@@ -1,3 +1,12 @@
+# The json-file driver never rotates on its own, and these containers run for
+# weeks. On a 7GB root volume that is enough to fill the disk on logs alone, so
+# every service gets a ceiling rather than just the chatty one.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   api:
     # Both keys on purpose. The deploy sets API_IMAGE to the tag CI built and
@@ -11,6 +20,11 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      # Set here rather than in appsettings.json, which .dockerignore keeps out
+      # of the image -- the container has no settings file, so an unset category
+      # falls back to Information and EF logs every statement it runs. Override
+      # to Information in .env when you need to see the SQL.
+      - Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command=${EF_COMMAND_LOG_LEVEL:-Warning}
       - ApiPublicUrl=${API_PUBLIC_URL:-http://localhost:8080}
       - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=smartPetCareDb;Username=postgres;Password=${DB_PASSWORD}
       - JwtOptions__SecretKey=${JWT_SECRET}
@@ -37,10 +51,17 @@ services:
       - Email__FromName=${EMAIL_FROM_NAME}
     volumes:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
+      # DataProtection writes its key ring here. Kept in a volume because a
+      # container that comes up with a fresh one cannot read anything the
+      # previous release protected -- antiforgery tokens and the correlation
+      # cookie of anyone mid-way through a Google login, which a deploy would
+      # otherwise break for every user in that state.
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
     depends_on:
       db:
         condition: service_healthy
     restart: always
+    logging: *default-logging
 
   db:
     image: postgres:16
@@ -59,7 +80,9 @@ services:
       timeout: 5s
       retries: 5
     restart: always
-    
+    logging: *default-logging
+
+
   nginx:
     image: nginx:alpine
     ports:
@@ -80,6 +103,7 @@ services:
         nginx -s reload;
       done & nginx -g 'daemon off;'"
     restart: always
+    logging: *default-logging
 
   certbot:
     image: certbot/certbot
@@ -95,6 +119,8 @@ services:
         sleep 12h & wait $${!};
       done"
     restart: always
+    logging: *default-logging
 
 volumes:
   postgres_data:
+  dataprotection_keys:

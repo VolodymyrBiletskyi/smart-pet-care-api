@@ -48,6 +48,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Nothing in ghcr expires on its own, and a private package has a storage
+      # quota. `:latest` and `:<sha>` from one build are two tags on a single
+      # version, so ten versions is ten releases to roll back through -- far
+      # past the point anyone would.
+      #
+      # Not allowed to fail the run: the image is already pushed and the deploy
+      # is waiting on this job, and a housekeeping step is no reason to hold it.
+      - uses: actions/delete-package-versions@v5
+        continue-on-error: true
+        with:
+          package-name: smart-pet-care-api
+          package-type: container
+          min-versions-to-keep: 10
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
