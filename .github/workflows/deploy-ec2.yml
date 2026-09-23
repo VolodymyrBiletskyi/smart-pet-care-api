@@ -69,6 +69,21 @@ jobs:
             ( crontab -l 2>/dev/null | grep -v 'scripts/backup-db.sh' || true; \
               echo "17 3 * * * $CRON_CMD" ) | crontab -
 
+            # Reclaimed before the build, not after: the build is what needs the
+            # room, and a host that filled up fails it at a random layer. Done
+            # while the previous release is still up, so its images count as in
+            # use and survive -- a failed build then still has something to
+            # start. `image prune` does not touch the BuildKit cache, which is
+            # the part that grows by a release every deploy.
+            docker image prune -f
+            docker builder prune -f
+            AVAIL_KB="$(df --output=avail / | tail -1)"
+            if [ "$AVAIL_KB" -lt 6291456 ]; then
+              echo "only $((AVAIL_KB / 1024)) MB free, dropping the reusable build cache too"
+              docker builder prune -af
+            fi
+            df -h /
+
             docker compose down
             docker compose up -d --build
             docker image prune -f
