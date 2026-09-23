@@ -8,16 +8,62 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.name.outputs.ref }}:${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr rejects an uppercase path and the owner here has capitals in it.
+      - id: name
+        run: |
+          echo "ref=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" \
+            >> "$GITHUB_OUTPUT"
+
+      # Tagged with the commit sha as well as latest: that is the tag the
+      # deploy pins and the one scripts/rollback.sh goes back to, so a rollback
+      # starts the exact binary that was running rather than a fresh build of
+      # the same source.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.name.outputs.ref }}:${{ github.sha }}
+            ${{ steps.name.outputs.ref }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
       - name: Deploy on EC2 via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          API_IMAGE: ${{ needs.build.outputs.image }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: API_IMAGE,GHCR_USER,GHCR_TOKEN
           script: |
             set -e
 
@@ -34,15 +80,23 @@ jobs:
 
             mkdir -p backups/releases
 
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            # Pulled first, before anything here has touched production: a
+            # registry or credential failure then stops the deploy while the
+            # old release is still serving and the database is untouched.
+            docker compose pull api
+
             # The api applies migrations on startup, so this dump is the only
-            # point between "new code on disk" and "schema changed" where the
-            # old database still exists. A failure here fails the deploy.
+            # point between "new image on the host" and "schema changed" where
+            # the old database still exists. A failure here fails the deploy.
             if [ -n "$(docker compose ps -q db)" ]; then
               # A db container started by an earlier release predates any change
               # this one makes to its compose service -- including the /backups
               # mount restore-db.sh reads dumps through. Recreating it here costs
               # nothing when the config has not moved, and means a rollback never
               # discovers the mismatch mid-incident.
+              #
               # --wait: a recreated container is not accepting connections yet,
               # and the dump is the very next command.
               docker compose up -d --wait db
@@ -57,6 +111,7 @@ jobs:
               echo "deployed_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
               echo "new_sha:     $NEW_SHA"
               echo "prev_sha:    $PREV_SHA"
+              echo "image:       $API_IMAGE"
               echo "subject:     $(git log -1 --format=%s)"
               echo "new_migrations:"
               git diff --name-only "$PREV_SHA" "$NEW_SHA" -- Migrations/ \
@@ -69,23 +124,15 @@ jobs:
             ( crontab -l 2>/dev/null | grep -v 'scripts/backup-db.sh' || true; \
               echo "17 3 * * * $CRON_CMD" ) | crontab -
 
-            # Reclaimed before the build, not after: the build is what needs the
-            # room, and a host that filled up fails it at a random layer. Done
-            # while the previous release is still up, so its images count as in
-            # use and survive -- a failed build then still has something to
-            # start. `image prune` does not touch the BuildKit cache, which is
-            # the part that grows by a release every deploy.
-            docker image prune -f
-            docker builder prune -f
-            AVAIL_KB="$(df --output=avail / | tail -1)"
-            if [ "$AVAIL_KB" -lt 6291456 ]; then
-              echo "only $((AVAIL_KB / 1024)) MB free, dropping the reusable build cache too"
-              docker builder prune -af
-            fi
-            df -h /
+            # No `down` and no `--build`: the image is already on the host, so
+            # compose recreates only the services whose config moved and the api
+            # is out for as long as one container takes to start. nginx keeps
+            # serving throughout.
+            docker compose up -d
 
-            docker compose down
-            docker compose up -d --build
+            # The image this release replaced is now untagged. Nothing else
+            # accumulates on the host any more -- the sdk image and the build
+            # cache live on the runner now.
             docker image prune -f
 
             # Only now: the rollback target is the release that last came up.

@@ -1,17 +1,22 @@
 # Database backups and rollback
 
 The api applies migrations itself on startup (`db.Database.Migrate()` in
-`Program.cs`), and the deploy workflow rebuilds from `origin/main` with no
-tagged image to go back to. So a release that goes wrong changes both the code
-and the schema, and neither reverts on its own. Everything below exists to make
-that recoverable.
+`Program.cs`), so a release that goes wrong changes both the code and the
+schema, and the schema does not revert on its own. Everything below exists to
+make that recoverable.
+
+The code side does have something to go back to: CI builds the image and pushes
+it to `ghcr.io/volodymyrbiletskyi/smart-pet-care-api` tagged with the commit
+sha, and the deploy only pulls. A code rollback is therefore a tag change
+(`rollback.sh`), not a rebuild — it starts the binary that was running rather
+than a new build of the same source.
 
 ## What runs
 
 | | |
 |---|---|
 | Scheduled dump | daily at 03:17 UTC, host cron, re-installed on every deploy |
-| Pre-deploy dump | every deploy, after the new code is checked out and before any container starts |
+| Pre-deploy dump | every deploy, after the new image is pulled and before any container is recreated |
 | Pre-restore dump | automatically, by `restore-db.sh`, before it overwrites anything |
 | Pre-rollback dump | automatically, by `rollback.sh` |
 | Format | `pg_dump -Fc` (compressed, restorable selectively) |
@@ -156,9 +161,12 @@ cd /home/ubuntu/smart-pet-care-api
 bash scripts/rollback.sh --last          # or a specific sha
 ```
 
-It dumps first, resets the checkout, rebuilds and prints the migrations that
-stay applied. Afterwards **revert the commit on `main` as well** — `main` still
-points at the broken release, and the next push redeploys it.
+It dumps first, resets the checkout, pulls the image tagged with that sha and
+prints the migrations that stay applied. Releases from before the registry have
+no image, and it says so and builds on the host instead — which needs several
+GB free, so check `df -h /` before relying on that path. Afterwards **revert the
+commit on `main` as well** — `main` still points at the broken release, and the
+next push redeploys it.
 
 ### Case 2 — the migration has to come off
 
@@ -207,7 +215,7 @@ bash scripts/rollback.sh --last
 bash scripts/restore-db.sh smartPetCareDb-<stamp>-predeploy-<sha>.dump
 
 # 3. restore-db.sh leaves api stopped on purpose. Start it once the two agree.
-docker compose up -d --build api
+docker compose up -d api
 docker compose logs -f api
 ```
 

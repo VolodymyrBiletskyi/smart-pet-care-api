@@ -108,8 +108,25 @@ bash "$SCRIPT_DIR/backup-db.sh" "prerollback-${TARGET_SHA:0:7}"
 log "checking out $TARGET_SHA"
 git reset --hard "$TARGET_SHA"
 
-log "rebuilding"
-docker compose up -d --build
+IMAGE_REPO="${API_IMAGE_REPO:-ghcr.io/volodymyrbiletskyi/smart-pet-care-api}"
+
+# Going back to the image CI built for that commit, not to a fresh build of it:
+# the point of a rollback is the binary that was known to run, and a rebuild is
+# a new artifact however identical the source.
+log "starting $IMAGE_REPO:${TARGET_SHA:0:7}"
+export API_IMAGE="$IMAGE_REPO:$TARGET_SHA"
+if docker compose pull api; then
+    docker compose up -d
+else
+    # Releases from before the registry, and anything since pruned out of it,
+    # have no image to go back to. Building on the host is the fallback rather
+    # than the plan -- it pulls the ~3GB sdk image, which is exactly what the
+    # registry exists to keep off this disk.
+    log "no image for $TARGET_SHA in $IMAGE_REPO, falling back to building here"
+    log "check free space first if this is the small volume: df -h /"
+    unset API_IMAGE
+    docker compose up -d --build
+fi
 docker image prune -f > /dev/null
 
 docker compose ps

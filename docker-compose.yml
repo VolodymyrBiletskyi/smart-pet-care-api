@@ -1,5 +1,11 @@
 services:
   api:
+    # Both keys on purpose. The deploy sets API_IMAGE to the tag CI built and
+    # never passes --build, so the host only ever pulls; `docker compose up
+    # --build` locally still builds from the Dockerfile and tags the result.
+    # The default keeps a bare `docker compose up -d` on the server working,
+    # though it takes whatever :latest is rather than matching the checkout.
+    image: ${API_IMAGE:-ghcr.io/volodymyrbiletskyi/smart-pet-care-api:latest}
     build: .
     ports:
       - "8080:8080"
