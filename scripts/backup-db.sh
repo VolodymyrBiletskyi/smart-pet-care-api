@@ -10,9 +10,9 @@
 # "pre-restore" for the safety copy restore-db.sh takes before overwriting the
 # database. Anything else is free-text.
 #
-# Dumps live in <project>/backups, which docker-compose mounts into the db
-# container as /backups. Both sides of that mount are assumed below, so the
-# directory is not configurable.
+# Dumps live in <project>/backups, which restore-db.sh reads through the
+# /backups mount docker-compose gives the db container. That path is assumed on
+# both sides there, so the directory is not configurable here either.
 #
 # Settings come from the environment or from the project .env:
 #   BACKUP_RETENTION_DAYS   how long local dumps are kept (default 14)
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 # Git Bash rewrites arguments that look like absolute paths, which turns the
-# container path /backups into C:/Program Files/Git/backups. Ignored elsewhere.
+# container path /dev/null into C:/Program Files/Git/dev/null. Ignored elsewhere.
 export MSYS_NO_PATHCONV=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,7 +76,12 @@ docker compose exec -T db pg_dump -U "$DB_USER" -d "$DB_NAME" -Fc > "$TMP"
 # rather than during an incident. `pg_restore --list` is not enough: it stops
 # after the table of contents at the head of the file and happily accepts a
 # dump whose data was cut off. Nothing is written and no database is touched.
-if ! docker compose exec -T db pg_restore -f /dev/null "/backups/$(basename "$TMP")" > /dev/null; then
+#
+# Fed over stdin rather than read from /backups: the dump was written on the
+# host, and a db container started before the mount was added to the compose
+# file cannot see it. The deploy takes this dump before it recreates the
+# containers, so that is exactly the container it gets.
+if ! docker compose exec -T db pg_restore -f /dev/null < "$TMP" > /dev/null; then
     log "ERROR: dump did not verify, keeping it as $TMP for inspection"
     exit 1
 fi

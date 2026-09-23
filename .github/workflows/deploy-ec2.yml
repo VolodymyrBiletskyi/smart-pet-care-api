@@ -38,6 +38,14 @@ jobs:
             # point between "new code on disk" and "schema changed" where the
             # old database still exists. A failure here fails the deploy.
             if [ -n "$(docker compose ps -q db)" ]; then
+              # A db container started by an earlier release predates any change
+              # this one makes to its compose service -- including the /backups
+              # mount restore-db.sh reads dumps through. Recreating it here costs
+              # nothing when the config has not moved, and means a rollback never
+              # discovers the mismatch mid-incident.
+              # --wait: a recreated container is not accepting connections yet,
+              # and the dump is the very next command.
+              docker compose up -d --wait db
               bash scripts/backup-db.sh "predeploy-$SHORT_SHA"
             else
               echo "db container is not running, skipping the pre-deploy dump"
