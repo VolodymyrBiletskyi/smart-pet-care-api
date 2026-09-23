@@ -294,7 +294,9 @@ The image is built in CI, not on the server: the `build` job pushes
 the deploy pulls it. So the host never needs the ~3GB sdk image, a failed build
 cannot take production down with it, and `rollback.sh` goes back to the tag for
 a commit rather than rebuilding it. `docker compose up --build` locally is
-unchanged — `api` carries both `image:` and `build:`.
+unchanged — `api` carries both `image:` and `build:`. The ten most recent
+versions are kept in the registry and older ones are deleted after each push,
+since nothing there expires on its own.
 
 ### Authentication
 
