@@ -20,6 +20,11 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      # Set here rather than in appsettings.json, which .dockerignore keeps out
+      # of the image -- the container has no settings file, so an unset category
+      # falls back to Information and EF logs every statement it runs. Override
+      # to Information in .env when you need to see the SQL.
+      - Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command=${EF_COMMAND_LOG_LEVEL:-Warning}
       - ApiPublicUrl=${API_PUBLIC_URL:-http://localhost:8080}
       - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=smartPetCareDb;Username=postgres;Password=${DB_PASSWORD}
       - JwtOptions__SecretKey=${JWT_SECRET}
