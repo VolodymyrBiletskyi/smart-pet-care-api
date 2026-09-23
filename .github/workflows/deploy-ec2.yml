@@ -57,7 +57,10 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           API_IMAGE: ${{ needs.build.outputs.image }}
-          GHCR_USER: ${{ github.actor }}
+          # The owner, not github.actor: GHCR_TOKEN belongs to one account, and
+          # a deploy triggered by a collaborator's push would otherwise try to
+          # log in as them with someone else's token.
+          GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
