@@ -1,3 +1,6 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Domain;
@@ -17,7 +20,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { PetBelongsToUser = false };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetByPetIdAsync(_petId, _userId));
 
         Assert.Equal("Pet not found", exception.Message);
@@ -89,13 +92,13 @@ public class PetWeightLogServiceTests
     }
 
     [Fact]
-    public async Task GetByPetIdAsync_WhenFromIsAfterTo_ThrowsArgumentException()
+    public async Task GetByPetIdAsync_WhenFromIsAfterTo_ThrowsValidationException()
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository(), new FakeReminderRecalculationService());
         var from = new DateTime(2026, 7, 2, 0, 0, 0, DateTimeKind.Utc);
         var to = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.GetByPetIdAsync(_petId, _userId, from, to));
 
         Assert.Equal("From cannot be later than To", exception.Message);
@@ -105,12 +108,12 @@ public class PetWeightLogServiceTests
     [InlineData("0")]
     [InlineData("-0.01")]
     [InlineData("230.01")]
-    public async Task CreateAsync_WhenWeightIsOutsideRange_ThrowsArgumentException(string rawWeight)
+    public async Task CreateAsync_WhenWeightIsOutsideRange_ThrowsValidationException(string rawWeight)
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository(), new FakeReminderRecalculationService());
         var dto = ValidCreate(decimal.Parse(rawWeight, System.Globalization.CultureInfo.InvariantCulture));
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(_petId, _userId, dto));
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(_petId, _userId, dto));
 
         Assert.Contains("WeightKg", exception.Message);
     }
@@ -136,7 +139,7 @@ public class PetWeightLogServiceTests
         var dto = ValidCreate();
         dto.MeasuredAt = null;
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(_petId, _userId, dto));
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(_petId, _userId, dto));
 
         Assert.Equal("MeasuredAt is required", exception.Message);
     }
@@ -148,19 +151,19 @@ public class PetWeightLogServiceTests
         var dto = ValidCreate();
         dto.MeasuredAt = default(DateTime);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(_petId, _userId, dto));
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(_petId, _userId, dto));
 
         Assert.Equal("MeasuredAt is required", exception.Message);
     }
 
     [Fact]
-    public async Task CreateAsync_WhenMeasuredAtIsMoreThanTenMinutesFuture_ThrowsArgumentException()
+    public async Task CreateAsync_WhenMeasuredAtIsMoreThanTenMinutesFuture_ThrowsValidationException()
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository(), new FakeReminderRecalculationService());
         var dto = ValidCreate();
         dto.MeasuredAt = DateTime.UtcNow.AddMinutes(11);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(_petId, _userId, dto));
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(_petId, _userId, dto));
 
         Assert.Equal("MeasuredAt cannot be more than 10 minutes in the future", exception.Message);
     }
@@ -169,13 +172,13 @@ public class PetWeightLogServiceTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("\t\r\n")]
-    public async Task CreateAsync_WhenNotesAreWhitespace_ThrowsArgumentException(string notes)
+    public async Task CreateAsync_WhenNotesAreWhitespace_ThrowsValidationException(string notes)
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository(), new FakeReminderRecalculationService());
         var dto = ValidCreate();
         dto.Notes = notes;
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(_petId, _userId, dto));
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(_petId, _userId, dto));
 
         Assert.Equal("Notes cannot be whitespace only", exception.Message);
     }
@@ -190,8 +193,51 @@ public class PetWeightLogServiceTests
             service.CreateAsync(_petId, _userId, ValidCreate()));
 
         Assert.Contains("already exists", exception.Message);
+        Assert.Equal(ErrorCodes.WeightLog.MeasurementTimeConflict, exception.Code);
         Assert.Null(repo.AddedLog);
         Assert.Equal(0, repo.SaveChangesCalls);
+    }
+
+    /// <summary>
+    /// The pre-check above races with a concurrent insert, so the unique index
+    /// is the real guard — and a caller must not be able to tell which of the
+    /// two caught the duplicate.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_WhenTheIndexCatchesTheDuplicate_ReportsTheSameConflict()
+    {
+        var repo = new FakePetWeightLogRepository
+        {
+            SaveChangesFailure = DuplicateDbUpdateException()
+        };
+        var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
+
+        var exception = await Assert.ThrowsAsync<PetWeightLogConflictException>(() =>
+            service.CreateAsync(_petId, _userId, ValidCreate()));
+
+        Assert.Equal(ErrorCodes.WeightLog.MeasurementTimeConflict, exception.Code);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheDatabaseFailsForAnotherReason_DoesNotCallItAConflict()
+    {
+        var repo = new FakePetWeightLogRepository
+        {
+            SaveChangesFailure = DuplicateDbUpdateException("IX_SomethingElse")
+        };
+        var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            service.CreateAsync(_petId, _userId, ValidCreate()));
+    }
+
+    private static DbUpdateException DuplicateDbUpdateException(
+        string constraintName = "IX_PetWeightLogs_PetId_MeasuredAt")
+    {
+        var postgresException = new PostgresException(
+            "duplicate key", "ERROR", "ERROR", PostgresErrorCodes.UniqueViolation,
+            constraintName: constraintName);
+        return new DbUpdateException("Database update failed", postgresException);
     }
 
     [Fact]
@@ -225,7 +271,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { TrackedPet = null };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.CreateAsync(_petId, _userId, ValidCreate()));
 
         Assert.Equal("Pet not found", exception.Message);
@@ -239,7 +285,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { PetBelongsToUser = false, TrackedLog = NewLog() };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchPetWeightLogDto()));
 
         Assert.Equal("Pet not found", exception.Message);
@@ -254,7 +300,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { TrackedLog = log, TrackedPet = pet };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateAsync(_petId, log.Id, _userId, new PatchPetWeightLogDto()));
 
         Assert.Equal("At least one field must be provided", exception.Message);
@@ -268,7 +314,7 @@ public class PetWeightLogServiceTests
     {
         var service = new PetWeightLogService(new FakePetWeightLogRepository { TrackedLog = null }, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchPetWeightLogDto
             {
                 Notes = PatchField<string?>.Set(null)
@@ -283,7 +329,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { TrackedLog = NewLog(Guid.NewGuid()) };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, new PatchPetWeightLogDto
             {
                 Notes = PatchField<string?>.Set(null)
@@ -296,7 +342,7 @@ public class PetWeightLogServiceTests
     [InlineData("0")]
     [InlineData("-1")]
     [InlineData("230.01")]
-    public async Task UpdateAsync_WhenPatchedWeightIsInvalid_ThrowsArgumentException(string rawWeight)
+    public async Task UpdateAsync_WhenPatchedWeightIsInvalid_ThrowsValidationException(string rawWeight)
     {
         var repo = new FakePetWeightLogRepository { TrackedLog = NewLog() };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
@@ -305,7 +351,7 @@ public class PetWeightLogServiceTests
             WeightKg = PatchField<decimal>.Set(decimal.Parse(rawWeight, System.Globalization.CultureInfo.InvariantCulture))
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, dto));
+        await Assert.ThrowsAsync<ValidationException>(() => service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, dto));
         Assert.Equal(0, repo.SaveChangesCalls);
     }
 
@@ -316,20 +362,20 @@ public class PetWeightLogServiceTests
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
         var dto = new PatchPetWeightLogDto { MeasuredAt = PatchField<DateTime>.Set(default) };
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, dto));
 
         Assert.Equal("MeasuredAt is required", exception.Message);
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenPatchedNotesAreWhitespace_ThrowsArgumentException()
+    public async Task UpdateAsync_WhenPatchedNotesAreWhitespace_ThrowsValidationException()
     {
         var repo = new FakePetWeightLogRepository { TrackedLog = NewLog() };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
         var dto = new PatchPetWeightLogDto { Notes = PatchField<string?>.Set("  ") };
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateAsync(_petId, repo.TrackedLog.Id, _userId, dto));
 
         Assert.Equal("Notes cannot be whitespace only", exception.Message);
@@ -343,7 +389,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { TrackedLog = invalidLog };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateAsync(_petId, invalidLog.Id, _userId, new PatchPetWeightLogDto
             {
                 Notes = PatchField<string?>.Set(null)
@@ -406,7 +452,7 @@ public class PetWeightLogServiceTests
         var repo = new FakePetWeightLogRepository { PetBelongsToUser = false };
         var service = new PetWeightLogService(repo, new FakeReminderRecalculationService());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
 
         Assert.Equal("Pet not found", exception.Message);
@@ -532,7 +578,7 @@ public class PetWeightLogServiceTests
         var recalculation = new FakeReminderRecalculationService { ReminderResolves = false };
         var service = new PetWeightLogService(new FakePetWeightLogRepository(), recalculation);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        await Assert.ThrowsAsync<NotFoundException>(() => service.CreateAsync(
             _petId, _userId, new CreatePetWeightLogDto
             {
                 ReminderId = Guid.NewGuid(),
@@ -541,3 +587,6 @@ public class PetWeightLogServiceTests
             }));
     }
 }
+
+
+

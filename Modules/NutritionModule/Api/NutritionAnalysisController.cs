@@ -1,7 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
@@ -38,17 +39,17 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         /// </remarks>
         [HttpPost]
         [ProducesResponseType(typeof(NutritionAnalysisResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(
-            typeof(NutritionAnalysisErrorResponseDto),
+            typeof(ApiErrorResponse),
             StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(
-            typeof(NutritionAnalysisErrorResponseDto),
+            typeof(ApiErrorResponse),
             StatusCodes.Status502BadGateway)]
         [ProducesResponseType(
-            typeof(NutritionAnalysisErrorResponseDto),
+            typeof(ApiErrorResponse),
             StatusCodes.Status503ServiceUnavailable)]
         public async Task<IActionResult> Analyze(
             Guid petId,
@@ -66,11 +67,11 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message, ErrorCodes.PetNotFound));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(Error(ex.Message, ErrorCodes.Nutrition.AnalysisInvalid));
             }
             catch (ClassifierRateLimitedException ex)
             {
@@ -100,10 +101,11 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
 
                 return StatusCode(
                     StatusCodes.Status502BadGateway,
-                    new NutritionAnalysisErrorResponseDto
+                    new ApiErrorResponse
                     {
-                        Code = "classifier_invalid_response",
+                        Code = ErrorCodes.Classifier.InvalidResponse,
                         Message = "The nutrition assistant returned an invalid response.",
+                        TraceId = HttpContext.TraceIdentifier,
                         Retryable = false
                     });
             }
@@ -117,7 +119,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
 
                 return ClassifierError(
                     StatusCodes.Status503ServiceUnavailable,
-                    ex.Code ?? "service_unavailable",
+                    ex.Code ?? ErrorCodes.Classifier.Unavailable,
                     "The nutrition assistant is temporarily unavailable. Please try again later.",
                     retryable: true,
                     ex.RetryAfterSeconds);
@@ -128,7 +130,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         [HttpGet]
         [ProducesResponseType(typeof(NutritionAnalysisHistoryResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetRecent(Guid petId)
         {
             try
@@ -137,7 +139,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(Error(ex.Message, ErrorCodes.PetNotFound));
             }
         }
 
@@ -156,13 +158,19 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
 
             return StatusCode(
                 statusCode,
-                new NutritionAnalysisErrorResponseDto
+                new ApiErrorResponse
                 {
                     Code = code,
                     Message = message,
+                    TraceId = HttpContext.TraceIdentifier,
                     Retryable = retryable,
                     RetryAfterSeconds = retryAfterSeconds
                 });
         }
+
+        private static ApiErrorResponse Error(string message, string code) =>
+            ApiErrorResponse.FromMessage(message, code);
     }
 }
+
+

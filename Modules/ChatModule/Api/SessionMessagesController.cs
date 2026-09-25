@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Common.Api;
@@ -58,13 +58,13 @@ public sealed class SessionMessagesController(
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status502BadGateway)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> PostMessage(
         Guid sessionId,
@@ -88,13 +88,13 @@ public sealed class SessionMessagesController(
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status502BadGateway)]
     [ProducesResponseType(
-        typeof(ClassifierServiceErrorResponseDto),
+        typeof(ApiErrorResponse),
         StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> RetryMessage(
         Guid sessionId,
@@ -160,11 +160,12 @@ public sealed class SessionMessagesController(
 
             return StatusCode(
                 StatusCodes.Status502BadGateway,
-                new ClassifierServiceErrorResponseDto
+                new ApiErrorResponse
                 {
                     MessageId = exception.MessageId,
-                    Code = "classifier_invalid_response",
+                    Code = ErrorCodes.Classifier.InvalidResponse,
                     Message = "The pet-care assistant returned an invalid response.",
+                    TraceId = HttpContext.TraceIdentifier,
                     Retryable = false
                 });
         }
@@ -178,7 +179,7 @@ public sealed class SessionMessagesController(
 
             return ClassifierError(
                 StatusCodes.Status503ServiceUnavailable,
-                exception.Code ?? "service_unavailable",
+                exception.Code ?? ErrorCodes.Classifier.Unavailable,
                 "The pet-care assistant is temporarily unavailable. Please try again later.",
                 retryable: true,
                 exception.RetryAfterSeconds,
@@ -202,11 +203,12 @@ public sealed class SessionMessagesController(
 
         return StatusCode(
             statusCode,
-            new ClassifierServiceErrorResponseDto
+            new ApiErrorResponse
             {
                 MessageId = messageId,
                 Code = code,
                 Message = message,
+                TraceId = HttpContext.TraceIdentifier,
                 Retryable = retryable,
                 RetryAfterSeconds = retryAfterSeconds
             });
@@ -246,3 +248,5 @@ public sealed class SessionMessagesController(
         _ => "chat_state_conflict"
     };
 }
+
+

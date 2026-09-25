@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -27,11 +27,11 @@ public sealed class ChatControllersTests
         Assert.Contains(
             responses,
             response => response.StatusCode == StatusCodes.Status429TooManyRequests
-                && response.Type == typeof(ClassifierServiceErrorResponseDto));
+                && response.Type == typeof(ApiErrorResponse));
         Assert.Contains(
             responses,
             response => response.StatusCode == StatusCodes.Status503ServiceUnavailable
-                && response.Type == typeof(ClassifierServiceErrorResponseDto));
+                && response.Type == typeof(ApiErrorResponse));
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public sealed class ChatControllersTests
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status429TooManyRequests, result.StatusCode);
-        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        var response = Assert.IsType<ApiErrorResponse>(result.Value);
         Assert.Equal(messageId, response.MessageId);
         Assert.Equal("rate_limit_exceeded", response.Code);
         Assert.True(response.Retryable);
@@ -252,7 +252,7 @@ public sealed class ChatControllersTests
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        var response = Assert.IsType<ApiErrorResponse>(result.Value);
         Assert.Equal(messageId, response.MessageId);
         Assert.Equal("service_overloaded", response.Code);
         Assert.True(response.Retryable);
@@ -280,7 +280,7 @@ public sealed class ChatControllersTests
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
-        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        var response = Assert.IsType<ApiErrorResponse>(result.Value);
         Assert.Equal(messageId, response.MessageId);
         Assert.Equal("classifier_invalid_response", response.Code);
         Assert.False(response.Retryable);
@@ -308,7 +308,7 @@ public sealed class ChatControllersTests
 
         var result = Assert.IsType<ObjectResult>(action);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        var response = Assert.IsType<ClassifierServiceErrorResponseDto>(result.Value);
+        var response = Assert.IsType<ApiErrorResponse>(result.Value);
         Assert.Equal("request_timeout", response.Code);
         Assert.True(response.Retryable);
         Assert.DoesNotContain("Internal timeout details", response.Message);
@@ -473,3 +473,4 @@ public sealed class ChatControllersTests
         }
     }
 }
+

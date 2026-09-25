@@ -61,10 +61,15 @@ internal sealed class FakePetWeightLogRepository : IPetWeightLogRepository
 
     public void Delete(PetWeightLog entity) => DeletedLog = entity;
 
+    /// <summary>Set to make the next save fail the way the database would.</summary>
+    public Exception? SaveChangesFailure { get; set; }
+
     public Task<int> SaveChangesAsync()
     {
         SaveChangesCalls++;
-        return Task.FromResult(1);
+        return SaveChangesFailure is null
+            ? Task.FromResult(1)
+            : Task.FromException<int>(SaveChangesFailure);
     }
 }
 
