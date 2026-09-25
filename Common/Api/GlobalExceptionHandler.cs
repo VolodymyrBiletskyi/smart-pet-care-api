@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Diagnostics;
 using smart_pet_care_api.Infrastructure.Classifier;
+using smart_pet_care_api.Infrastructure.Cloudinary;
 
 namespace smart_pet_care_api.Common.Api;
 
@@ -33,11 +34,26 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         var (statusCode, response) = Translate(exception);
         response.TraceId = httpContext.TraceIdentifier;
 
-        if (statusCode >= StatusCodes.Status500InternalServerError)
+        // A deliberate upstream failure and a bug both deserve a log line, but not
+        // the same one: only the second is worth waking someone up for, and
+        // "Unhandled exception" is the string an alert would watch.
+        if (response.Code == ErrorCodes.Internal)
         {
             logger.LogError(
                 exception,
                 "Unhandled exception for {Method} {Path}. Trace: {TraceIdentifier}",
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                httpContext.TraceIdentifier);
+        }
+        else if (statusCode >= StatusCodes.Status500InternalServerError
+            || statusCode == StatusCodes.Status429TooManyRequests)
+        {
+            logger.LogWarning(
+                exception,
+                "Upstream failure {Code} ({StatusCode}) for {Method} {Path}. Trace: {TraceIdentifier}",
+                response.Code,
+                statusCode,
                 httpContext.Request.Method,
                 httpContext.Request.Path,
                 httpContext.TraceIdentifier);
@@ -62,8 +78,20 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             Code = app.Code,
             Message = ApiErrorResponse.Normalize(app.Message),
             Params = app.Parameters,
-            Retryable = app.Retryable
+            Retryable = app.Retryable,
+            RetryAfterSeconds = app.RetryAfterSeconds
         }),
+
+        // Photos exist only on pets today, so the alias the client already knows
+        // is kept rather than generalised for an upload path that does not exist.
+        CloudinaryUploadException => (
+            StatusCodes.Status502BadGateway,
+            new ApiErrorResponse
+            {
+                Code = ErrorCodes.Pet.PhotoUploadFailed,
+                Message = "The photo could not be uploaded.",
+                Retryable = true
+            }),
 
         ClassifierRateLimitedException rateLimited => (
             StatusCodes.Status429TooManyRequests,

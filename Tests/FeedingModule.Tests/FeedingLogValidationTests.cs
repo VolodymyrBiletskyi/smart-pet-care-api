@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,7 @@ public class FeedingLogValidationTests
     private readonly Guid _userId = Guid.NewGuid();
 
     [Fact]
-    public async Task Create_WhenFedAtIsMissing_ReturnsBadRequest()
+    public async Task Create_WhenFedAtIsMissing_Throws()
     {
         var dto = DeserializeRequest("""
             {
@@ -28,16 +28,15 @@ public class FeedingLogValidationTests
             }
             """);
 
-        var result = await Controller().Create(_petId, dto);
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            Controller().Create(_petId, dto));
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
-        Assert.Equal("feeding_time_required", error.Code);
-        Assert.Equal("FedAt is required.", error.Message);
+        Assert.Equal(ErrorCodes.Feeding.TimeRequired, exception.Code);
+        Assert.Equal("FedAt is required", exception.Message);
     }
 
     [Fact]
-    public async Task Create_WhenFedAtIsDateTimeMinValue_ReturnsBadRequest()
+    public async Task Create_WhenFedAtIsDateTimeMinValue_Throws()
     {
         var dto = DeserializeRequest("""
             {
@@ -46,23 +45,20 @@ public class FeedingLogValidationTests
             }
             """);
 
-        var result = await Controller().Create(_petId, dto);
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            Controller().Create(_petId, dto));
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
-        Assert.Equal("feeding_time_required", error.Code);
-        Assert.Equal("FedAt is required.", error.Message);
+        Assert.Equal(ErrorCodes.Feeding.TimeRequired, exception.Code);
+        Assert.Equal("FedAt is required", exception.Message);
     }
 
     [Fact]
-    public async Task Update_WhenPatchIsEmpty_ReturnsBadRequest()
+    public async Task Update_WhenPatchIsEmpty_Throws()
     {
-        var result = await Controller().Update(_petId, Guid.NewGuid(), new PatchFeedingLogDto());
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            Controller().Update(_petId, Guid.NewGuid(), new PatchFeedingLogDto()));
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
-        Assert.Equal("feeding_update_empty", error.Code);
-        Assert.Equal("At least one field must be provided.", error.Message);
+        Assert.Equal(ErrorCodes.Feeding.UpdateEmpty, exception.Code);
     }
 
     private FeedingLogController Controller()
@@ -110,3 +106,5 @@ internal sealed class FakeFeedingLogRepository : IFeedingLogRepository
     public void Delete(FeedingLog entity) { }
     public Task<int> SaveChangesAsync() => Task.FromResult(1);
 }
+
+

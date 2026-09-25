@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Infrastructure.Cloudinary;
 using smart_pet_care_api.Modules.PetModule.DTOs;
@@ -69,7 +70,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 
             var pet = await _petRepo.GetTrackedByIdAndUserIdAsync(id, userId);
             if (pet is null)
-                throw new InvalidOperationException("Pet does not exist");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var oldPhotoUrl = pet.PhotoUrl;
             var oldPhotoPublicId = pet.PhotoPublicId;
@@ -94,7 +95,7 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 
             var pet = await _petRepo.GetTrackedByIdAndUserIdAsync(id, userId);
             if (pet is null)
-                throw new InvalidOperationException("Pet does not exist");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var oldPhotoPublicId = pet.PhotoPublicId;
             var uploadResult = await _cloudinaryService.UploadImageAsync(photo!, "pets/photos");
@@ -145,14 +146,14 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
 
         private static void ValidateCreate(CreatePetDto dto)
         {
-            ValidateRequiredText(dto.Name, "Name");
+            ValidateRequiredText(dto.Name, "Name", ErrorCodes.Pet.NameRequired);
             if (!dto.Species.HasValue)
-                throw new ArgumentException("Species is required");
+                throw new ValidationException(ErrorCodes.Pet.SpeciesRequired, "Species is required");
             ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
             ValidateWeight(dto.WeightKg);
             ValidateSex(dto.Sex);
-            ValidateOptionalText(dto.PhotoPublicId, "PhotoPublicId");
+            ValidateOptionalText(dto.PhotoPublicId, "PhotoPublicId", ErrorCodes.Pet.PhotoPublicIdEmpty);
         }
 
         private static void ValidateUpdate(UpdatePetDto dto)
@@ -168,43 +169,53 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
                 && !dto.ChronicConditions.IsSet
                 && !dto.BehavioralNotes.IsSet)
             {
-                throw new ArgumentException("At least one field must be provided");
+                throw new ValidationException(
+                    ErrorCodes.Pet.UpdateEmpty, "At least one field must be provided");
             }
 
-            ValidateOptionalText(dto.Name, "Name");
+            ValidateOptionalText(dto.Name, "Name", ErrorCodes.Pet.NameEmpty);
             if (dto.Species.HasValue) ValidateSpecies(dto.Species.Value);
             ValidateBirthDate(dto.BirthDate);
             ValidateOptionalSex(dto.Sex);
-            if (dto.PhotoUrl.IsSet) ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl");
-            if (dto.PhotoPublicId.IsSet) ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId");
+            if (dto.PhotoUrl.IsSet)
+                ValidateOptionalText(dto.PhotoUrl.Value, "PhotoUrl", ErrorCodes.Pet.PhotoUrlEmpty);
+            if (dto.PhotoPublicId.IsSet)
+                ValidateOptionalText(dto.PhotoPublicId.Value, "PhotoPublicId", ErrorCodes.Pet.PhotoPublicIdEmpty);
         }
 
-        private static void ValidateRequiredText(string? value, string fieldName)
+        private static void ValidateRequiredText(string? value, string fieldName, string code)
         {
             if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{fieldName} is required");
+                throw new ValidationException(code, $"{fieldName} is required");
         }
 
-        private static void ValidateOptionalText(string? value, string fieldName)
+        private static void ValidateOptionalText(string? value, string fieldName, string code)
         {
             if (value is not null && string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException($"{fieldName} cannot be empty");
+                throw new ValidationException(code, $"{fieldName} cannot be empty");
         }
 
 
         private static void ValidateBirthDate(DateTime? birthDate)
         {
             if (birthDate.HasValue && birthDate.Value.Date > DateTime.UtcNow.Date)
-                throw new ArgumentException("BirthDate cannot be in the future");
+                throw new ValidationException(
+                    ErrorCodes.Pet.BirthDateInFuture, "BirthDate cannot be in the future");
         }
+
+        private const decimal MaximumWeightKg = 230;
 
         private static void ValidateWeight(decimal? weightKg)
         {
             if (weightKg.HasValue && weightKg.Value <= 0)
-                throw new ArgumentException("WeightKg must be greater than zero");
+                throw new ValidationException(
+                    ErrorCodes.Pet.WeightNotPositive, "WeightKg must be greater than zero");
 
-            if (weightKg.HasValue && weightKg.Value > 230)
-                throw new ArgumentException("WeightKg cannot be greater than 230");
+            if (weightKg.HasValue && weightKg.Value > MaximumWeightKg)
+                throw new ValidationException(
+                    ErrorCodes.Pet.WeightTooLarge,
+                    $"WeightKg cannot be greater than {MaximumWeightKg}",
+                    new Dictionary<string, object?> { ["max"] = MaximumWeightKg });
         }
 
         private static void AddInitialWeightLogIfNeeded(Pet pet, decimal? weightKg)
@@ -231,19 +242,19 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
         private static void ValidateSex(Sex sex)
         {
             if (!Enum.IsDefined(sex))
-                throw new ArgumentException("Sex is invalid");
+                throw new ValidationException(ErrorCodes.Pet.SexInvalid, "Sex is invalid");
         }
 
         private static void ValidateSpecies(AnimalSpecies species)
         {
             if (species == AnimalSpecies.Unknown || !Enum.IsDefined(species))
-                throw new ArgumentException("Species is invalid");
+                throw new ValidationException(ErrorCodes.Pet.SpeciesInvalid, "Species is invalid");
         }
 
         private static void ValidatePhoto(IFormFile? photo)
         {
             if (photo is null || photo.Length == 0)
-                throw new ArgumentException("Photo is required");
+                throw new ValidationException(ErrorCodes.Pet.PhotoRequired, "Photo is required");
 
             var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -253,11 +264,18 @@ namespace smart_pet_care_api.Modules.PetModule.Domain
             };
 
             if (!allowedContentTypes.Contains(photo.ContentType))
-                throw new ArgumentException("Photo must be a JPEG, PNG, or WEBP image");
+                throw new ValidationException(
+                    ErrorCodes.Pet.PhotoTypeInvalid,
+                    "Photo must be a JPEG, PNG, or WEBP image",
+                    new Dictionary<string, object?> { ["allowed"] = allowedContentTypes.ToArray() });
 
-            const long maxBytes = 5 * 1024 * 1024;
-            if (photo.Length > maxBytes)
-                throw new ArgumentException("Photo size must be 5MB or less");
+            const int maxMegabytes = 5;
+            if (photo.Length > maxMegabytes * 1024 * 1024)
+                throw new ValidationException(
+                    ErrorCodes.Pet.PhotoTooLarge,
+                    $"Photo size must be {maxMegabytes}MB or less",
+                    new Dictionary<string, object?> { ["maxMegabytes"] = maxMegabytes });
         }
     }
 }
+

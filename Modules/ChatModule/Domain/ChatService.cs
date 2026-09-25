@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
@@ -46,7 +47,7 @@ public sealed class ChatService(
                 candidate => candidate.Id == sessionId
                     && candidate.UserId == userId,
                 cancellationToken)
-            ?? throw new KeyNotFoundException("The chat session was not found.");
+            ?? throw new NotFoundException(ErrorCodes.Chat.SessionNotFound, "The chat session was not found.");
 
         return ChatSessionDetailsResult.FromSession(session);
     }
@@ -60,9 +61,10 @@ public sealed class ChatService(
     {
         if (limit is < 1 or > MaximumMessagePageSize)
         {
-            throw new ArgumentException(
+            throw new ValidationException(
+                ErrorCodes.Chat.PageLimitInvalid,
                 $"Limit must be between 1 and {MaximumMessagePageSize}.",
-                nameof(limit));
+                new Dictionary<string, object?> { ["min"] = 1, ["max"] = MaximumMessagePageSize });
         }
 
         var sessionExists = await dbContext.ChatSessions
@@ -73,7 +75,7 @@ public sealed class ChatService(
                 cancellationToken);
         if (!sessionExists)
         {
-            throw new KeyNotFoundException("The chat session was not found.");
+            throw new NotFoundException(ErrorCodes.Chat.SessionNotFound, "The chat session was not found.");
         }
 
         var position = DecodeCursor(cursor);
@@ -121,7 +123,7 @@ public sealed class ChatService(
     {
         if (petId == Guid.Empty)
         {
-            throw new ArgumentException("Pet ID is required.", nameof(petId));
+            throw new ValidationException(ErrorCodes.Chat.PetIdRequired, "Pet ID is required.");
         }
 
         var species = await dbContext.Pets
@@ -129,7 +131,7 @@ public sealed class ChatService(
             .Where(pet => pet.Id == petId && pet.UserId == userId)
             .Select(pet => (Enums.AnimalSpecies?)pet.Species)
             .SingleOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException("The pet was not found.");
+            ?? throw new NotFoundException(ErrorCodes.PetNotFound, "The pet was not found.");
         var petType = PetTypeMapper.Map(species);
 
         IDbContextTransaction? transaction = null;
@@ -232,9 +234,8 @@ public sealed class ChatService(
         ValidateUserText(userText);
         if (clientMessageId == Guid.Empty)
         {
-            throw new ArgumentException(
-                "Client message ID is required.",
-                nameof(clientMessageId));
+            throw new ValidationException(
+                ErrorCodes.Chat.ClientMessageIdRequired, "Client message ID is required.");
         }
 
         var session = await dbContext.ChatSessions
@@ -242,7 +243,7 @@ public sealed class ChatService(
                 candidate => candidate.Id == sessionId
                     && candidate.UserId == userId,
                 cancellationToken)
-            ?? throw new KeyNotFoundException("The chat session was not found.");
+            ?? throw new NotFoundException(ErrorCodes.Chat.SessionNotFound, "The chat session was not found.");
 
         var existingMessage = await dbContext.ChatMessages
             .SingleOrDefaultAsync(
@@ -323,7 +324,7 @@ public sealed class ChatService(
                 candidate => candidate.Id == sessionId
                     && candidate.UserId == userId,
                 cancellationToken)
-            ?? throw new KeyNotFoundException("The chat session was not found.");
+            ?? throw new NotFoundException(ErrorCodes.Chat.SessionNotFound, "The chat session was not found.");
 
         var claimed = await TryClaimFailedRetryableMessageAsync(
             session.Id,
@@ -340,11 +341,11 @@ public sealed class ChatService(
                     cancellationToken);
             if (!messageExists)
             {
-                throw new KeyNotFoundException("The chat message was not found.");
+                throw new NotFoundException(ErrorCodes.Chat.MessageNotFound, "The chat message was not found.");
             }
 
-            throw new InvalidOperationException(
-                "Only a failed retryable user message can be retried.");
+            throw new ConflictException(
+                ErrorCodes.Chat.MessageNotRetryable, "Only a failed retryable user message can be retried.");
         }
 
         var userMessage = await dbContext.ChatMessages
@@ -571,34 +572,35 @@ public sealed class ChatService(
     {
         if (!string.Equals(message.Content, userText, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException(
-                "The client message ID has already been used with different text.");
+            throw new ConflictException(
+                ErrorCodes.Chat.ClientMessageIdConflict, "The client message ID has already been used with different text.");
         }
 
         if (message.Status != ChatMessageStatus.Completed
             || string.IsNullOrWhiteSpace(message.ClassifierResponseJson))
         {
-            throw new InvalidOperationException(
-                "The client message is already being processed or must be retried.");
+            throw new ConflictException(
+                ErrorCodes.Chat.MessageProcessingOrRetryRequired, "The client message is already being processed or must be retried.");
         }
 
         return JsonSerializer.Deserialize<ClassifierChatResponse>(
                    message.ClassifierResponseJson)
-               ?? throw new InvalidOperationException(
-                   "The stored chat response is invalid.");
+               ?? throw new ConflictException(
+                   ErrorCodes.Chat.StoredResponseInvalid, "The stored chat response is invalid.");
     }
     private static void ValidateUserText(string userText)
     {
         if (string.IsNullOrWhiteSpace(userText))
         {
-            throw new ArgumentException("Message text is required.", nameof(userText));
+            throw new ValidationException(ErrorCodes.Chat.MessageTextRequired, "Message text is required.");
         }
 
         if (userText.Length > MaximumMessageLength)
         {
-            throw new ArgumentException(
+            throw new ValidationException(
+                ErrorCodes.Chat.MessageTextTooLong,
                 $"Message text cannot exceed {MaximumMessageLength} characters.",
-                nameof(userText));
+                new Dictionary<string, object?> { ["maxLength"] = MaximumMessageLength });
         }
     }
 
@@ -656,12 +658,11 @@ public sealed class ChatService(
         catch (Exception exception) when (
             exception is FormatException or ArgumentOutOfRangeException)
         {
-            throw new ArgumentException(
-                "The message cursor is invalid.",
-                nameof(cursor),
-                exception);
+            throw new ValidationException(ErrorCodes.Chat.CursorInvalid, "The message cursor is invalid.");
         }
     }
 
     private sealed record MessageCursor(DateTime CreatedAt, Guid MessageId);
 }
+
+

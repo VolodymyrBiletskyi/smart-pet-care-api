@@ -75,14 +75,14 @@ public sealed class ChatControllersTests
         var controller = CreateMessagesController(
             new StubChatService { ThrowInvalidRetryState = true });
 
-        var action = await controller.RetryMessage(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            controller.RetryMessage(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                TestContext.Current.CancellationToken));
 
-        var conflict = Assert.IsType<ConflictObjectResult>(action);
-        var error = Assert.IsType<ApiErrorResponse>(conflict.Value);
-        Assert.Equal("chat_message_not_retryable", error.Code);
+        Assert.Equal(ErrorCodes.Chat.MessageNotRetryable, exception.Code);
+        Assert.Equal(StatusCodes.Status409Conflict, exception.StatusCode);
     }
 
     [Fact]
@@ -124,13 +124,12 @@ public sealed class ChatControllersTests
         var controller = CreateSessionsController(
             new StubChatService { ThrowSessionNotFound = true });
 
-        var action = await controller.GetSession(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            controller.GetSession(
+                Guid.NewGuid(),
+                TestContext.Current.CancellationToken));
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(action);
-        var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
-        Assert.Equal("chat_session_not_found", error.Code);
+        Assert.Equal(ErrorCodes.Chat.SessionNotFound, exception.Code);
     }
 
     [Fact]
@@ -214,20 +213,18 @@ public sealed class ChatControllersTests
                     messageId: messageId)
             });
 
-        var action = await controller.PostMessage(
-            Guid.NewGuid(),
-            new PostSessionMessageRequest { Text = "question" },
-            TestContext.Current.CancellationToken);
+        // Chat passes the classifier's own code through, so there is nothing for
+        // the controller to translate; GlobalExceptionHandlerTests covers what
+        // the client finally receives.
+        var exception = await Assert.ThrowsAsync<ClassifierRateLimitedException>(() =>
+            controller.PostMessage(
+                Guid.NewGuid(),
+                new PostSessionMessageRequest { Text = "question" },
+                TestContext.Current.CancellationToken));
 
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status429TooManyRequests, result.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal(messageId, response.MessageId);
-        Assert.Equal("rate_limit_exceeded", response.Code);
-        Assert.True(response.Retryable);
-        Assert.Equal(30, response.RetryAfterSeconds);
-        Assert.Equal("30", controller.Response.Headers.RetryAfter.ToString());
-        Assert.DoesNotContain("Internal", response.Message);
+        Assert.Equal(messageId, exception.MessageId);
+        Assert.Equal("rate_limit_exceeded", exception.Code);
+        Assert.Equal(30, exception.RetryAfterSeconds);
     }
 
     [Fact]
@@ -245,20 +242,15 @@ public sealed class ChatControllersTests
                     messageId: messageId)
             });
 
-        var action = await controller.PostMessage(
-            Guid.NewGuid(),
-            new PostSessionMessageRequest { Text = "question" },
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+            controller.PostMessage(
+                Guid.NewGuid(),
+                new PostSessionMessageRequest { Text = "question" },
+                TestContext.Current.CancellationToken));
 
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal(messageId, response.MessageId);
-        Assert.Equal("service_overloaded", response.Code);
-        Assert.True(response.Retryable);
-        Assert.Equal(20, response.RetryAfterSeconds);
-        Assert.Equal("20", controller.Response.Headers.RetryAfter.ToString());
-        Assert.DoesNotContain("Internal", response.Message);
+        Assert.Equal(messageId, exception.MessageId);
+        Assert.Equal("service_overloaded", exception.Code);
+        Assert.Equal(20, exception.RetryAfterSeconds);
     }
 
     [Fact]
@@ -273,21 +265,13 @@ public sealed class ChatControllersTests
                     messageId: messageId)
             });
 
-        var action = await controller.PostMessage(
-            Guid.NewGuid(),
-            new PostSessionMessageRequest { Text = "question" },
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<ClassifierInvalidResponseException>(() =>
+            controller.PostMessage(
+                Guid.NewGuid(),
+                new PostSessionMessageRequest { Text = "question" },
+                TestContext.Current.CancellationToken));
 
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal(messageId, response.MessageId);
-        Assert.Equal("classifier_invalid_response", response.Code);
-        Assert.False(response.Retryable);
-        Assert.Equal(
-            "The pet-care assistant returned an invalid response.",
-            response.Message);
-        Assert.DoesNotContain("Internal", response.Message);
+        Assert.Equal(messageId, exception.MessageId);
     }
 
     [Fact]
@@ -301,17 +285,13 @@ public sealed class ChatControllersTests
                     code: "request_timeout")
             });
 
-        var action = await controller.PostMessage(
-            Guid.NewGuid(),
-            new PostSessionMessageRequest { Text = "question" },
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+            controller.PostMessage(
+                Guid.NewGuid(),
+                new PostSessionMessageRequest { Text = "question" },
+                TestContext.Current.CancellationToken));
 
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal("request_timeout", response.Code);
-        Assert.True(response.Retryable);
-        Assert.DoesNotContain("Internal timeout details", response.Message);
+        Assert.Equal("request_timeout", exception.Code);
     }
 
     private static ChatSessionsController CreateSessionsController(
@@ -383,7 +363,8 @@ public sealed class ChatControllersTests
         {
             if (ThrowSessionNotFound)
             {
-                throw new KeyNotFoundException("The chat session was not found.");
+                throw new NotFoundException(
+                    ErrorCodes.Chat.SessionNotFound, "The chat session was not found.");
             }
 
             var result = CreateResult ?? CreateSessionResult();
@@ -455,7 +436,8 @@ public sealed class ChatControllersTests
             RetriedMessageId = messageId;
             if (ThrowInvalidRetryState)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
+                    ErrorCodes.Chat.MessageNotRetryable,
                     "Only a failed retryable user message can be retried.");
             }
 
@@ -473,4 +455,5 @@ public sealed class ChatControllersTests
         }
     }
 }
+
 
