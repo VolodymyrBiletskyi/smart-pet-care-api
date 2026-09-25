@@ -13,31 +13,48 @@ public sealed class WellnessService(
     AppDbContext dbContext,
     IWellnessDataAggregator aggregator,
     IClassifierClient classifierClient,
-    WellnessCalculationLock calculationLock,
+    WellnessEvaluationLock evaluationLock,
     TimeProvider timeProvider) : IWellnessService
 {
     public const int DefaultPageSize = 20;
     public const int MaximumPageSize = 100;
+    public static readonly TimeSpan EvaluationReusePeriod = TimeSpan.FromDays(3);
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public async Task<WellnessResponseDto> RecalculateAsync(
+    public Task<WellnessResponseDto> GetOrCreateEvaluationAsync(
         Guid petId,
         Guid userId,
-        string? currentSymptoms,
-        CancellationToken cancellationToken = default)
-    {
-        if (currentSymptoms is { Length: > 4000 })
-            throw new ArgumentException("CurrentSymptoms cannot exceed 4000 characters");
+        CancellationToken cancellationToken = default) =>
+        EvaluateCoreAsync(petId, userId, cancellationToken);
 
-        using var lease = await calculationLock.AcquireAsync(petId, cancellationToken);
+    private async Task<WellnessResponseDto> EvaluateCoreAsync(
+        Guid petId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        using var lease = await evaluationLock.AcquireAsync(petId, cancellationToken);
         var evaluatedAt = timeProvider.GetUtcNow();
+
+        await EnsurePetBelongsToUserAsync(petId, userId, cancellationToken);
+        var latestAssessment = await dbContext.PetWellnessAssessments.AsNoTracking()
+            .Where(item => item.PetId == petId)
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestAssessment is not null
+            && latestAssessment.CreatedAt > evaluatedAt.UtcDateTime - EvaluationReusePeriod)
+            return ToDto(latestAssessment);
+
         var request = await aggregator.AggregateAsync(
-            petId, userId, currentSymptoms, evaluatedAt, cancellationToken);
+            petId, userId, currentSymptoms: null, evaluatedAt, cancellationToken);
         var response = await classifierClient.CalculateWellnessAsync(request, cancellationToken);
+
+        if (response.ScoreStatus == ClassifierWellnessScoreStatus.InsufficientData)
+            throw new WellnessInsufficientDataException();
 
         var assessment = new PetWellnessAssessment
         {
@@ -58,19 +75,6 @@ public sealed class WellnessService(
         dbContext.PetWellnessAssessments.Add(assessment);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ToDto(response);
-    }
-
-    public async Task<WellnessResponseDto?> GetCurrentAsync(
-        Guid petId,
-        Guid userId,
-        CancellationToken cancellationToken = default)
-    {
-        await EnsurePetBelongsToUserAsync(petId, userId, cancellationToken);
-        var assessment = await dbContext.PetWellnessAssessments.AsNoTracking()
-            .Where(item => item.PetId == petId)
-            .OrderByDescending(item => item.EvaluatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-        return assessment is null ? null : ToDto(assessment);
     }
 
     public async Task<WellnessHistoryResponseDto> GetHistoryAsync(

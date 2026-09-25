@@ -1,13 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 
 namespace smart_pet_care_api.Modules.WellnessModule.DTOs;
-
-public sealed record WellnessRecalculationRequestDto
-{
-    [MaxLength(4000)]
-    public string? CurrentSymptoms { get; init; }
-}
 
 public sealed record WellnessResponseDto
 {

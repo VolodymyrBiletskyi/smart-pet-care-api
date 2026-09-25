@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -20,9 +21,9 @@ public sealed class SessionMessagesController(
     [ProducesResponseType(
         typeof(SessionMessagesPageResponseDto),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMessages(
         Guid sessionId,
         CancellationToken cancellationToken,
@@ -42,19 +43,20 @@ public sealed class SessionMessagesController(
         }
         catch (KeyNotFoundException exception)
         {
-            return NotFound(new { message = exception.Message });
+            return NotFound(Error(exception.Message, NotFoundErrorCode(exception.Message)));
         }
         catch (ArgumentException exception)
         {
-            return BadRequest(new { message = exception.Message });
+            return BadRequest(Error(exception.Message, RequestErrorCode(exception.Message)));
         }
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(SessionMessageResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(
         typeof(ClassifierServiceErrorResponseDto),
         StatusCodes.Status429TooManyRequests)]
@@ -83,8 +85,8 @@ public sealed class SessionMessagesController(
     [HttpPost("{messageId:guid}/retry")]
     [ProducesResponseType(typeof(SessionMessageResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(
         typeof(ClassifierServiceErrorResponseDto),
         StatusCodes.Status429TooManyRequests)]
@@ -122,15 +124,15 @@ public sealed class SessionMessagesController(
         }
         catch (KeyNotFoundException exception)
         {
-            return NotFound(new { message = exception.Message });
+            return NotFound(Error(exception.Message, NotFoundErrorCode(exception.Message)));
         }
         catch (ArgumentException exception)
         {
-            return BadRequest(new { message = exception.Message });
+            return BadRequest(Error(exception.Message, RequestErrorCode(exception.Message)));
         }
         catch (InvalidOperationException exception) when (mapInvalidStateToConflict)
         {
-            return Conflict(new { message = exception.Message });
+            return Conflict(Error(exception.Message, ConflictErrorCode(exception.Message)));
         }
         catch (ClassifierRateLimitedException exception)
         {
@@ -209,4 +211,38 @@ public sealed class SessionMessagesController(
                 RetryAfterSeconds = retryAfterSeconds
             });
     }
+
+    private static ApiErrorResponse Error(string message, string code) =>
+        ApiErrorResponse.FromMessage(message, code);
+
+    private static string NotFoundErrorCode(string message) => message switch
+    {
+        "The chat message was not found." => "chat_message_not_found",
+        _ => "chat_session_not_found"
+    };
+
+    private static string RequestErrorCode(string message)
+    {
+        if (message.StartsWith("Limit must be between", StringComparison.Ordinal))
+            return "chat_page_limit_invalid";
+        if (message.StartsWith("Message text cannot exceed", StringComparison.Ordinal))
+            return "chat_message_text_too_long";
+
+        return message switch
+        {
+            "The message cursor is invalid." => "chat_cursor_invalid",
+            "Client message ID is required." => "chat_client_message_id_required",
+            "Message text is required." => "chat_message_text_required",
+            _ => "chat_request_invalid"
+        };
+    }
+
+    private static string ConflictErrorCode(string message) => message switch
+    {
+        "Only a failed retryable user message can be retried." => "chat_message_not_retryable",
+        "The client message ID has already been used with different text." => "chat_client_message_id_conflict",
+        "The client message is already being processed or must be retried." => "chat_message_processing_or_retry_required",
+        "The stored chat response is invalid." => "chat_stored_response_invalid",
+        _ => "chat_state_conflict"
+    };
 }

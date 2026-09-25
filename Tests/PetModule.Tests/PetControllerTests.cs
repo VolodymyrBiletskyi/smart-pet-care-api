@@ -34,6 +34,7 @@ public class PetControllerTests
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("pet_not_found", error.Code);
         Assert.Equal("Pet not found.", error.Message);
     }
 
@@ -49,6 +50,7 @@ public class PetControllerTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
+        Assert.Equal("pet_species_invalid", error.Code);
         Assert.Equal("Species is invalid.", error.Message);
     }
 
@@ -64,6 +66,7 @@ public class PetControllerTests
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
         var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("pet_not_found", error.Code);
         Assert.Equal("Pet does not exist.", error.Message);
     }
 
@@ -73,7 +76,8 @@ public class PetControllerTests
         var result = await Controller(new StubPetService()).Delete(petId);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.IsType<ApiErrorResponse>(notFound.Value);
+        var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
+        Assert.Equal("pet_not_found", error.Code);
     }
 
     private PetController Controller(IPetService service)

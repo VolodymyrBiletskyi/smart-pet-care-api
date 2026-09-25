@@ -28,7 +28,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         public async Task<IActionResult> GetAll(Guid petId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
             if (!TryGetUserId(out var userId))
-                return Unauthorized(Error("Authentication token is invalid"));
+                return Unauthorized(Error("Authentication token is invalid", "authentication_token_invalid"));
 
             try
             {
@@ -37,11 +37,11 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
         }
 
@@ -54,7 +54,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         public async Task<IActionResult> Create(Guid petId, [FromBody] CreatePetWeightLogDto dto)
         {
             if (!TryGetUserId(out var userId))
-                return Unauthorized(Error("Authentication token is invalid"));
+                return Unauthorized(Error("Authentication token is invalid", "authentication_token_invalid"));
 
             try
             {
@@ -63,19 +63,21 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
             catch (PetWeightLogConflictException ex)
             {
-                return Conflict(Error(ex.Message));
+                return Conflict(Error(ex.Message, "weight_log_measurement_time_conflict"));
             }
             catch (DbUpdateException ex) when (IsDuplicateWeightLogMeasuredAt(ex))
             {
-                return Conflict(Error("A weight log for this pet already exists at the same measurement time"));
+                return Conflict(Error(
+                    "A weight log for this pet already exists at the same measurement time",
+                    "weight_log_measurement_time_conflict"));
             }
         }
 
@@ -88,7 +90,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         public async Task<IActionResult> Update(Guid petId, Guid weightLogId, [FromBody] PatchPetWeightLogDto dto)
         {
             if (!TryGetUserId(out var userId))
-                return Unauthorized(Error("Authentication token is invalid"));
+                return Unauthorized(Error("Authentication token is invalid", "authentication_token_invalid"));
 
             try
             {
@@ -97,19 +99,21 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(Error(ex.Message));
+                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
             }
             catch (PetWeightLogConflictException ex)
             {
-                return Conflict(Error(ex.Message));
+                return Conflict(Error(ex.Message, "weight_log_measurement_time_conflict"));
             }
             catch (DbUpdateException ex) when (IsDuplicateWeightLogMeasuredAt(ex))
             {
-                return Conflict(Error("A weight log for this pet already exists at the same measurement time"));
+                return Conflict(Error(
+                    "A weight log for this pet already exists at the same measurement time",
+                    "weight_log_measurement_time_conflict"));
             }
         }
 
@@ -120,25 +124,44 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         public async Task<IActionResult> Delete(Guid petId, Guid weightLogId)
         {
             if (!TryGetUserId(out var userId))
-                return Unauthorized(Error("Authentication token is invalid"));
+                return Unauthorized(Error("Authentication token is invalid", "authentication_token_invalid"));
 
             try
             {
                 var deleted = await _service.DeleteAsync(petId, weightLogId, userId);
-                if (!deleted) return NotFound(Error("Weight log not found"));
+                if (!deleted) return NotFound(Error("Weight log not found", "weight_log_not_found"));
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return NotFound(Error(ex.Message));
+                return NotFound(Error(ex.Message, NotFoundErrorCode(ex.Message)));
             }
         }
 
         private bool TryGetUserId(out Guid userId) =>
             Guid.TryParse(User.FindFirst("userId")?.Value, out userId);
 
-        private static ApiErrorResponse Error(string message) =>
-            ApiErrorResponse.FromMessage(message);
+        private static ApiErrorResponse Error(string message, string code) =>
+            ApiErrorResponse.FromMessage(message, code);
+
+        private static string NotFoundErrorCode(string message) => message switch
+        {
+            "Pet not found" => "pet_not_found",
+            "Reminder not found" => "reminder_not_found",
+            _ => "weight_log_not_found"
+        };
+
+        private static string ValidationErrorCode(string message) => message switch
+        {
+            "At least one field must be provided" => "weight_log_update_empty",
+            "WeightKg must be greater than 0" => "weight_log_weight_not_positive",
+            "WeightKg cannot be greater than 230" => "weight_log_weight_too_large",
+            "MeasuredAt is required" => "weight_log_measurement_time_required",
+            "MeasuredAt cannot be more than 10 minutes in the future" => "weight_log_measurement_time_too_far_in_future",
+            "From cannot be later than To" => "weight_log_date_range_invalid",
+            "Notes cannot be whitespace only" => "weight_log_notes_empty",
+            _ => "weight_log_validation_failed"
+        };
 
         private static bool IsDuplicateWeightLogMeasuredAt(DbUpdateException ex)
         {

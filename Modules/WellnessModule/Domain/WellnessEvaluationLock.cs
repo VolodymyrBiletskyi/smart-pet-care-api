@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace smart_pet_care_api.Modules.WellnessModule.Domain;
 
-public sealed class WellnessCalculationLock
+public sealed class WellnessEvaluationLock
 {
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> locks = new();
 
