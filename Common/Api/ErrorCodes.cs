@@ -105,6 +105,22 @@ public static class ErrorCodes
         public const string ServiceUnavailable = "wellness_service_unavailable";
     }
 
+    /// <summary>
+    /// Screaming case and no <c>ApiErrorResponse</c> around them: these predate
+    /// the alias convention and the mobile client already branches on the exact
+    /// strings, so they are recorded here as-is rather than renamed. Changing
+    /// them means shipping a client release first.
+    /// </summary>
+    public static class EmailConfirmation
+    {
+        public const string CodeInvalid = "CONFIRMATION_CODE_INVALID";
+        public const string CodeExpired = "CONFIRMATION_CODE_EXPIRED";
+        public const string AlreadyConfirmed = "EMAIL_ALREADY_CONFIRMED";
+        public const string TooManyAttempts = "CONFIRMATION_TOO_MANY_ATTEMPTS";
+        public const string ResendTooSoon = "CONFIRMATION_RESEND_TOO_SOON";
+        public const string NotConfirmed = "EMAIL_NOT_CONFIRMED";
+    }
+
     public static class Classifier
     {
         public const string InvalidResponse = "classifier_invalid_response";

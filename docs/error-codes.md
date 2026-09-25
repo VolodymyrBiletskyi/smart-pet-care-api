@@ -1,8 +1,9 @@
 # Error contract v1
 
-Every failed request answers with one JSON shape. `code` is the contract — it is
-the only field a client may branch on. `message` is an English fallback for a
-`code` the client does not know yet and must never be parsed.
+This is the shape a failed request answers with — everywhere except the
+endpoints listed under *Legacy shape*, which are not migrated yet. `code` is the
+contract: it is the only field a client may branch on. `message` is an English
+fallback for a `code` the client does not know yet and must never be parsed.
 
 ```json
 {
@@ -39,14 +40,38 @@ Two rules for the client:
 
 Aliases are being rolled out module by module.
 
-| Module | `code` on errors |
-|---|---|
-| Pet, Feeding, Chat, Weight history, Wellness | yes |
-| Nutrition | partial — one alias per class of failure, not per rule |
-| Activity, Sleep, Reminder, Health, Journal, User, Auth, Notification | not yet |
+| Module | `code` on errors | Shape |
+|---|---|---|
+| Pet, Feeding, Chat, Weight history, Wellness | yes | `ApiErrorResponse` |
+| Nutrition | partial — one alias per class of failure, not per rule | `ApiErrorResponse` |
+| Activity, Sleep, Health, Journal | no | `ApiErrorResponse` without `code` |
+| Auth, Reminder, User, Profile, Notification | see *Legacy shape* | anonymous object |
 
-Where a module is not covered, the response still has the shape above, just
-without `code`.
+## Legacy shape
+
+Auth, Reminder, User, Profile and Notification have not been migrated and answer
+with a bare object instead of `ApiErrorResponse`:
+
+```json
+{ "message": "Reminder not found" }
+```
+
+No `traceId`, no `retryable`, and usually no `code`. The one exception is the
+email confirmation flow, which does carry a `code` — in an older screaming-case
+convention that predates these aliases:
+
+| Code | HTTP | When |
+|---|---|---|
+| `CONFIRMATION_CODE_INVALID` | 400 | The submitted code does not match. |
+| `CONFIRMATION_CODE_EXPIRED` | 410 | The code is past its lifetime; request a new one. |
+| `EMAIL_ALREADY_CONFIRMED` | 409 | Confirming an address that is already confirmed. |
+| `CONFIRMATION_TOO_MANY_ATTEMPTS` | 429 | Too many wrong codes; request a new one. |
+| `CONFIRMATION_RESEND_TOO_SOON` | 429 | A code was sent recently. |
+| `EMAIL_NOT_CONFIRMED` | 403 | Login before the address was confirmed. |
+
+These strings stay as they are until the client can ship a release that accepts
+the lower-case forms; do not assume the casing of an alias from this table
+matches the rest of the catalogue.
 
 ## Unexpected failures
 

@@ -1,3 +1,5 @@
+using smart_pet_care_api.Common.Api;
+
 namespace smart_pet_care_api.Modules.AuthModule.Domain
 {
     public enum EmailConfirmationError
@@ -21,13 +23,13 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         public string ErrorCode => Error switch
         {
-            EmailConfirmationError.CodeInvalid => "CONFIRMATION_CODE_INVALID",
-            EmailConfirmationError.CodeExpired => "CONFIRMATION_CODE_EXPIRED",
-            EmailConfirmationError.AlreadyConfirmed => "EMAIL_ALREADY_CONFIRMED",
-            EmailConfirmationError.TooManyAttempts => "CONFIRMATION_TOO_MANY_ATTEMPTS",
-            EmailConfirmationError.ResendTooSoon => "CONFIRMATION_RESEND_TOO_SOON",
-            EmailConfirmationError.EmailNotConfirmed => "EMAIL_NOT_CONFIRMED",
-            _ => "CONFIRMATION_CODE_INVALID"
+            EmailConfirmationError.CodeInvalid => ErrorCodes.EmailConfirmation.CodeInvalid,
+            EmailConfirmationError.CodeExpired => ErrorCodes.EmailConfirmation.CodeExpired,
+            EmailConfirmationError.AlreadyConfirmed => ErrorCodes.EmailConfirmation.AlreadyConfirmed,
+            EmailConfirmationError.TooManyAttempts => ErrorCodes.EmailConfirmation.TooManyAttempts,
+            EmailConfirmationError.ResendTooSoon => ErrorCodes.EmailConfirmation.ResendTooSoon,
+            EmailConfirmationError.EmailNotConfirmed => ErrorCodes.EmailConfirmation.NotConfirmed,
+            _ => ErrorCodes.EmailConfirmation.CodeInvalid
         };
 
         private static string MessageFor(EmailConfirmationError error) => error switch
