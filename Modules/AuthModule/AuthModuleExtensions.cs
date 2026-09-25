@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -55,9 +56,45 @@ namespace smart_pet_care_api.Modules.AuthModule
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtOptions.SecretKey))
                 };
+
+                // Left alone, the bearer scheme answers 401 and 403 with an empty
+                // body: the two statuses a client meets most often would be the
+                // only ones it cannot read a code from.
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = async challenge =>
+                    {
+                        challenge.HandleResponse();
+                        await WriteErrorAsync(
+                            challenge.Response,
+                            StatusCodes.Status401Unauthorized,
+                            ErrorCodes.Auth.AuthenticationRequired,
+                            "Authentication is required.");
+                    },
+                    OnForbidden = forbidden => WriteErrorAsync(
+                        forbidden.Response,
+                        StatusCodes.Status403Forbidden,
+                        ErrorCodes.Auth.Forbidden,
+                        "This account may not perform that action.")
+                };
             });
 
             return services;
+        }
+
+        private static Task WriteErrorAsync(
+            HttpResponse response, int statusCode, string code, string message)
+        {
+            if (response.HasStarted)
+                return Task.CompletedTask;
+
+            response.StatusCode = statusCode;
+            return response.WriteAsJsonAsync(new ApiErrorResponse
+            {
+                Code = code,
+                Message = message,
+                TraceId = response.HttpContext.TraceIdentifier
+            });
         }
     }
 }

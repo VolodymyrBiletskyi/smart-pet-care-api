@@ -1,9 +1,10 @@
 # Error contract v1
 
-This is the shape a failed request answers with — everywhere except the
-endpoints listed under *Legacy shape*, which are not migrated yet. `code` is the
-contract: it is the only field a client may branch on. `message` is an English
-fallback for a `code` the client does not know yet and must never be parsed.
+Every failed request answers with this shape, including the ones the framework
+produces itself — an expired token, a rejected body, an unhandled bug. `code` is
+the contract: it is the only field a client may branch on. `message` is an
+English fallback for a `code` the client does not know yet and must never be
+parsed.
 
 ```json
 {
@@ -20,7 +21,7 @@ fallback for a `code` the client does not know yet and must never be parsed.
 
 | Field | Always present | Meaning |
 |---|---|---|
-| `code` | no — see *Coverage* | The alias. Branch and localize on this. |
+| `code` | yes | The alias. Branch and localize on this. |
 | `message` | yes | English fallback. Show only when `code` is unknown to the client. |
 | `params` | no | Values embedded in the message — limits, ceilings, ranges. Present only where the message carries a number, so the client never hardcodes a server rule. |
 | `traceId` | yes | The request id, also written to the server log. Put it in bug reports. |
@@ -29,21 +30,17 @@ fallback for a `code` the client does not know yet and must never be parsed.
 | `errors` | no | Per-field detail for request-body validation, keyed by field name. |
 | `messageId` | no | Chat only: which message the failure belongs to. |
 
-Two rules for the client:
-
-1. **An unknown `code` must not break anything.** The catalogue grows; fall back
-   to `message` for anything not in your translation table.
-2. **A missing `code` must not break anything either.** Some modules still answer
-   without one — see below.
+One rule for the client: **an unknown `code` must not break anything.** The
+catalogue grows without waiting for a client release, so fall back to `message`
+for anything not in your translation table.
 
 ## Coverage
 
-Aliases are being rolled out module by module.
-
-Every module is covered: one shape, `ApiErrorResponse`, and a `code` on every
-deliberate failure. The one deliberate exception is the nutrition **analysis**
-path, where all validation shares `nutrition_analysis_invalid` — see that section
-for why.
+Every module, and every path into an error: a controller returning a result, a
+service throwing, the bearer scheme rejecting a token, and anything unhandled.
+The one place an alias is deliberately coarse is the nutrition **analysis**
+path, where all validation shares `nutrition_analysis_invalid` — see that
+section for why.
 
 ## Email confirmation aliases
 
@@ -261,11 +258,14 @@ cannot fix them by changing the call.
 
 | Code | HTTP | When |
 |---|---|---|
+| `auth_authentication_required` | 401 | No token, an expired one, or one that fails validation. Refresh, then retry. |
+| `auth_account_no_longer_exists` | 401 | The token is valid but its account is gone. Refreshing will not help — clear the session and send the user to login. |
+| `auth_refresh_token_invalid` | 401 | The refresh token is unknown, expired or already used. Same: start a new session. |
+| `auth_forbidden` | 403 | Authenticated, but not allowed to do this. |
 | `auth_email_already_taken` | 409 | Registering an address that already has an account. |
 | `auth_account_not_found` | 404 | No account for the address. |
 | `auth_invalid_credentials` | 401 | Wrong email or password. |
 | `auth_google_failed` | 401 | Google rejected the token or the exchange failed. |
-| `auth_refresh_token_invalid` | 401 | Refresh token missing, expired or already used. |
 | `auth_oauth_code_required` | 400 | OAuth callback without a code. |
 
 ### User

@@ -147,6 +147,18 @@ public static class ErrorCodes
         public const string GoogleAuthFailed = "auth_google_failed";
         public const string RefreshTokenInvalid = "auth_refresh_token_invalid";
         public const string OAuthCodeRequired = "auth_oauth_code_required";
+
+        /// <summary>No token, an expired one, or one that fails validation.</summary>
+        public const string AuthenticationRequired = "auth_authentication_required";
+
+        /// <summary>
+        /// The token itself is valid but its account is gone. Distinct from
+        /// <see cref="AuthenticationRequired"/> because refreshing will not help
+        /// — the client has to clear its session and start over.
+        /// </summary>
+        public const string AccountNoLongerExists = "auth_account_no_longer_exists";
+
+        public const string Forbidden = "auth_forbidden";
     }
 
     public static class User
