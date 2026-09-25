@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Responses;
@@ -43,12 +46,12 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(
                     reminderId, log.MeasuredAt, expectedPetId: petId)
-                    ?? throw new InvalidOperationException("Reminder not found");
+                    ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
             }
 
             await RefreshPetCurrentWeightAsync(petId, log);
             await _repo.AddAsync(log);
-            await _repo.SaveChangesAsync();
+            await SaveChangesAsync();
 
             return log.ToDto();
         }
@@ -60,14 +63,14 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
 
             var log = await _repo.GetTrackedByIdAsync(weightLogId);
             if (log is null || log.PetId != petId)
-                throw new InvalidOperationException("Weight log not found");
+                throw new NotFoundException(ErrorCodes.WeightLog.NotFound, "Weight log not found");
 
             log.PatchEntity(dto);
             ValidateFinalState(log);
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt, log.Id);
 
             await RefreshPetCurrentWeightAsync(petId, log, log.Id);
-            await _repo.SaveChangesAsync();
+            await SaveChangesAsync();
 
             return log.ToDto();
         }
@@ -81,16 +84,38 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
 
             await RefreshPetCurrentWeightAsync(petId, excludeId: log.Id);
             _repo.Delete(log);
-            await _repo.SaveChangesAsync();
+            await SaveChangesAsync();
 
             return true;
         }
+
+        /// <summary>
+        /// The uniqueness pre-check above races with a concurrent insert, so the
+        /// index is the real guard; both paths have to report the same conflict.
+        /// </summary>
+        private async Task SaveChangesAsync()
+        {
+            try
+            {
+                await _repo.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateMeasuredAt(ex))
+            {
+                throw new PetWeightLogConflictException(
+                    "A weight log for this pet already exists at the same measurement time.");
+            }
+        }
+
+        private static bool IsDuplicateMeasuredAt(DbUpdateException ex) =>
+            ex.InnerException is PostgresException postgresException
+            && postgresException.SqlState == PostgresErrorCodes.UniqueViolation
+            && postgresException.ConstraintName == "IX_PetWeightLogs_PetId_MeasuredAt";
 
         private async Task EnsurePetBelongsToUserAsync(Guid petId, Guid userId)
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private async Task EnsureMeasuredAtIsUniqueAsync(Guid petId, DateTime measuredAt, Guid? excludeId = null)
@@ -107,7 +132,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
         {
             var pet = await _repo.GetTrackedPetByIdAsync(petId);
             if (pet is null)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var latestPersistedLog = await _repo.GetLatestByPetIdAsync(petId, excludeId);
             var latestLog = IsLaterThan(pendingLog, latestPersistedLog)
@@ -140,7 +165,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
         private static void ValidatePatch(PatchPetWeightLogDto dto)
         {
             if (!dto.WeightKg.IsSet && !dto.MeasuredAt.IsSet && !dto.Notes.IsSet)
-                throw new ArgumentException("At least one field must be provided");
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.UpdateEmpty, "At least one field must be provided");
 
             if (dto.WeightKg.IsSet) ValidateWeightKg(dto.WeightKg.Value);
             if (dto.MeasuredAt.IsSet) ValidateMeasuredAt(dto.MeasuredAt.Value);
@@ -154,13 +180,19 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             ValidateNotes(log.Notes);
         }
 
+        private const decimal MaximumWeightKg = 230;
+
         private static void ValidateWeightKg(decimal weightKg)
         {
             if (weightKg <= 0)
-                throw new ArgumentException("WeightKg must be greater than 0");
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.WeightNotPositive, "WeightKg must be greater than 0");
 
-            if (weightKg > 230)
-                throw new ArgumentException("WeightKg cannot be greater than 230");
+            if (weightKg > MaximumWeightKg)
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.WeightTooLarge,
+                    $"WeightKg cannot be greater than {MaximumWeightKg}",
+                    new Dictionary<string, object?> { ["max"] = MaximumWeightKg });
         }
 
         private static void ValidateMeasuredAt(DateTime measuredAt)
@@ -168,13 +200,20 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             ValidateMeasuredAt((DateTime?)measuredAt);
         }
 
+        private const int FutureToleranceMinutes = 10;
+
         private static void ValidateMeasuredAt(DateTime? measuredAt)
         {
             if (!measuredAt.HasValue || measuredAt.Value == default)
-                throw new ArgumentException("MeasuredAt is required");
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.MeasurementTimeRequired, "MeasuredAt is required");
 
-            if (PetWeightLogMapper.NormalizeToUtc(measuredAt.Value) > DateTime.UtcNow.AddMinutes(10))
-                throw new ArgumentException("MeasuredAt cannot be more than 10 minutes in the future");
+            if (PetWeightLogMapper.NormalizeToUtc(measuredAt.Value)
+                > DateTime.UtcNow.AddMinutes(FutureToleranceMinutes))
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.MeasurementTimeTooFarInFuture,
+                    $"MeasuredAt cannot be more than {FutureToleranceMinutes} minutes in the future",
+                    new Dictionary<string, object?> { ["maxMinutes"] = FutureToleranceMinutes });
         }
 
         private static (DateTime? From, DateTime? To) NormalizeAndValidatePeriod(DateTime? from, DateTime? to)
@@ -188,7 +227,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
                 : (DateTime?)null;
 
             if (normalizedFrom.HasValue && normalizedTo.HasValue && normalizedFrom.Value > normalizedTo.Value)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.DateRangeInvalid, "From cannot be later than To");
 
             return (normalizedFrom, normalizedTo);
         }
@@ -204,7 +244,8 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
         private static void ValidateNotes(string? notes)
         {
             if (notes is not null && string.IsNullOrWhiteSpace(notes))
-                throw new ArgumentException("Notes cannot be whitespace only");
+                throw new ValidationException(
+                    ErrorCodes.WeightLog.NotesEmpty, "Notes cannot be whitespace only");
         }
     }
 }

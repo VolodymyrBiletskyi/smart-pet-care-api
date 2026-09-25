@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Api;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Domain;
@@ -41,24 +39,25 @@ public class PetWeightLogControllerTests
         Assert.True(called);
     }
 
-    [Theory]
-    [InlineData(true, 404)]
-    [InlineData(false, 400)]
-    public async Task GetAll_MapsDomainErrors(bool notFound, int expectedStatus)
+    /// <summary>
+    /// Mapping a domain failure to a status is GlobalExceptionHandler's job now,
+    /// so the controller's contribution is to stay out of the way: it must not
+    /// swallow the exception and hand back a status of its own invention.
+    /// </summary>
+    [Fact]
+    public async Task GetAll_LetsDomainFailuresReachTheHandler()
     {
         var service = new FakePetWeightLogService
         {
-            GetByPetId = (_, _, _, _) => notFound
-                ? Task.FromException<IReadOnlyList<PetWeightLogResponseDto>>(new InvalidOperationException("Pet not found"))
-                : Task.FromException<IReadOnlyList<PetWeightLogResponseDto>>(new ArgumentException("Invalid range"))
+            GetByPetId = (_, _, _, _) => Task.FromException<IReadOnlyList<PetWeightLogResponseDto>>(
+                new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
         };
 
-        var result = await Controller(service).GetAll(_petId, null, null);
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            Controller(service).GetAll(_petId, null, null));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
-        Assert.EndsWith(".", response.Message);
+        Assert.Equal(ErrorCodes.PetNotFound, exception.Code);
+        Assert.Equal(StatusCodes.Status404NotFound, exception.StatusCode);
     }
 
     [Fact]
@@ -75,63 +74,22 @@ public class PetWeightLogControllerTests
         Assert.Same(expected, created.Value);
     }
 
-    [Theory]
-    [InlineData("notFound", 404)]
-    [InlineData("badRequest", 400)]
-    [InlineData("conflict", 409)]
-    public async Task Create_MapsDomainErrors(string error, int expectedStatus)
-    {
-        var service = new FakePetWeightLogService
-        {
-            Create = (_, _, _) => error switch
-            {
-                "notFound" => Task.FromException<PetWeightLogResponseDto>(new InvalidOperationException("Pet not found")),
-                "badRequest" => Task.FromException<PetWeightLogResponseDto>(new ArgumentException("Invalid weight")),
-                _ => Task.FromException<PetWeightLogResponseDto>(new PetWeightLogConflictException("Duplicate"))
-            }
-        };
-
-        var result = await Controller(service).Create(_petId, new CreatePetWeightLogDto());
-
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
-        Assert.EndsWith(".", response.Message);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CreateAndUpdate_WhenDatabaseReportsExpectedUniqueConstraint_ReturnConflict(bool create)
-    {
-        var service = new FakePetWeightLogService
-        {
-            Create = (_, _, _) => Task.FromException<PetWeightLogResponseDto>(DuplicateDbUpdateException()),
-            Update = (_, _, _, _) => Task.FromException<PetWeightLogResponseDto>(DuplicateDbUpdateException())
-        };
-        var controller = Controller(service);
-
-        var result = create
-            ? await controller.Create(_petId, new CreatePetWeightLogDto())
-            : await controller.Update(_petId, _logId, new PatchPetWeightLogDto());
-
-        var conflict = Assert.IsType<ConflictObjectResult>(result);
-        var response = Assert.IsType<ApiErrorResponse>(conflict.Value);
-        Assert.Equal("weight_log_measurement_time_conflict", response.Code);
-        Assert.Equal("A weight log for this pet already exists at the same measurement time.", response.Message);
-    }
-
     [Fact]
-    public async Task Create_WhenDatabaseErrorIsNotExpectedUniqueConstraint_Rethrows()
+    public async Task Create_LetsTheConflictReachTheHandlerWithItsAlias()
     {
         var service = new FakePetWeightLogService
         {
-            Create = (_, _, _) => Task.FromException<PetWeightLogResponseDto>(DuplicateDbUpdateException("OtherConstraint"))
+            Create = (_, _, _) => Task.FromException<PetWeightLogResponseDto>(
+                new PetWeightLogConflictException("Duplicate"))
         };
 
-        await Assert.ThrowsAsync<DbUpdateException>(() =>
+        var exception = await Assert.ThrowsAsync<PetWeightLogConflictException>(() =>
             Controller(service).Create(_petId, new CreatePetWeightLogDto()));
+
+        Assert.Equal(ErrorCodes.WeightLog.MeasurementTimeConflict, exception.Code);
+        Assert.Equal(StatusCodes.Status409Conflict, exception.StatusCode);
     }
+
     [Fact]
     public async Task Update_ReturnsOk()
     {
@@ -144,28 +102,23 @@ public class PetWeightLogControllerTests
         Assert.Same(expected, ok.Value);
     }
 
-    [Theory]
-    [InlineData("notFound", 404)]
-    [InlineData("badRequest", 400)]
-    [InlineData("conflict", 409)]
-    public async Task Update_MapsDomainErrors(string error, int expectedStatus)
+    [Fact]
+    public async Task Update_LetsValidationFailuresReachTheHandlerWithTheirParams()
     {
         var service = new FakePetWeightLogService
         {
-            Update = (_, _, _, _) => error switch
-            {
-                "notFound" => Task.FromException<PetWeightLogResponseDto>(new InvalidOperationException("Log not found")),
-                "badRequest" => Task.FromException<PetWeightLogResponseDto>(new ArgumentException("Invalid weight")),
-                _ => Task.FromException<PetWeightLogResponseDto>(new PetWeightLogConflictException("Duplicate"))
-            }
+            Update = (_, _, _, _) => Task.FromException<PetWeightLogResponseDto>(
+                new ValidationException(
+                    ErrorCodes.WeightLog.WeightTooLarge,
+                    "WeightKg cannot be greater than 230",
+                    new Dictionary<string, object?> { ["max"] = 230m }))
         };
 
-        var result = await Controller(service).Update(_petId, _logId, new PatchPetWeightLogDto());
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            Controller(service).Update(_petId, _logId, new PatchPetWeightLogDto()));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        var response = Assert.IsType<ApiErrorResponse>(objectResult.Value);
-        Assert.EndsWith(".", response.Message);
+        Assert.Equal(ErrorCodes.WeightLog.WeightTooLarge, exception.Code);
+        Assert.Equal(230m, exception.Parameters?["max"]);
     }
 
     [Fact]
@@ -187,19 +140,18 @@ public class PetWeightLogControllerTests
     }
 
     [Fact]
-    public async Task Delete_WhenPetDoesNotExist_ReturnsNotFoundMessage()
+    public async Task Delete_WhenPetDoesNotExist_LetsTheDomainFailureThrough()
     {
         var service = new FakePetWeightLogService
         {
-            Delete = (_, _, _) => Task.FromException<bool>(new InvalidOperationException("Pet not found"))
+            Delete = (_, _, _) => Task.FromException<bool>(
+                new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
         };
 
-        var result = await Controller(service).Delete(_petId, _logId);
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            Controller(service).Delete(_petId, _logId));
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        var response = Assert.IsType<ApiErrorResponse>(notFound.Value);
-        Assert.Equal("pet_not_found", response.Code);
-        Assert.Equal("Pet not found.", response.Message);
+        Assert.Equal(ErrorCodes.PetNotFound, exception.Code);
     }
 
     [Fact]
@@ -238,13 +190,6 @@ public class PetWeightLogControllerTests
         Assert.Equal("Authentication token is invalid.", response.Message);
     }
 
-    private static DbUpdateException DuplicateDbUpdateException(string constraintName = "IX_PetWeightLogs_PetId_MeasuredAt")
-    {
-        var postgresException = new PostgresException(
-            "duplicate key", "ERROR", "ERROR", PostgresErrorCodes.UniqueViolation,
-            constraintName: constraintName);
-        return new DbUpdateException("Database update failed", postgresException);
-    }
     private PetWeightLogController Controller(IPetWeightLogService service)
     {
         var identity = new ClaimsIdentity([new Claim("userId", _userId.ToString())], "test");

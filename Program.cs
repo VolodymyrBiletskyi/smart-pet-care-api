@@ -31,6 +31,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(cs));
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddUserModule();
 builder.Services.AddPetModule();
@@ -76,8 +77,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
         return new BadRequestObjectResult(new ApiErrorResponse
         {
-            Code = "request_validation_failed",
+            Code = ErrorCodes.RequestValidationFailed,
             Message = "Request validation failed.",
+            TraceId = context.HttpContext.TraceIdentifier,
             Errors = errors
         });
     };
@@ -89,6 +91,10 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedProto
 });
+
+// Empty branch on purpose: GlobalExceptionHandler always handles, so the
+// built-in ProblemDetails fallback would only ever shadow our shape.
+app.UseExceptionHandler(_ => { });
 
 app.UseScalarConfig();
 

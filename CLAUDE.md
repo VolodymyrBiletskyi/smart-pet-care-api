@@ -189,6 +189,31 @@ same day means same occurrence. Matching exactly would let the second call
 through, and it would not merely duplicate history: it materialises the next
 occurrence and closes that too, skipping a slot.
 
+### Errors
+
+Every failure answers with one shape, `ApiErrorResponse`, carrying a stable
+`code` the frontend localizes against. The public contract — the fields, the
+full alias catalogue and which modules are covered so far — is
+`docs/error-codes.md`.
+
+The alias is set where the failure is raised, not derived from the message
+afterwards: services throw an `AppException` (`NotFoundException`,
+`ValidationException`, `ConflictException`, `UnprocessableException`) carrying
+its `Code`, `StatusCode` and optional `Params`, and `GlobalExceptionHandler`
+turns it into the response. Deriving the code from the message text instead
+would mean that rewording a message silently changes the code a client sees.
+
+Anything that is not an `AppException` or a known classifier failure is reported
+as `internal_error` with a 500 and its detail kept in the log. An exception
+nobody designed for is a bug, and answering it with a plausible business error —
+which is what a bare `catch (InvalidOperationException)` per controller did — is
+how bugs stay invisible.
+
+`PetWeightHistoryModule` is fully migrated and is the pattern to copy; the other
+modules still map their errors in the controller and are listed as uncovered in
+the doc. `Tests/CommonApi.Tests/` covers the handler and keeps the catalogue
+from drifting out of `docs/error-codes.md`.
+
 Classifier integration documentation:
 
 - `docs/chat-classifier-contract-v1.md`
