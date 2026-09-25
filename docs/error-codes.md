@@ -40,25 +40,16 @@ Two rules for the client:
 
 Aliases are being rolled out module by module.
 
-| Module | `code` on errors | Shape |
-|---|---|---|
-| Pet, Feeding, Chat, Weight history, Wellness | yes | `ApiErrorResponse` |
-| Nutrition | partial — one alias per class of failure, not per rule | `ApiErrorResponse` |
-| Activity, Sleep, Health, Journal | no | `ApiErrorResponse` without `code` |
-| Auth, Reminder, User, Profile, Notification | see *Legacy shape* | anonymous object |
+Every module is covered: one shape, `ApiErrorResponse`, and a `code` on every
+deliberate failure. The one deliberate exception is the nutrition **analysis**
+path, where all validation shares `nutrition_analysis_invalid` — see that section
+for why.
 
-## Legacy shape
+## Email confirmation aliases
 
-Auth, Reminder, User, Profile and Notification have not been migrated and answer
-with a bare object instead of `ApiErrorResponse`:
-
-```json
-{ "message": "Reminder not found" }
-```
-
-No `traceId`, no `retryable`, and usually no `code`. The one exception is the
-email confirmation flow, which does carry a `code` — in an older screaming-case
-convention that predates these aliases:
+Every module now answers with `ApiErrorResponse` and a `code`. One group keeps an
+older screaming-case convention, because the mobile client already branches on
+the exact strings and renaming them means shipping a client release first:
 
 | Code | HTTP | When |
 |---|---|---|
@@ -172,14 +163,125 @@ Fully migrated; this is the shape the other modules are moving to.
 | `wellness_service_invalid_response` | 502 | Classifier returned something off-contract. |
 | `wellness_service_unavailable` | 503 | Classifier unreachable. |
 
+### Activity
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `activity_log_not_found` | 404 | — | No such log for this pet. |
+| `activity_update_empty` | 400 | — | Patch body had no fields. |
+| `activity_source_invalid` | 400 | — | `source` is not one of the known values. |
+| `activity_source_not_supported` | 400 | — | A known source with no provider registered yet. |
+| `activity_date_range_invalid` | 400 | — | `from` is later than `to`. |
+| `activity_recorded_at_in_future` | 400 | — | `recordedAt` is in the future. |
+| `activity_steps_negative` | 400 | — | Steps below zero. |
+| `activity_steps_too_large` | 400 | `max` | Steps above the ceiling. |
+| `activity_type_invalid` | 400 | — | Type is not one of the known values. |
+| `activity_intensity_invalid` | 400 | — | Intensity is not one of the known values. |
+| `activity_duration_not_positive` | 400 | — | Duration is zero or negative. |
+| `activity_duration_too_long` | 400 | `max` | Duration above the ceiling. |
+| `activity_location_too_long` | 400 | `maxLength` | Place text too long. |
+| `activity_note_too_long` | 400 | `maxLength` | Note too long. |
+| `activity_nothing_recorded` | 400 | — | A log has to record something: type, duration, steps, place or note. |
+
+### Sleep
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `sleep_log_not_found` | 404 | — | No such log for this pet. |
+| `sleep_update_empty` | 400 | — | Patch body had no fields. |
+| `sleep_date_range_invalid` | 400 | — | `from` is later than `to`. |
+| `sleep_date_in_future` | 400 | — | `sleepDate` is in the future. |
+| `sleep_hours_not_positive` | 400 | — | Hours zero or negative. |
+| `sleep_hours_too_large` | 400 | `max` | A single row above the ceiling. |
+| `sleep_note_too_long` | 400 | `maxLength` | Note too long. |
+| `sleep_daily_hours_exceeded` | 400 | `maxHoursPerDay`, `alreadyLogged` | The day's **sum** would exceed the cap. A 400 rather than a 409: the day is a value the request got wrong, not a resource to conflict with. |
+
+### Health
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `health_record_not_found` | 404 | — | No such record for this pet. |
+| `health_date_range_invalid` | 400 | — | `from` is later than `to`. |
+| `health_type_invalid` | 400 | — | Type is not one of the known values. |
+| `health_title_required` | 400 | — | Title missing. |
+| `health_title_too_long` | 400 | `maxLength` | Title too long. |
+| `health_performed_at_in_future` | 400 | — | `performedAt` is in the future. |
+| `health_next_due_before_performed` | 400 | — | `nextDueAt` is earlier than `performedAt`. |
+| `health_symptom_invalid` | 400 | — | Symptom is not one of the known values. |
+| `health_description_too_long` | 400 | `maxLength` | Description too long. |
+| `health_dosage_too_long` | 400 | `maxLength` | Dosage too long. |
+| `health_provider_too_long` | 400 | `maxLength` | Provider too long. |
+
+### Journal
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `journal_entry_not_found` | 404 | — | No such entry for this pet. |
+| `journal_date_range_invalid` | 400 | — | `from` is later than `to`. |
+| `journal_type_invalid` | 400 | — | Type is not one of the known values. |
+| `journal_severity_invalid` | 400 | — | Severity is not one of the known values. |
+| `journal_symptom_invalid` | 400 | — | Symptom is not one of the known values. |
+| `journal_title_required` | 400 | — | Title missing. |
+| `journal_title_too_long` | 400 | `maxLength` | Title too long. |
+| `journal_observed_at_in_future` | 400 | — | `observedAt` is in the future. |
+| `journal_notes_too_long` | 400 | `maxLength` | Notes too long. |
+
+### Reminder
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `reminder_not_found` | 404 | — | No such reminder for this user. |
+| `reminder_run_not_found` | 404 | — | No such occurrence. |
+| `reminder_run_already_acknowledged` | 409 | — | The occurrence was already acknowledged. |
+| `reminder_end_at_not_in_future` | 400 | — | `endAt` is not in the future. |
+| `reminder_date_not_in_future` | 400 | — | A one-off reminder's date is not in the future. |
+| `reminder_date_range_invalid` | 400 | `maxDays` | `from` later than `to`, or a window beyond the horizon. |
+| `reminder_schedule_invalid` | 400 | `min`, `max` | The repeat rule does not hold together — interval out of range, weekly without days, daily with a date, and so on. |
+| `reminder_performed_at_in_future` | 400 | — | A completion dated in the future. |
+| `reminder_note_too_long` | 400 | `maxLength` | Completion note too long. |
+
 ### Nutrition
 
 | Code | HTTP | When |
 |---|---|---|
-| `nutrition_analysis_invalid` | 400 | Any validation failure in the analysis request, including a missing usable weight. |
+| `nutrition_goal_not_found` | 404 | No goal set for this pet. |
+| `nutrition_utc_offset_invalid` | 400 | `utcOffsetMinutes` outside the allowed range. |
+| `nutrition_calorie_target_negative` | 400 | Calorie target below zero. |
+| `nutrition_portion_target_negative` | 400 | Portion target below zero. |
+| `nutrition_meals_per_day_negative` | 400 | Meals per day below zero. |
+| `nutrition_portion_unit_invalid` | 400 | Unit is not one of the known values. |
+| `nutrition_portion_unit_required` | 400 | Portion target given without a unit. |
+| `nutrition_analysis_invalid` | 400 | The AI analysis cannot run — in practice, no usable weight on the pet. |
 
-Coarse on purpose for now: the module still raises framework exceptions, so its
-rules do not yet have one alias each.
+`nutrition_analysis_invalid` is deliberately the only alias on the analysis path:
+its failures are about the pet's stored profile, not the request, so the client
+cannot fix them by changing the call.
+
+### Auth
+
+| Code | HTTP | When |
+|---|---|---|
+| `auth_email_already_taken` | 409 | Registering an address that already has an account. |
+| `auth_account_not_found` | 404 | No account for the address. |
+| `auth_invalid_credentials` | 401 | Wrong email or password. |
+| `auth_google_failed` | 401 | Google rejected the token or the exchange failed. |
+| `auth_refresh_token_invalid` | 401 | Refresh token missing, expired or already used. |
+| `auth_oauth_code_required` | 400 | OAuth callback without a code. |
+
+### User
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `user_not_found` | 404 | — | No such user. |
+| `user_photo_required` | 400 | — | Upload with no file. |
+| `user_photo_type_invalid` | 400 | — | File is not JPEG, PNG or WebP. |
+| `user_photo_too_large` | 400 | `maxMegabytes` | File over the ceiling. |
+
+### Notification
+
+| Code | HTTP | When |
+|---|---|---|
+| `device_token_required` | 400 | Device registration without a token. |
 
 ### Classifier
 

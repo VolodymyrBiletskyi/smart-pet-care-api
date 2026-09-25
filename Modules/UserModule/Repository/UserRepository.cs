@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Models;
@@ -48,7 +49,7 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (userModel == null)
-                throw new KeyNotFoundException("User not found");
+                throw new NotFoundException(ErrorCodes.User.NotFound, "User not found");
 
             _dbContext.Users.Remove(userModel);
 

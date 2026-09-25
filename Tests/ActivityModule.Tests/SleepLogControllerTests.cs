@@ -41,20 +41,20 @@ public class SleepLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task GetAll_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task GetAll_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeSleepLogService
         {
             GetByPetId = (_, _, _, _) => notFound
-                ? Task.FromException<IReadOnlyList<SleepLogResponseDto>>(new InvalidOperationException("Pet not found"))
-                : Task.FromException<IReadOnlyList<SleepLogResponseDto>>(new ArgumentException("Invalid range"))
+                ? Task.FromException<IReadOnlyList<SleepLogResponseDto>>(new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
+                : Task.FromException<IReadOnlyList<SleepLogResponseDto>>(new ValidationException(ErrorCodes.Sleep.DateRangeInvalid, "Invalid range"))
         };
 
-        var result = await Controller(service).GetAll(_petId, null, null);
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).GetAll(_petId, null, null));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.Equal(expectedStatus, exception.StatusCode);
+        Assert.NotNull(exception.Code);
     }
 
     [Fact]
@@ -92,18 +92,19 @@ public class SleepLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task Create_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task Create_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeSleepLogService
         {
             Create = (_, _, _) => notFound
-                ? Task.FromException<SleepLogResponseDto>(new InvalidOperationException("Pet not found"))
-                : Task.FromException<SleepLogResponseDto>(new ArgumentException("would total more than 24 hours"))
+                ? Task.FromException<SleepLogResponseDto>(new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
+                : Task.FromException<SleepLogResponseDto>(new ValidationException(ErrorCodes.Sleep.HoursNotPositive, "Hours must be greater than zero"))
         };
 
-        var result = await Controller(service).Create(_petId, new CreateSleepLogDto());
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).Create(_petId, new CreateSleepLogDto()));
 
-        Assert.Equal(expectedStatus, Assert.IsAssignableFrom<ObjectResult>(result).StatusCode);
+        Assert.Equal(expectedStatus, exception.StatusCode);
     }
 
     [Fact]
@@ -145,20 +146,20 @@ public class SleepLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task Update_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task Update_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeSleepLogService
         {
             Update = (_, _, _, _) => notFound
-                ? Task.FromException<SleepLogResponseDto>(new InvalidOperationException("Sleep log not found"))
-                : Task.FromException<SleepLogResponseDto>(new ArgumentException("would total more than 24 hours"))
+                ? Task.FromException<SleepLogResponseDto>(new NotFoundException(ErrorCodes.Sleep.LogNotFound, "Sleep log not found"))
+                : Task.FromException<SleepLogResponseDto>(new ValidationException(ErrorCodes.Sleep.HoursNotPositive, "Hours must be greater than zero"))
         };
 
-        var result = await Controller(service).Update(_petId, _logId, new PatchSleepLogDto());
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).Update(_petId, _logId, new PatchSleepLogDto()));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.Equal(expectedStatus, exception.StatusCode);
+        Assert.NotNull(exception.Code);
     }
 
     private SleepLogController Controller(ISleepLogService service)

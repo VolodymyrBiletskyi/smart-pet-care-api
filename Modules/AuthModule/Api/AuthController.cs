@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Domain;
@@ -27,24 +28,9 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            try
-            {
-                await _authService.RegisterAsync(request);
-                return StatusCode(StatusCodes.Status201Created,
-                    new { message = "Confirmation code sent, check your email" });
-            }
-            catch (EmailConfirmationException ex)
-            {
-                return ConfirmationError(ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while registering" });
-            }
+            await _authService.RegisterAsync(request);
+            return StatusCode(StatusCodes.Status201Created,
+                new { message = "Confirmation code sent, check your email" });
         }
 
         [HttpPost("confirm-email")]
@@ -55,19 +41,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
         {
-            try
-            {
-                await _authService.ConfirmEmailAsync(request);
-                return Ok(new { message = "Email confirmed, you can now log in" });
-            }
-            catch (EmailConfirmationException ex)
-            {
-                return ConfirmationError(ex);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while confirming the email" });
-            }
+            await _authService.ConfirmEmailAsync(request);
+            return Ok(new { message = "Email confirmed, you can now log in" });
         }
 
         [HttpPost("resend-confirmation")]
@@ -77,23 +52,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationRequest request)
         {
-            try
-            {
-                await _authService.ResendConfirmationAsync(request.Email);
-                return NoContent();
-            }
-            catch (EmailConfirmationException ex)
-            {
-                return ConfirmationError(ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while resending the code" });
-            }
+            await _authService.ResendConfirmationAsync(request.Email);
+            return NoContent();
         }
 
         [HttpPost("login")]
@@ -102,37 +62,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            try
-            {
-                var result = await _authService.LoginAsync(request);
-                return Ok(ToResponse(result));
-            }
-            catch (EmailConfirmationException ex)
-            {
-                return ConfirmationError(ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while logging in" });
-            }
-        }
-
-        private ObjectResult ConfirmationError(EmailConfirmationException ex)
-        {
-            var status = ex.Error switch
-            {
-                EmailConfirmationError.AlreadyConfirmed => StatusCodes.Status409Conflict,
-                EmailConfirmationError.CodeExpired => StatusCodes.Status410Gone,
-                EmailConfirmationError.TooManyAttempts => StatusCodes.Status429TooManyRequests,
-                EmailConfirmationError.ResendTooSoon => StatusCodes.Status429TooManyRequests,
-                EmailConfirmationError.EmailNotConfirmed => StatusCodes.Status403Forbidden,
-                _ => StatusCodes.Status400BadRequest
-            };
-            return StatusCode(status, new { code = ex.ErrorCode, message = ex.Message });
+            var result = await _authService.LoginAsync(request);
+            return Ok(ToResponse(result));
         }
 
         [HttpPost("refresh")]
@@ -140,18 +71,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
-            try
-            {
-                var result = await _authService.RefreshAsync(request.RefreshToken);
-                if (result is null)
-                    return Unauthorized(new { message = "Invalid or expired refresh token" });
+            var result = await _authService.RefreshAsync(request.RefreshToken);
+            if (result is null)
+                return Unauthorized(ApiErrorResponse.FromMessage(
+                    "Invalid or expired refresh token", ErrorCodes.Auth.RefreshTokenInvalid));
 
-                return Ok(ToResponse(result));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while refreshing the token" });
-            }
+            return Ok(ToResponse(result));
         }
 
         [Authorize]
@@ -160,16 +85,9 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Logout()
         {
-            try
-            {
-                var userId = User.GetUserId();
-                await _authService.LogoutAsync(userId);
-                return NoContent();
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while logging out" });
-            }
+            var userId = User.GetUserId();
+            await _authService.LogoutAsync(userId);
+            return NoContent();
         }
         [HttpGet("oauth/google")]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
@@ -186,21 +104,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         public async Task<IActionResult> GoogleCallback([FromQuery(Name = "code")] string? authCode)
         {
             if (string.IsNullOrWhiteSpace(authCode))
-                return BadRequest(new { message = "Authorization code is required" });
+                return BadRequest(ApiErrorResponse.FromMessage(
+                    "Authorization code is required", ErrorCodes.Auth.OAuthCodeRequired));
 
-            try
-            {
-                var result = await _authService.GoogleLoginAsync(authCode);
-                return Ok(ToResponse(result));
-            }
-            catch (InvalidOperationException)
-            {
-                return Unauthorized(new { message = "Google authentication failed" });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "OAuth login failed" });
-            }
+            var result = await _authService.GoogleLoginAsync(authCode);
+            return Ok(ToResponse(result));
         }
 
         [HttpPost("oauth/google/mobile")]
@@ -209,19 +117,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GoogleMobileLogin([FromBody] GoogleMobileRequest request)
         {
-            try
-            {
-                var result = await _authService.GoogleMobileLoginAsync(request.IdToken);
-                return Ok(ToResponse(result));
-            }
-            catch (InvalidOperationException)
-            {
-                return Unauthorized(new { message = "Google authentication failed" });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "OAuth login failed" });
-            }
+            var result = await _authService.GoogleMobileLoginAsync(request.IdToken);
+            return Ok(ToResponse(result));
         }
 
         private static AuthResponse ToResponse(AuthTokenPair pair)

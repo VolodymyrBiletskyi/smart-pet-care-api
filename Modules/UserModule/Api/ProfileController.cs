@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.UserModule.Domain;
@@ -38,21 +38,9 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UploadAvatar(IFormFile? file)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var user = await _userService.SaveAvatarAsync(userId, file);
-                return Ok(user);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+            var userId = User.GetUserId();
+            var user = await _userService.SaveAvatarAsync(userId, file);
+            return Ok(user);        }
 
         [AllowAnonymous]
         [HttpGet("avatar/{userId:guid}")]
@@ -66,3 +54,4 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         }
     }
 }
+

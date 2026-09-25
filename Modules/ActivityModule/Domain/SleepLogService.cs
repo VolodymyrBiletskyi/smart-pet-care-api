@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ActivityModule.DTOs.Requests;
 using smart_pet_care_api.Modules.ActivityModule.DTOs.Responses;
@@ -26,7 +27,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             var toDate = to is { } t ? SleepLogMapper.NormalizeToDate(t) : (DateTime?)null;
 
             if (fromDate.HasValue && toDate.HasValue && fromDate.Value > toDate.Value)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Sleep.DateRangeInvalid, "From cannot be later than To");
 
             var logs = await _repo.GetByPetIdAsync(petId, fromDate, toDate);
             return logs.Select(log => log.ToDto()).ToList();
@@ -64,7 +65,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
 
             var log = await _repo.GetTrackedByIdAsync(sleepLogId);
             if (log is null || log.PetId != petId)
-                throw new InvalidOperationException("Sleep log not found");
+                throw new NotFoundException(ErrorCodes.Sleep.LogNotFound, "Sleep log not found");
 
             log.PatchEntity(dto);
 
@@ -93,28 +94,28 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void EnsurePatchHasFields(PatchSleepLogDto dto)
         {
             if (!dto.SleepDate.IsSet && !dto.Hours.IsSet && !dto.Note.IsSet)
-                throw new ArgumentException("At least one field must be provided");
+                throw new ValidationException(ErrorCodes.Sleep.UpdateEmpty, "At least one field must be provided");
         }
 
         private static void Validate(SleepLog log)
         {
             if (log.SleepDate > SleepLogMapper.NormalizeToDate(DateTime.UtcNow))
-                throw new ArgumentException("SleepDate cannot be in the future");
+                throw new ValidationException(ErrorCodes.Sleep.DateInFuture, "SleepDate cannot be in the future");
 
             if (log.Hours <= 0)
-                throw new ArgumentException("Hours must be greater than zero");
+                throw new ValidationException(ErrorCodes.Sleep.HoursNotPositive, "Hours must be greater than zero");
 
             if (log.Hours > MaxHoursPerDay)
-                throw new ArgumentException($"Hours must be {MaxHoursPerDay} or less");
+                throw new ValidationException(ErrorCodes.Sleep.HoursTooLarge, $"Hours must be {MaxHoursPerDay} or less", new Dictionary<string, object?> { ["max"] = MaxHoursPerDay });
 
             if (log.Note is { Length: > MaxNoteLength })
-                throw new ArgumentException($"Note must be {MaxNoteLength} characters or less");
+                throw new ValidationException(ErrorCodes.Sleep.NoteTooLong, $"Note must be {MaxNoteLength} characters or less", new Dictionary<string, object?> { ["maxLength"] = MaxNoteLength });
         }
 
         /// <summary>
@@ -130,8 +131,16 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
                 excludeSelf ? log.Id : null);
 
             if (alreadyLogged + log.Hours > MaxHoursPerDay)
-                throw new ArgumentException(
-                    $"Sleep for {log.SleepDate:yyyy-MM-dd} would total more than {MaxHoursPerDay} hours ({alreadyLogged} already logged)");
+                throw new ValidationException(
+                    ErrorCodes.Sleep.DailyHoursExceeded,
+                    $"Sleep for {log.SleepDate:yyyy-MM-dd} would total more than {MaxHoursPerDay} hours ({alreadyLogged} already logged)",
+                    new Dictionary<string, object?>
+                    {
+                        ["maxHoursPerDay"] = MaxHoursPerDay,
+                        ["alreadyLogged"] = alreadyLogged
+                    });
         }
     }
 }
+
+

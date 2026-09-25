@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
@@ -32,20 +32,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
         {
             var userId = User.GetUserId();
 
-            try
-            {
-                var logs = await _service.GetByPetIdAsync(petId, userId, from, to);
-                return Ok(logs);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message));
-            }
-        }
+            var logs = await _service.GetByPetIdAsync(petId, userId, from, to);
+            return Ok(logs);        }
 
         [HttpGet("{sleepLogId:guid}")]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status200OK)]
@@ -55,17 +43,9 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
         {
             var userId = User.GetUserId();
 
-            try
-            {
-                var log = await _service.GetByIdAsync(petId, sleepLogId, userId);
-                if (log is null) return NotFound(Error("Sleep log not found"));
-                return Ok(log);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message));
-            }
-        }
+            var log = await _service.GetByIdAsync(petId, sleepLogId, userId);
+            if (log is null) return NotFound(Error("Sleep log not found", ErrorCodes.Sleep.LogNotFound));
+            return Ok(log);        }
 
         [HttpPost]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status201Created)]
@@ -76,20 +56,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
         {
             var userId = User.GetUserId();
 
-            try
-            {
-                var created = await _service.CreateAsync(petId, userId, dto);
-                return CreatedAtAction(nameof(GetById), new { petId, sleepLogId = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message));
-            }
-        }
+            var created = await _service.CreateAsync(petId, userId, dto);
+            return CreatedAtAction(nameof(GetById), new { petId, sleepLogId = created.Id }, created);        }
 
         [HttpPatch("{sleepLogId:guid}")]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status200OK)]
@@ -100,20 +68,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
         {
             var userId = User.GetUserId();
 
-            try
-            {
-                var updated = await _service.UpdateAsync(petId, sleepLogId, userId, dto);
-                return Ok(updated);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message));
-            }
-        }
+            var updated = await _service.UpdateAsync(petId, sleepLogId, userId, dto);
+            return Ok(updated);        }
 
         [HttpDelete("{sleepLogId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -123,19 +79,13 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
         {
             var userId = User.GetUserId();
 
-            try
-            {
-                var deleted = await _service.DeleteAsync(petId, sleepLogId, userId);
-                if (!deleted) return NotFound(Error("Sleep log not found"));
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message));
-            }
-        }
+            var deleted = await _service.DeleteAsync(petId, sleepLogId, userId);
+            if (!deleted) return NotFound(Error("Sleep log not found", ErrorCodes.Sleep.LogNotFound));
+            return NoContent();        }
 
-        private static ApiErrorResponse Error(string message) =>
-            ApiErrorResponse.FromMessage(message);
+        private static ApiErrorResponse Error(string message, string code) =>
+            ApiErrorResponse.FromMessage(message, code);
     }
 }
+
+

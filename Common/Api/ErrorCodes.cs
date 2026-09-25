@@ -68,6 +68,100 @@ public static class ErrorCodes
         public const string ValidationFailed = "feeding_validation_failed";
     }
 
+    public static class Activity
+    {
+        public const string LogNotFound = "activity_log_not_found";
+        public const string UpdateEmpty = "activity_update_empty";
+        public const string SourceInvalid = "activity_source_invalid";
+        public const string DateRangeInvalid = "activity_date_range_invalid";
+        public const string RecordedAtInFuture = "activity_recorded_at_in_future";
+        public const string StepsNegative = "activity_steps_negative";
+        public const string TypeInvalid = "activity_type_invalid";
+        public const string IntensityInvalid = "activity_intensity_invalid";
+        public const string DurationNotPositive = "activity_duration_not_positive";
+        public const string DurationTooLong = "activity_duration_too_long";
+        public const string StepsTooLarge = "activity_steps_too_large";
+        public const string LocationTooLong = "activity_location_too_long";
+        public const string NoteTooLong = "activity_note_too_long";
+        public const string SourceNotSupported = "activity_source_not_supported";
+        public const string NothingRecorded = "activity_nothing_recorded";
+    }
+
+    public static class Sleep
+    {
+        public const string LogNotFound = "sleep_log_not_found";
+        public const string UpdateEmpty = "sleep_update_empty";
+        public const string DateRangeInvalid = "sleep_date_range_invalid";
+        public const string DateInFuture = "sleep_date_in_future";
+        public const string HoursNotPositive = "sleep_hours_not_positive";
+        public const string HoursTooLarge = "sleep_hours_too_large";
+        public const string NoteTooLong = "sleep_note_too_long";
+        public const string DailyHoursExceeded = "sleep_daily_hours_exceeded";
+    }
+
+    public static class Health
+    {
+        public const string RecordNotFound = "health_record_not_found";
+        public const string DateRangeInvalid = "health_date_range_invalid";
+        public const string TypeInvalid = "health_type_invalid";
+        public const string TitleRequired = "health_title_required";
+        public const string TitleTooLong = "health_title_too_long";
+        public const string PerformedAtInFuture = "health_performed_at_in_future";
+        public const string NextDueBeforePerformed = "health_next_due_before_performed";
+        public const string SymptomInvalid = "health_symptom_invalid";
+        public const string DescriptionTooLong = "health_description_too_long";
+        public const string DosageTooLong = "health_dosage_too_long";
+        public const string ProviderTooLong = "health_provider_too_long";
+    }
+
+    public static class Journal
+    {
+        public const string EntryNotFound = "journal_entry_not_found";
+        public const string DateRangeInvalid = "journal_date_range_invalid";
+        public const string TypeInvalid = "journal_type_invalid";
+        public const string SeverityInvalid = "journal_severity_invalid";
+        public const string SymptomInvalid = "journal_symptom_invalid";
+        public const string TitleRequired = "journal_title_required";
+        public const string TitleTooLong = "journal_title_too_long";
+        public const string ObservedAtInFuture = "journal_observed_at_in_future";
+        public const string NotesTooLong = "journal_notes_too_long";
+    }
+
+    public static class Reminder
+    {
+        public const string RunNotFound = "reminder_run_not_found";
+        public const string RunAlreadyAcknowledged = "reminder_run_already_acknowledged";
+        public const string EndAtNotInFuture = "reminder_end_at_not_in_future";
+        public const string DateNotInFuture = "reminder_date_not_in_future";
+        public const string DateRangeInvalid = "reminder_date_range_invalid";
+        public const string ScheduleInvalid = "reminder_schedule_invalid";
+        public const string PerformedAtInFuture = "reminder_performed_at_in_future";
+        public const string NoteTooLong = "reminder_note_too_long";
+    }
+
+    public static class Auth
+    {
+        public const string EmailAlreadyTaken = "auth_email_already_taken";
+        public const string AccountNotFound = "auth_account_not_found";
+        public const string InvalidCredentials = "auth_invalid_credentials";
+        public const string GoogleAuthFailed = "auth_google_failed";
+        public const string RefreshTokenInvalid = "auth_refresh_token_invalid";
+        public const string OAuthCodeRequired = "auth_oauth_code_required";
+    }
+
+    public static class User
+    {
+        public const string NotFound = "user_not_found";
+        public const string PhotoRequired = "user_photo_required";
+        public const string PhotoTypeInvalid = "user_photo_type_invalid";
+        public const string PhotoTooLarge = "user_photo_too_large";
+    }
+
+    public static class Notification
+    {
+        public const string DeviceTokenRequired = "device_token_required";
+    }
+
     public static class Chat
     {
         public const string SessionNotFound = "chat_session_not_found";
@@ -86,14 +180,22 @@ public static class ErrorCodes
         public const string StateConflict = "chat_state_conflict";
     }
 
-    /// <summary>
-    /// Coarse for now: the nutrition module still raises plain framework
-    /// exceptions, so its validation failures share one alias until it moves to
-    /// <see cref="AppException"/> like the weight history module has.
-    /// </summary>
     public static class Nutrition
     {
+        /// <summary>
+        /// The analysis path validates the pet's body data rather than the
+        /// request, so its failures share one alias: the client cannot fix them
+        /// by changing the call, only by filling in the pet's profile.
+        /// </summary>
         public const string AnalysisInvalid = "nutrition_analysis_invalid";
+
+        public const string GoalNotFound = "nutrition_goal_not_found";
+        public const string UtcOffsetInvalid = "nutrition_utc_offset_invalid";
+        public const string CalorieTargetNegative = "nutrition_calorie_target_negative";
+        public const string PortionTargetNegative = "nutrition_portion_target_negative";
+        public const string MealsPerDayNegative = "nutrition_meals_per_day_negative";
+        public const string PortionUnitInvalid = "nutrition_portion_unit_invalid";
+        public const string PortionUnitRequired = "nutrition_portion_unit_required";
     }
 
     public static class Wellness
@@ -127,3 +229,4 @@ public static class ErrorCodes
         public const string Unavailable = "service_unavailable";
     }
 }
+

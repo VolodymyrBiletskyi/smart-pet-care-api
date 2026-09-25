@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.ActivityModule.Domain.Sources;
 using smart_pet_care_api.Modules.ActivityModule.DTOs.Requests;
 using smart_pet_care_api.Modules.ActivityModule.DTOs.Responses;
@@ -28,13 +29,13 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
             await EnsurePetBelongsToUserAsync(petId, userId);
 
             if (source.HasValue && !Enum.IsDefined(source.Value))
-                throw new ArgumentException("Source is invalid");
+                throw new ValidationException(ErrorCodes.Activity.SourceInvalid, "Source is invalid");
 
             var fromUtc = from is { } f ? ActivityLogMapper.NormalizeToUtc(f) : (DateTime?)null;
             var toUtc = to is { } t ? ActivityLogMapper.NormalizeToUtc(t) : (DateTime?)null;
 
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc.Value > toUtc.Value)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Activity.DateRangeInvalid, "From cannot be later than To");
 
             var logs = await _repo.GetByPetIdAsync(petId, fromUtc, toUtc, source);
             return logs.Select(log => log.ToDto()).ToList();
@@ -56,10 +57,10 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
 
             var source = dto.Source ?? ActivitySource.Manual;
             if (!Enum.IsDefined(source))
-                throw new ArgumentException("Source is invalid");
+                throw new ValidationException(ErrorCodes.Activity.SourceInvalid, "Source is invalid");
 
             var provider = _sources.Resolve(source)
-                ?? throw new ArgumentException($"Activity source {source} is not supported yet");
+                ?? throw new ValidationException(ErrorCodes.Activity.SourceNotSupported, $"Activity source {source} is not supported yet");
 
             var reading = await provider.ReadAsync(petId, dto);
 
@@ -82,7 +83,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
 
             var log = await _repo.GetTrackedByIdAsync(activityLogId);
             if (log is null || log.PetId != petId)
-                throw new InvalidOperationException("Activity log not found");
+                throw new NotFoundException(ErrorCodes.Activity.LogNotFound, "Activity log not found");
 
             log.PatchEntity(dto);
 
@@ -116,7 +117,7 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void EnsurePatchHasFields(PatchActivityLogDto dto)
@@ -129,52 +130,52 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
                 && !dto.Location.IsSet
                 && !dto.Note.IsSet)
             {
-                throw new ArgumentException("At least one field must be provided");
+                throw new ValidationException(ErrorCodes.Activity.UpdateEmpty, "At least one field must be provided");
             }
         }
 
         private static void ValidateReading(ActivityReading reading)
         {
             if (ActivityLogMapper.NormalizeToUtc(reading.RecordedAt) > DateTime.UtcNow.AddMinutes(10))
-                throw new ArgumentException("RecordedAt cannot be in the future");
+                throw new ValidationException(ErrorCodes.Activity.RecordedAtInFuture, "RecordedAt cannot be in the future");
 
             if (reading.Steps is { } steps)
             {
                 if (steps < 0)
-                    throw new ArgumentException("Steps cannot be negative");
+                    throw new ValidationException(ErrorCodes.Activity.StepsNegative, "Steps cannot be negative");
 
                 if (steps > MaxSteps)
-                    throw new ArgumentException($"Steps must be {MaxSteps} or less");
+                    throw new ValidationException(ErrorCodes.Activity.StepsTooLarge, $"Steps must be {MaxSteps} or less", new Dictionary<string, object?> { ["max"] = MaxSteps });
             }
 
             if (reading.Location is { Length: > MaxLocationLength })
-                throw new ArgumentException($"Location must be {MaxLocationLength} characters or less");
+                throw new ValidationException(ErrorCodes.Activity.LocationTooLong, $"Location must be {MaxLocationLength} characters or less", new Dictionary<string, object?> { ["maxLength"] = MaxLocationLength });
 
             if (reading.Note is { Length: > MaxNoteLength })
-                throw new ArgumentException($"Note must be {MaxNoteLength} characters or less");
+                throw new ValidationException(ErrorCodes.Activity.NoteTooLong, $"Note must be {MaxNoteLength} characters or less", new Dictionary<string, object?> { ["maxLength"] = MaxNoteLength });
 
             if (reading.Type is { } type && !Enum.IsDefined(type))
-                throw new ArgumentException("Type is invalid");
+                throw new ValidationException(ErrorCodes.Activity.TypeInvalid, "Type is invalid");
 
             if (reading.Intensity is { } intensity && !Enum.IsDefined(intensity))
-                throw new ArgumentException("Intensity is invalid");
+                throw new ValidationException(ErrorCodes.Activity.IntensityInvalid, "Intensity is invalid");
 
             if (reading.DurationMinutes is { } duration)
             {
                 if (duration <= 0)
-                    throw new ArgumentException("DurationMinutes must be greater than zero");
+                    throw new ValidationException(ErrorCodes.Activity.DurationNotPositive, "DurationMinutes must be greater than zero");
 
                 // One log is one session. A longer span is a day's worth of them and belongs
                 // in as many rows, or the intensity of the whole stretch is a fiction.
                 if (duration > MaxDurationMinutes)
-                    throw new ArgumentException($"DurationMinutes must be {MaxDurationMinutes} or less");
+                    throw new ValidationException(ErrorCodes.Activity.DurationTooLong, $"DurationMinutes must be {MaxDurationMinutes} or less", new Dictionary<string, object?> { ["max"] = MaxDurationMinutes });
             }
 
             // A row with no activity, no duration, no steps, no place and no text records
             // nothing at all.
             if (reading.Steps is null && reading.Location is null && reading.Note is null
                 && reading.Type is null && reading.DurationMinutes is null)
-                throw new ArgumentException("At least one of Type, DurationMinutes, Steps, Location or Note is required");
+                throw new ValidationException(ErrorCodes.Activity.NothingRecorded, "At least one of Type, DurationMinutes, Steps, Location or Note is required");
         }
 
         /// <summary>
@@ -188,3 +189,5 @@ namespace smart_pet_care_api.Modules.ActivityModule.Domain
                 : reading with { Intensity = ActivityEffort.DefaultIntensityFor(reading.Type) };
     }
 }
+
+

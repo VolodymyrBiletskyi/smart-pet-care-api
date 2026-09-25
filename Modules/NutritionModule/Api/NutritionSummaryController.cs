@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
@@ -28,20 +28,9 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
             [FromQuery] DateOnly? date,
             [FromQuery] int utcOffsetMinutes = 0)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var summary = await _service.GetDailySummaryAsync(petId, userId, date, utcOffsetMinutes);
-                return Ok(summary);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
+            var userId = User.GetUserId();
+            var summary = await _service.GetDailySummaryAsync(petId, userId, date, utcOffsetMinutes);
+            return Ok(summary);        }
     }
 }
+

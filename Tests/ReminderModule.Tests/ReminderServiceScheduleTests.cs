@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Xunit;
 using smart_pet_care_api.Modules.ReminderModule.Domain;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
@@ -106,7 +107,7 @@ public class ReminderServiceScheduleTests
     {
         var (service, _) = Build();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
             Dto(ReminderType.Brushing, RepeatType.Daily, 1, RecalcStrategy.Calendar,
                 [DaysOfWeek.Saturday]),
             UserId));
@@ -117,7 +118,7 @@ public class ReminderServiceScheduleTests
     {
         var (service, _) = Build();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
             Dto(ReminderType.Bathing, RepeatType.Daily, 30,
                 RecalcStrategy.FromCompletionAlignedToWeekday, []),
             UserId));
@@ -128,7 +129,7 @@ public class ReminderServiceScheduleTests
     {
         var (service, _) = Build();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
             Dto(ReminderType.Grooming, RepeatType.Once, 1, RecalcStrategy.FromCompletion,
                 days: [], date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3))),
             UserId));
@@ -160,7 +161,7 @@ public class ReminderServiceScheduleTests
         var dto = Dto(ReminderType.Brushing, repeatType, intervalN,
             date: repeatType == RepeatType.Monthly ? new DateOnly(2026, 3, 10) : null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto, UserId));
+        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(dto, UserId));
     }
 
     [Fact]

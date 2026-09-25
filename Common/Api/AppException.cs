@@ -33,6 +33,18 @@ public class ValidationException(
 public class ConflictException(string code, string message)
     : AppException(code, StatusCodes.Status409Conflict, message);
 
+public class UnauthorizedException(string code, string message)
+    : AppException(code, StatusCodes.Status401Unauthorized, message);
+
+public class GoneException(string code, string message)
+    : AppException(code, StatusCodes.Status410Gone, message);
+
+public class TooManyRequestsException(string code, string message)
+    : AppException(code, StatusCodes.Status429TooManyRequests, message);
+
+public class ForbiddenException(string code, string message)
+    : AppException(code, StatusCodes.Status403Forbidden, message);
+
 public class UnprocessableException(string code, string message)
     : AppException(code, StatusCodes.Status422UnprocessableEntity, message);
 

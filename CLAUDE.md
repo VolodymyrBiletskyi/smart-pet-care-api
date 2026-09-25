@@ -209,10 +209,17 @@ nobody designed for is a bug, and answering it with a plausible business error �
 which is what a bare `catch (InvalidOperationException)` per controller did — is
 how bugs stay invisible.
 
-`PetWeightHistoryModule` is fully migrated and is the pattern to copy; the other
-modules still map their errors in the controller and are listed as uncovered in
-the doc. `Tests/CommonApi.Tests/` covers the handler and keeps the catalogue
-from drifting out of `docs/error-codes.md`.
+Every module answers this way now, so controllers carry no `try/catch` for
+domain failures at all. Two places deliberately still catch, and both wrap
+rather than translate: `WellnessService` turns classifier failures into its own
+`wellness_service_*` aliases, because the client knows those and not the
+classifier's, and `PetWeightLogService` turns a unique-index violation into the
+same conflict its pre-check raises. Chat is the counter-example — it always
+passed the classifier's own code through, so it wraps nothing.
+
+`Tests/CommonApi.Tests/` covers the handler and keeps the catalogue from
+drifting out of `docs/error-codes.md`: adding a constant without documenting it
+fails the build.
 
 Classifier integration documentation:
 

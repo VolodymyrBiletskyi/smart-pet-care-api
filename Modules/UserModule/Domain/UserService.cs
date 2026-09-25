@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.UserModule.DTOs.Requests;
 using smart_pet_care_api.Modules.UserModule.DTOs.Responses;
 using smart_pet_care_api.Modules.UserModule.Mapper;
@@ -48,7 +49,7 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
         {
             var existingUser = await _userRepo.GetByIdAsync(id);
             if (existingUser is null)
-                throw new InvalidOperationException("User does not exist");
+                throw new NotFoundException(ErrorCodes.User.NotFound, "User not found");
 
             existingUser.PatchEntity(patchDto);
 
@@ -62,14 +63,14 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
 
             var user = await _userRepo.GetByIdAsync(id);
             if (user is null)
-                throw new InvalidOperationException("User does not exist");
+                throw new NotFoundException(ErrorCodes.User.NotFound, "User not found");
 
             using var ms = new MemoryStream();
             await file!.CopyToAsync(ms);
             var data = ms.ToArray();
 
             var contentType = ResolveImageContentType(data)
-                ?? throw new ArgumentException("File content is not a valid JPEG, PNG, or WebP image");
+                ?? throw new ValidationException(ErrorCodes.User.PhotoTypeInvalid, "File content is not a valid JPEG, PNG, or WebP image");
 
             user.AvatarData = data;
             user.AvatarContentType = contentType;
@@ -82,11 +83,11 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
         private static void ValidateAvatar(IFormFile? file)
         {
             if (file is null || file.Length == 0)
-                throw new ArgumentException("Photo is required");
+                throw new ValidationException(ErrorCodes.User.PhotoRequired, "Photo is required");
 
             const long maxBytes = 1 * 1024 * 1024;
             if (file.Length > maxBytes)
-                throw new ArgumentException("Photo must be 1 MB or less");
+                throw new ValidationException(ErrorCodes.User.PhotoTooLarge, "Photo must be 1 MB or less", new Dictionary<string, object?> { ["maxMegabytes"] = 1 });
         }
 
         // The stored content type is derived from the file signature, not the
@@ -115,3 +116,4 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
         }
     }
 }
+

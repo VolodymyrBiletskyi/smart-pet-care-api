@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.HealthModule.DTOs.Requests;
 using smart_pet_care_api.Modules.HealthModule.DTOs.Responses;
@@ -32,7 +33,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             var toUtc = to is { } t ? HealthRecordMapper.NormalizeToUtc(t) : (DateTime?)null;
 
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc.Value > toUtc.Value)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Health.DateRangeInvalid, "From cannot be later than To");
 
             var records = await _repo.GetByPetIdAsync(petId, type, symptom, fromUtc, toUtc);
             return records.Select(r => r.ToDto()).ToList();
@@ -64,7 +65,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             {
                 var outcome = await _reminderRecalculation.RegisterCompletionAsync(
                     reminderId, record.PerformedAt, expectedPetId: petId)
-                    ?? throw new InvalidOperationException("Reminder not found");
+                    ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
                 // NextDueAt belongs to the server for linked records; letting the client set it
                 // too would give us two sources of truth for one date.
@@ -86,7 +87,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
 
             var record = await _repo.GetTrackedByIdAsync(recordId);
             if (record is null || record.PetId != petId)
-                throw new InvalidOperationException("Health record not found");
+                throw new NotFoundException(ErrorCodes.Health.RecordNotFound, "Health record not found");
 
             record.PatchEntity(dto);
             ValidateFinalState(record);
@@ -113,7 +114,7 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void ValidateCreate(CreateHealthRecordDto dto)
@@ -141,28 +142,28 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
         private static void ValidateFinalState(HealthRecord record)
         {
             if (record.NextDueAt.HasValue && record.NextDueAt.Value < record.PerformedAt)
-                throw new ArgumentException("NextDueAt cannot be earlier than PerformedAt");
+                throw new ValidationException(ErrorCodes.Health.NextDueBeforePerformed, "NextDueAt cannot be earlier than PerformedAt");
         }
 
         private static void ValidateType(HealthRecordType type)
         {
             if (!Enum.IsDefined(type))
-                throw new ArgumentException("Type is invalid");
+                throw new ValidationException(ErrorCodes.Health.TypeInvalid, "Type is invalid");
         }
 
         private static void ValidateTitle(string? title)
         {
             if (string.IsNullOrWhiteSpace(title))
-                throw new ArgumentException("Title is required");
+                throw new ValidationException(ErrorCodes.Health.TitleRequired, "Title is required");
 
             if (title.Trim().Length > 200)
-                throw new ArgumentException("Title must be 200 characters or less");
+                throw new ValidationException(ErrorCodes.Health.TitleTooLong, "Title must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });
         }
 
         private static void ValidatePerformedAt(DateTime performedAt)
         {
             if (HealthRecordMapper.NormalizeToUtc(performedAt) > DateTime.UtcNow.AddMinutes(10))
-                throw new ArgumentException("PerformedAt cannot be in the future");
+                throw new ValidationException(ErrorCodes.Health.PerformedAtInFuture, "PerformedAt cannot be in the future");
         }
 
         private static void ValidateSymptoms(List<SymptomType>? symptoms)
@@ -175,25 +176,26 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
         private static void ValidateSymptom(SymptomType symptom)
         {
             if (!Enum.IsDefined(symptom))
-                throw new ArgumentException("Symptom is invalid");
+                throw new ValidationException(ErrorCodes.Health.SymptomInvalid, "Symptom is invalid");
         }
 
         private static void ValidateDescription(string? description)
         {
             if (description is { Length: > 2000 })
-                throw new ArgumentException("Description must be 2000 characters or less");
+                throw new ValidationException(ErrorCodes.Health.DescriptionTooLong, "Description must be 2000 characters or less", new Dictionary<string, object?> { ["maxLength"] = 2000 });
         }
 
         private static void ValidateDosage(string? dosage)
         {
             if (dosage is { Length: > 200 })
-                throw new ArgumentException("Dosage must be 200 characters or less");
+                throw new ValidationException(ErrorCodes.Health.DosageTooLong, "Dosage must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });
         }
 
         private static void ValidateProvider(string? provider)
         {
             if (provider is { Length: > 200 })
-                throw new ArgumentException("Provider must be 200 characters or less");
+                throw new ValidationException(ErrorCodes.Health.ProviderTooLong, "Provider must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });
         }
     }
 }
+

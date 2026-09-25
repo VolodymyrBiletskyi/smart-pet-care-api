@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
@@ -38,7 +39,7 @@ public class NutritionServiceTests
         var service = BuildService(
             new FakeNutritionGoalRepository(), new FakePetRepository { PetExists = false }, feeding, new FakeReminderRepository());
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetDailySummaryAsync(_petId, _userId, null, 0));
 
         Assert.Equal("Pet not found", ex.Message);
@@ -53,7 +54,7 @@ public class NutritionServiceTests
         var service = BuildService(
             new FakeNutritionGoalRepository(), new FakePetRepository(), new FakeFeedingLogRepository(), new FakeReminderRepository());
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.GetDailySummaryAsync(_petId, _userId, null, offset));
     }
 
@@ -254,7 +255,7 @@ public class NutritionServiceTests
         var service = BuildService(
             new FakeNutritionGoalRepository(), new FakePetRepository(), new FakeFeedingLogRepository(), new FakeReminderRepository());
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpsertGoalAsync(_petId, _userId, new UpsertNutritionGoalDto { DailyPortionTarget = 100m }));
     }
 
@@ -264,7 +265,7 @@ public class NutritionServiceTests
         var service = BuildService(
             new FakeNutritionGoalRepository(), new FakePetRepository(), new FakeFeedingLogRepository(), new FakeReminderRepository());
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpsertGoalAsync(_petId, _userId, new UpsertNutritionGoalDto { DailyCalorieTarget = -1 }));
     }
 
@@ -274,7 +275,7 @@ public class NutritionServiceTests
         var service = BuildService(
             new FakeNutritionGoalRepository(), new FakePetRepository(), new FakeFeedingLogRepository(), new FakeReminderRepository());
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.PatchGoalAsync(_petId, _userId, new PatchNutritionGoalDto()));
 
         Assert.Equal("Nutrition goal not found", ex.Message);

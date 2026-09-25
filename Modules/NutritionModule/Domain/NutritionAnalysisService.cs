@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
@@ -63,7 +64,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
             CancellationToken cancellationToken = default)
         {
             var pet = await _petRepo.GetByIdAndUserIdAsync(petId, userId)
-                ?? throw new InvalidOperationException("Pet not found");
+                ?? throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             // Rejected before the day's logs are read — neither the weight nor
             // the offset check depends on them.
@@ -107,7 +108,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         public async Task<NutritionAnalysisHistoryResponseDto> GetRecentAsync(Guid petId, Guid userId)
         {
             if (!await _petRepo.ExistsForUserAsync(petId, userId))
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var analyses = await _analysisRepo.GetRecentByPetIdAsync(petId, RetainedAnalysesPerPet);
 
@@ -156,7 +157,8 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         private static decimal RequireWeight(decimal? weightKg)
         {
             if (weightKg is not { } weight || weight <= 0 || weight > MaxWeightKg)
-                throw new ArgumentException(
+                throw new ValidationException(
+                    ErrorCodes.Nutrition.AnalysisInvalid,
                     $"A weight above 0 and at most {MaxWeightKg:0} kg is needed before feeding "
                     + "can be analysed — send weightKg or record one on the pet");
 
@@ -316,3 +318,4 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         }
     }
 }
+

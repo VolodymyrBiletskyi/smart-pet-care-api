@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using System.Security.Cryptography;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
@@ -43,7 +44,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             if (existing is not null)
             {
                 if (existing.EmailConfirmed)
-                    throw new InvalidOperationException("Email is already taken");
+                    throw new ConflictException(ErrorCodes.Auth.EmailAlreadyTaken, "Email is already taken");
 
                 // Unconfirmed account: the previous registrant never proved
                 // ownership of this mailbox, so let the new attempt take over
@@ -102,7 +103,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         public async Task ResendConfirmationAsync(string email)
         {
             var user = await _userRepo.GetTrackedByEmailAsync(NormalizeEmail(email))
-                ?? throw new InvalidOperationException("No account found for this email");
+                ?? throw new NotFoundException(ErrorCodes.Auth.AccountNotFound, "No account found for this email");
 
             if (user.EmailConfirmed)
                 throw new EmailConfirmationException(EmailConfirmationError.AlreadyConfirmed);
@@ -142,15 +143,15 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)
         {
             var user = await _userRepo.GetByEmailAsync(NormalizeEmail(request.Email))
-                ?? throw new InvalidOperationException("Invalid email or password");
+                ?? throw new UnauthorizedException(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password");
 
             // OAuth-only accounts have no password hash.
             if (user.PasswordHash is null)
-                throw new InvalidOperationException("Invalid email or password");
+                throw new UnauthorizedException(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password");
 
             var isValid = BCrypt.Net.BCrypt.EnhancedVerify(request.Password, user.PasswordHash);
             if (!isValid)
-                throw new InvalidOperationException("Invalid email or password");
+                throw new UnauthorizedException(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password");
 
             if (!user.EmailConfirmed)
                 throw new EmailConfirmationException(EmailConfirmationError.EmailNotConfirmed);

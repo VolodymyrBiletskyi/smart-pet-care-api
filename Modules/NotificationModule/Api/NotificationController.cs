@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NotificationModule.Domain;
@@ -24,17 +24,9 @@ namespace smart_pet_care_api.Modules.NotificationModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Register([FromBody] RegisterDeviceTokenDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                await _deviceTokenService.RegisterAsync(userId, dto);
-                return NoContent();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+            var userId = User.GetUserId();
+            await _deviceTokenService.RegisterAsync(userId, dto);
+            return NoContent();        }
 
         [HttpDelete("device-token/{token}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -48,3 +40,4 @@ namespace smart_pet_care_api.Modules.NotificationModule.Api
         }
     }
 }
+
