@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.UserModule.Domain;
@@ -27,7 +28,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         {
             var userId = User.GetUserId();
             var updatedUser = await _userService.UpdateAsync(userId, patchDto);
-            return Ok(updatedUser);        }
+            return Ok(updatedUser);
+        }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -37,11 +39,16 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         public async Task<IActionResult> Delete(Guid id)
         {
             if (id != User.GetUserId())
-                return Forbid();
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorResponse.FromMessage(
+                        "A user can only delete their own account", ErrorCodes.User.DeleteForbidden));
 
             var deleted = await _userService.DeleteAsync(id);
-            if (!deleted) return NotFound();
-            return NoContent();        }
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("User not found", ErrorCodes.User.NotFound));
+            return NoContent();
+        }
 
 
     }

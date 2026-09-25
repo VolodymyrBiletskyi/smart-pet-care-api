@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NotificationModule.Domain;
@@ -26,7 +26,8 @@ namespace smart_pet_care_api.Modules.NotificationModule.Api
         {
             var userId = User.GetUserId();
             await _deviceTokenService.RegisterAsync(userId, dto);
-            return NoContent();        }
+            return NoContent();
+        }
 
         [HttpDelete("device-token/{token}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]

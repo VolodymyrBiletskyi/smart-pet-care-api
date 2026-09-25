@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.UserModule.Domain;
@@ -26,7 +27,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         {
             var userId = User.GetUserId();
             var user = await _userService.GetByIdAsync(userId);
-            if (user == null) return NotFound();
+            if (user is null)
+                return NotFound(ApiErrorResponse.FromMessage("User not found", ErrorCodes.User.NotFound));
             return Ok(user);
         }
 
@@ -40,7 +42,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         {
             var userId = User.GetUserId();
             var user = await _userService.SaveAvatarAsync(userId, file);
-            return Ok(user);        }
+            return Ok(user);
+        }
 
         [AllowAnonymous]
         [HttpGet("avatar/{userId:guid}")]
@@ -49,7 +52,8 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         public async Task<IActionResult> GetAvatar(Guid userId)
         {
             var avatar = await _userService.GetAvatarAsync(userId);
-            if (avatar == null) return NotFound();
+            if (avatar is null)
+                return NotFound(ApiErrorResponse.FromMessage("Avatar not found", ErrorCodes.User.AvatarNotFound));
             return File(avatar.Value.Data, avatar.Value.ContentType);
         }
     }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.HealthModule.Domain;
@@ -34,7 +35,8 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         {
             var userId = User.GetUserId();
             var records = await _service.GetByPetIdAsync(petId, userId, type, symptom, from, to);
-            return Ok(records);        }
+            return Ok(records);
+        }
 
         [HttpGet("{recordId:guid}")]
         [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status200OK)]
@@ -44,8 +46,10 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         {
             var userId = User.GetUserId();
             var record = await _service.GetByIdAsync(petId, recordId, userId);
-            if (record is null) return NotFound();
-            return Ok(record);        }
+            if (record is null)
+                return NotFound(ApiErrorResponse.FromMessage("Health record not found", ErrorCodes.Health.RecordNotFound));
+            return Ok(record);
+        }
 
         [HttpPost]
         [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status201Created)]
@@ -56,7 +60,8 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         {
             var userId = User.GetUserId();
             var created = await _service.CreateAsync(petId, userId, dto);
-            return CreatedAtAction(nameof(GetById), new { petId, recordId = created.Id }, created);        }
+            return CreatedAtAction(nameof(GetById), new { petId, recordId = created.Id }, created);
+        }
 
         [HttpPatch("{recordId:guid}")]
         [ProducesResponseType(typeof(HealthRecordResponseDto), StatusCodes.Status200OK)]
@@ -67,7 +72,8 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         {
             var userId = User.GetUserId();
             var updated = await _service.UpdateAsync(petId, recordId, userId, dto);
-            return Ok(updated);        }
+            return Ok(updated);
+        }
 
         [HttpDelete("{recordId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -77,8 +83,10 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         {
             var userId = User.GetUserId();
             var deleted = await _service.DeleteAsync(petId, recordId, userId);
-            if (!deleted) return NotFound();
-            return NoContent();        }
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("Health record not found", ErrorCodes.Health.RecordNotFound));
+            return NoContent();
+        }
     }
 }
 

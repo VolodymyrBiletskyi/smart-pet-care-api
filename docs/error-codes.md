@@ -273,6 +273,8 @@ cannot fix them by changing the call.
 | Code | HTTP | `params` | When |
 |---|---|---|---|
 | `user_not_found` | 404 | — | No such user. |
+| `user_avatar_not_found` | 404 | — | The user exists but has no avatar stored. |
+| `user_delete_forbidden` | 403 | — | Deleting an account that is not the caller's. |
 | `user_photo_required` | 400 | — | Upload with no file. |
 | `user_photo_type_invalid` | 400 | — | File is not JPEG, PNG or WebP. |
 | `user_photo_too_large` | 400 | `maxMegabytes` | File over the ceiling. |

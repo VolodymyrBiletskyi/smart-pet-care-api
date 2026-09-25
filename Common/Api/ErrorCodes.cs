@@ -155,6 +155,8 @@ public static class ErrorCodes
         public const string PhotoRequired = "user_photo_required";
         public const string PhotoTypeInvalid = "user_photo_type_invalid";
         public const string PhotoTooLarge = "user_photo_too_large";
+        public const string AvatarNotFound = "user_avatar_not_found";
+        public const string DeleteForbidden = "user_delete_forbidden";
     }
 
     public static class Notification

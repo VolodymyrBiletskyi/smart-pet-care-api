@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
@@ -27,8 +28,10 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         {
             var userId = User.GetUserId();
             var goal = await _service.GetGoalAsync(petId, userId);
-            if (goal is null) return NotFound();
-            return Ok(goal);        }
+            if (goal is null)
+                return NotFound(ApiErrorResponse.FromMessage("Nutrition goal not found", ErrorCodes.Nutrition.GoalNotFound));
+            return Ok(goal);
+        }
 
         [HttpPut]
         [ProducesResponseType(typeof(NutritionGoalResponseDto), StatusCodes.Status200OK)]
@@ -39,7 +42,8 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         {
             var userId = User.GetUserId();
             var goal = await _service.UpsertGoalAsync(petId, userId, dto);
-            return Ok(goal);        }
+            return Ok(goal);
+        }
 
         [HttpPatch]
         [ProducesResponseType(typeof(NutritionGoalResponseDto), StatusCodes.Status200OK)]
@@ -50,7 +54,8 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         {
             var userId = User.GetUserId();
             var goal = await _service.PatchGoalAsync(petId, userId, dto);
-            return Ok(goal);        }
+            return Ok(goal);
+        }
 
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -60,8 +65,10 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         {
             var userId = User.GetUserId();
             var deleted = await _service.DeleteGoalAsync(petId, userId);
-            if (!deleted) return NotFound();
-            return NoContent();        }
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("Nutrition goal not found", ErrorCodes.Nutrition.GoalNotFound));
+            return NoContent();
+        }
     }
 }
 

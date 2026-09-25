@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.JournalModule.Domain;
@@ -35,7 +36,8 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         {
             var userId = User.GetUserId();
             var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, symptom, from, to);
-            return Ok(entries);        }
+            return Ok(entries);
+        }
 
         [HttpGet("{entryId:guid}")]
         [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status200OK)]
@@ -45,8 +47,10 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         {
             var userId = User.GetUserId();
             var entry = await _service.GetByIdAsync(petId, entryId, userId);
-            if (entry is null) return NotFound();
-            return Ok(entry);        }
+            if (entry is null)
+                return NotFound(ApiErrorResponse.FromMessage("Journal entry not found", ErrorCodes.Journal.EntryNotFound));
+            return Ok(entry);
+        }
 
         [HttpPost]
         [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status201Created)]
@@ -57,7 +61,8 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         {
             var userId = User.GetUserId();
             var created = await _service.CreateAsync(petId, userId, dto);
-            return CreatedAtAction(nameof(GetById), new { petId, entryId = created.Id }, created);        }
+            return CreatedAtAction(nameof(GetById), new { petId, entryId = created.Id }, created);
+        }
 
         [HttpPatch("{entryId:guid}")]
         [ProducesResponseType(typeof(JournalEntryResponseDto), StatusCodes.Status200OK)]
@@ -68,7 +73,8 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         {
             var userId = User.GetUserId();
             var updated = await _service.UpdateAsync(petId, entryId, userId, dto);
-            return Ok(updated);        }
+            return Ok(updated);
+        }
 
         [HttpDelete("{entryId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -78,8 +84,10 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         {
             var userId = User.GetUserId();
             var deleted = await _service.DeleteAsync(petId, entryId, userId);
-            if (!deleted) return NotFound();
-            return NoContent();        }
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("Journal entry not found", ErrorCodes.Journal.EntryNotFound));
+            return NoContent();
+        }
     }
 }
 

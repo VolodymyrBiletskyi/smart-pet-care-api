@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using smart_pet_care_api.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.ReminderModule.Domain;
@@ -44,7 +45,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var reminders = await _service.GetByPetIdAsync(petId, userId);
-            return Ok(reminders);        }
+            return Ok(reminders);
+        }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ReminderResponseDto), StatusCodes.Status200OK)]
@@ -53,7 +55,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var reminder = await _service.GetByIdAsync(id, userId);
-            if (reminder == null) return NotFound();
+            if (reminder is null)
+                return NotFound(ApiErrorResponse.FromMessage(
+                    "Reminder not found", ErrorCodes.ReminderNotFound));
             return Ok(reminder);
         }
 
@@ -65,7 +69,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var created = await _service.CreateAsync(dto, userId);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);        }
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
 
         [HttpPatch("{id:guid}")]
         [ProducesResponseType(typeof(ReminderResponseDto), StatusCodes.Status200OK)]
@@ -75,7 +80,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var updated = await _service.UpdateAsync(id, dto, userId);
-            return Ok(updated);        }
+            return Ok(updated);
+        }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -85,7 +91,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             await _service.DeleteAsync(id, userId);
-            return NoContent();        }
+            return NoContent();
+        }
 
         [HttpGet("{id:guid}/runs")]
         [ProducesResponseType(typeof(IEnumerable<ReminderRunResponseDto>), StatusCodes.Status200OK)]
@@ -110,7 +117,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var result = await _completion.CompleteAsync(id, userId, dto ?? new CompleteReminderDto());
-            return Ok(result);        }
+            return Ok(result);
+        }
 
         /// <summary>
         /// Occurrences over a window. Future ones are projected from the repeat rules and are
@@ -126,7 +134,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var occurrences = await _service.GetOccurrencesAsync(userId, petId, from, to);
-            return Ok(occurrences);        }
+            return Ok(occurrences);
+        }
 
         /// <summary>Execution history across every rule of one pet, for a period.</summary>
         [HttpGet("runs")]
@@ -142,7 +151,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var history = await _service.GetRunHistoryAsync(petId, userId, from, to, type);
-            return Ok(history);        }
+            return Ok(history);
+        }
 
         [HttpPost("runs/{runId:guid}/acknowledge")]
         [ProducesResponseType(typeof(ReminderRunResponseDto), StatusCodes.Status200OK)]
@@ -153,7 +163,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var run = await _service.AcknowledgeRunAsync(runId, userId);
-            return Ok(run);        }
+            return Ok(run);
+        }
     }
 }
 

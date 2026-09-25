@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.NutritionModule.Domain;
@@ -30,7 +30,8 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         {
             var userId = User.GetUserId();
             var summary = await _service.GetDailySummaryAsync(petId, userId, date, utcOffsetMinutes);
-            return Ok(summary);        }
+            return Ok(summary);
+        }
     }
 }
 

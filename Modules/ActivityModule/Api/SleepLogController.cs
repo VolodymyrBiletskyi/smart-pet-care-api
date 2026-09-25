@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
@@ -33,7 +33,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
             var userId = User.GetUserId();
 
             var logs = await _service.GetByPetIdAsync(petId, userId, from, to);
-            return Ok(logs);        }
+            return Ok(logs);
+        }
 
         [HttpGet("{sleepLogId:guid}")]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status200OK)]
@@ -45,7 +46,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
 
             var log = await _service.GetByIdAsync(petId, sleepLogId, userId);
             if (log is null) return NotFound(Error("Sleep log not found", ErrorCodes.Sleep.LogNotFound));
-            return Ok(log);        }
+            return Ok(log);
+        }
 
         [HttpPost]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status201Created)]
@@ -57,7 +59,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
             var userId = User.GetUserId();
 
             var created = await _service.CreateAsync(petId, userId, dto);
-            return CreatedAtAction(nameof(GetById), new { petId, sleepLogId = created.Id }, created);        }
+            return CreatedAtAction(nameof(GetById), new { petId, sleepLogId = created.Id }, created);
+        }
 
         [HttpPatch("{sleepLogId:guid}")]
         [ProducesResponseType(typeof(SleepLogResponseDto), StatusCodes.Status200OK)]
@@ -69,7 +72,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
             var userId = User.GetUserId();
 
             var updated = await _service.UpdateAsync(petId, sleepLogId, userId, dto);
-            return Ok(updated);        }
+            return Ok(updated);
+        }
 
         [HttpDelete("{sleepLogId:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -81,7 +85,8 @@ namespace smart_pet_care_api.Modules.ActivityModule.Api
 
             var deleted = await _service.DeleteAsync(petId, sleepLogId, userId);
             if (!deleted) return NotFound(Error("Sleep log not found", ErrorCodes.Sleep.LogNotFound));
-            return NoContent();        }
+            return NoContent();
+        }
 
         private static ApiErrorResponse Error(string message, string code) =>
             ApiErrorResponse.FromMessage(message, code);
