@@ -56,7 +56,7 @@ builder.Services.Configure<CloudinaryOptions>(options =>
 });
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<ErrorTraceIdFilter>())
     .AddJsonOptions(o =>
     {
         o.JsonSerializerOptions.Converters.Add(new PatchFieldJsonConverterFactory());
