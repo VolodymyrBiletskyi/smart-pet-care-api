@@ -15,11 +15,44 @@ public static class ErrorCodes
     /// <summary>Anything that is not a deliberate, named failure.</summary>
     public const string Internal = "internal_error";
 
+    /// <summary>
+    /// The envelope for a body that failed model binding. The per-field entries
+    /// in <c>errors</c> are aliases too — see <see cref="Field"/>.
+    /// </summary>
     public const string RequestValidationFailed = "request_validation_failed";
     public const string AuthenticationTokenInvalid = "authentication_token_invalid";
 
     public const string PetNotFound = "pet_not_found";
     public const string ReminderNotFound = "reminder_not_found";
+
+    /// <summary>
+    /// Aliases for the field-level entries of <c>errors</c>. They are the
+    /// <c>ErrorMessage</c> of a DataAnnotations attribute, which is what ends up
+    /// in the dictionary: leaving the default there would hand the client an
+    /// English sentence it cannot localize.
+    /// </summary>
+    public static class Field
+    {
+        public const string EmailRequired = "auth_email_required";
+        public const string EmailInvalid = "auth_email_invalid";
+        public const string PasswordRequired = "auth_password_required";
+        public const string PasswordTooShort = "auth_password_too_short";
+        public const string PasswordTooWeak = "auth_password_too_weak";
+        public const string PasswordConfirmRequired = "auth_password_confirm_required";
+        public const string TermsNotAccepted = "auth_terms_not_accepted";
+        public const string PasswordsDoNotMatch = "auth_passwords_do_not_match";
+        public const string ConfirmationCodeRequired = "auth_confirmation_code_required";
+        public const string ConfirmationCodeMalformed = "auth_confirmation_code_malformed";
+
+        public const string ReminderUtcOffsetRequired = "reminder_utc_offset_required";
+
+        public const string NutritionBreedTooLong = "nutrition_breed_too_long";
+        public const string NutritionAgeOutOfRange = "nutrition_age_out_of_range";
+        public const string NutritionProductsTooMany = "nutrition_products_too_many";
+        public const string NutritionProductNameRequired = "nutrition_product_name_required";
+        public const string NutritionProductNameTooLong = "nutrition_product_name_too_long";
+        public const string NutritionProductCaloriesOutOfRange = "nutrition_product_calories_out_of_range";
+    }
 
     public static class Pet
     {
@@ -38,7 +71,6 @@ public static class ErrorCodes
         public const string PhotoTypeInvalid = "pet_photo_type_invalid";
         public const string PhotoTooLarge = "pet_photo_too_large";
         public const string PhotoUploadFailed = "pet_photo_upload_failed";
-        public const string ValidationFailed = "pet_validation_failed";
     }
 
     public static class WeightLog
@@ -65,7 +97,6 @@ public static class ErrorCodes
         public const string PortionUnitInvalid = "feeding_portion_unit_invalid";
         public const string CaloriesNegative = "feeding_calories_negative";
         public const string FoodTypeInvalid = "feeding_food_type_invalid";
-        public const string ValidationFailed = "feeding_validation_failed";
     }
 
     public static class Activity
@@ -190,18 +221,15 @@ public static class ErrorCodes
         public const string MessageNotRetryable = "chat_message_not_retryable";
         public const string MessageProcessingOrRetryRequired = "chat_message_processing_or_retry_required";
         public const string StoredResponseInvalid = "chat_stored_response_invalid";
-        public const string RequestInvalid = "chat_request_invalid";
-        public const string StateConflict = "chat_state_conflict";
     }
 
     public static class Nutrition
     {
-        /// <summary>
-        /// The analysis path validates the pet's body data rather than the
-        /// request, so its failures share one alias: the client cannot fix them
-        /// by changing the call, only by filling in the pet's profile.
-        /// </summary>
-        public const string AnalysisInvalid = "nutrition_analysis_invalid";
+        /// <summary>The pet has no weight recorded, and none was supplied.</summary>
+        public const string WeightRequired = "nutrition_weight_required";
+
+        /// <summary>A weight was available but is outside what can be analysed.</summary>
+        public const string WeightOutOfRange = "nutrition_weight_out_of_range";
 
         public const string GoalNotFound = "nutrition_goal_not_found";
         public const string UtcOffsetInvalid = "nutrition_utc_offset_invalid";

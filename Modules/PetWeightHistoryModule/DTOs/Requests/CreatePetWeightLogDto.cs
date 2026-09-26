@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using System.ComponentModel.DataAnnotations;
 
 namespace smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests
@@ -11,7 +12,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests
         public Guid? ReminderId { get; set; }
 
         public decimal WeightKg { get; set; }
-        [Required]
+        [Required(ErrorMessage = ErrorCodes.WeightLog.MeasurementTimeRequired)]
         public DateTime? MeasuredAt { get; set; }
         public string? Notes { get; set; }
     }

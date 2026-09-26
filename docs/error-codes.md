@@ -14,7 +14,7 @@ parsed.
   "traceId": "0HN7A2K9QJ3B4:00000012",
   "retryable": false,
   "retryAfterSeconds": 30,
-  "errors": { "weightKg": ["The field WeightKg is invalid."] },
+  "errors": { "weightKg": ["weight_log_measurement_time_required"] },
   "messageId": "0f1c…"
 }
 ```
@@ -27,7 +27,7 @@ parsed.
 | `traceId` | yes | The request id, also written to the server log. Put it in bug reports. |
 | `retryable` | no | Whether repeating the identical request could succeed. |
 | `retryAfterSeconds` | no | Mirrors the `Retry-After` header on 429 and 503. |
-| `errors` | no | Per-field detail for request-body validation, keyed by field name. |
+| `errors` | no | Per-field aliases for request-body validation, keyed by field name. |
 | `messageId` | no | Chat only: which message the failure belongs to. |
 
 One rule for the client: **an unknown `code` must not break anything.** The
@@ -38,9 +38,8 @@ for anything not in your translation table.
 
 Every module, and every path into an error: a controller returning a result, a
 service throwing, the bearer scheme rejecting a token, and anything unhandled.
-The one place an alias is deliberately coarse is the nutrition **analysis**
-path, where all validation shares `nutrition_analysis_invalid` — see that
-section for why.
+Field-level entries inside `errors` are aliases too, so a form can localize
+every message it shows.
 
 ## Email confirmation aliases
 
@@ -74,10 +73,57 @@ same `traceId`. A 500 is always a bug — report it rather than handling it.
 | Code | HTTP | When |
 |---|---|---|
 | `internal_error` | 500 | Unhandled failure. Always a bug. |
-| `request_validation_failed` | 400 | Request body failed model binding. Detail in `errors`. |
+| `request_validation_failed` | 400 | Request body failed model binding. Per-field aliases in `errors` — see below. |
 | `authentication_token_invalid` | 401 | Token present but its user id is missing or unparseable. |
 | `pet_not_found` | 404 | The pet does not exist, or does not belong to the caller. |
 | `reminder_not_found` | 404 | A `reminderId` in the body matches no reminder for this pet. |
+
+### Field-level aliases
+
+These appear as the **values** inside `errors`, not as the top-level `code`,
+which is always `request_validation_failed` for this class of failure:
+
+```json
+{
+  "code": "request_validation_failed",
+  "message": "Request validation failed.",
+  "traceId": "0HNOR41IID7C8:00000004",
+  "errors": {
+    "email": ["auth_email_invalid"],
+    "password": ["auth_password_too_short", "auth_password_too_weak"]
+  }
+}
+```
+
+A field can carry more than one alias when several rules failed at once.
+
+| Code | Field it guards |
+|---|---|
+| `auth_email_required` | Email on register, login, confirm, resend. |
+| `auth_email_invalid` | Email is not an address, or has no domain part. |
+| `auth_password_required` | Password on register and login. |
+| `auth_password_too_short` | Password under the minimum length. |
+| `auth_password_too_weak` | Password lacks a letter, a digit or a symbol. |
+| `auth_password_confirm_required` | Confirmation field empty. |
+| `auth_passwords_do_not_match` | The two password fields differ. |
+| `auth_terms_not_accepted` | Terms checkbox not ticked. |
+| `auth_confirmation_code_required` | Confirmation code empty. |
+| `auth_confirmation_code_malformed` | Code is not six digits. |
+| `chat_pet_id_required` | Pet id on session create. |
+| `chat_client_message_id_required` | Client message id on post. |
+| `chat_message_text_required` | Message text empty. |
+| `chat_message_text_too_long` | Message text over the ceiling. |
+| `pet_species_required` | Species on pet create. |
+| `feeding_time_required` | `fedAt` on feeding create. |
+| `weight_log_measurement_time_required` | `measuredAt` on weight create. |
+| `reminder_utc_offset_required` | `utcOffsetMinutes` on reminder create. |
+| `nutrition_breed_too_long` | Breed override too long. |
+| `nutrition_weight_out_of_range` | `weightKg` override outside the analysable range. |
+| `nutrition_age_out_of_range` | `ageMonths` override outside the range. |
+| `nutrition_products_too_many` | More products than one call may analyse. |
+| `nutrition_product_name_required` | A product without a name. |
+| `nutrition_product_name_too_long` | Product name too long. |
+| `nutrition_product_calories_out_of_range` | Product calories outside the range. |
 
 ### Pet
 
@@ -97,12 +143,9 @@ same `traceId`. A 500 is always a bug — report it rather than handling it.
 | `pet_photo_public_id_empty` | 400 | Patch cleared the photo public id to blank. |
 | `pet_photo_type_invalid` | 400 | File is not JPEG, PNG or WEBP. |
 | `pet_photo_too_large` | 400 | File is over 5 MB. |
-| `pet_validation_failed` | 400 | Validation failure with no more specific alias. |
 | `pet_photo_upload_failed` | 502 | Cloudinary rejected the upload. |
 
 ### Weight history
-
-Fully migrated; this is the shape the other modules are moving to.
 
 | Code | HTTP | `params` | When |
 |---|---|---|---|
@@ -129,7 +172,6 @@ Fully migrated; this is the shape the other modules are moving to.
 | `feeding_portion_unit_invalid` | 400 | Unit is not one of the known values. |
 | `feeding_calories_negative` | 400 | Calories below zero. |
 | `feeding_food_type_invalid` | 400 | Food type is not one of the known values. |
-| `feeding_validation_failed` | 400 | Validation failure with no more specific alias. |
 
 ### Chat
 
@@ -147,8 +189,6 @@ Fully migrated; this is the shape the other modules are moving to.
 | `chat_message_not_retryable` | 409 | Retry on a message that is not a failed retryable one. |
 | `chat_message_processing_or_retry_required` | 409 | The message is in flight, or needs an explicit retry. |
 | `chat_stored_response_invalid` | 409 | The stored assistant response cannot be read back. |
-| `chat_request_invalid` | 400 | Request failure with no more specific alias. |
-| `chat_state_conflict` | 409 | State conflict with no more specific alias. |
 
 ### Wellness
 
@@ -248,11 +288,11 @@ Fully migrated; this is the shape the other modules are moving to.
 | `nutrition_meals_per_day_negative` | 400 | Meals per day below zero. |
 | `nutrition_portion_unit_invalid` | 400 | Unit is not one of the known values. |
 | `nutrition_portion_unit_required` | 400 | Portion target given without a unit. |
-| `nutrition_analysis_invalid` | 400 | The AI analysis cannot run — in practice, no usable weight on the pet. |
+| `nutrition_weight_required` | 400 | No weight on the pet and none supplied, so the analysis cannot run. |
+| `nutrition_weight_out_of_range` | 400 | A weight is present but outside what can be analysed. |
 
-`nutrition_analysis_invalid` is deliberately the only alias on the analysis path:
-its failures are about the pet's stored profile, not the request, so the client
-cannot fix them by changing the call.
+The two weight aliases are separate because the user's fix differs: one means
+record a weight, the other means correct the one that is there.
 
 ### Auth
 

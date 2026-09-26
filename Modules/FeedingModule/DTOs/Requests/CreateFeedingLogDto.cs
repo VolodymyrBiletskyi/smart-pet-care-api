@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using System.ComponentModel.DataAnnotations;
 using static smart_pet_care_api.Models.Enums;
 
@@ -11,7 +12,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.DTOs.Requests
         /// </summary>
         public Guid? ReminderId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = ErrorCodes.Feeding.TimeRequired)]
         public DateTime? FedAt { get; set; }
         public FoodType FoodType { get; set; }
         public string? FoodName { get; set; }
