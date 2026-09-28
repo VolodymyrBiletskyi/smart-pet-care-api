@@ -44,20 +44,20 @@ public class ActivityLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task GetAll_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task GetAll_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeActivityLogService
         {
             GetByPetId = (_, _, _, _, _) => notFound
-                ? Task.FromException<IReadOnlyList<ActivityLogResponseDto>>(new InvalidOperationException("Pet not found"))
-                : Task.FromException<IReadOnlyList<ActivityLogResponseDto>>(new ArgumentException("Invalid range"))
+                ? Task.FromException<IReadOnlyList<ActivityLogResponseDto>>(new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
+                : Task.FromException<IReadOnlyList<ActivityLogResponseDto>>(new ValidationException(ErrorCodes.Activity.DateRangeInvalid, "Invalid range"))
         };
 
-        var result = await Controller(service).GetAll(_petId, null, null, null);
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).GetAll(_petId, null, null, null));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.Equal(expectedStatus, exception.StatusCode);
+        Assert.NotNull(exception.Code);
     }
 
     [Fact]
@@ -92,19 +92,19 @@ public class ActivityLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task Create_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task Create_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeActivityLogService
         {
             Create = (_, _, _) => notFound
-                ? Task.FromException<ActivityLogResponseDto>(new InvalidOperationException("Pet not found"))
-                : Task.FromException<ActivityLogResponseDto>(new ArgumentException("Steps cannot be negative"))
+                ? Task.FromException<ActivityLogResponseDto>(new NotFoundException(ErrorCodes.PetNotFound, "Pet not found"))
+                : Task.FromException<ActivityLogResponseDto>(new ValidationException(ErrorCodes.Activity.StepsNegative, "Steps cannot be negative"))
         };
 
-        var result = await Controller(service).Create(_petId, new CreateActivityLogDto());
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).Create(_petId, new CreateActivityLogDto()));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
+        Assert.Equal(expectedStatus, exception.StatusCode);
     }
 
     [Fact]
@@ -142,20 +142,20 @@ public class ActivityLogControllerTests
     [Theory]
     [InlineData(true, 404)]
     [InlineData(false, 400)]
-    public async Task Update_MapsDomainErrors(bool notFound, int expectedStatus)
+    public async Task Update_LetsDomainFailuresReachTheHandler(bool notFound, int expectedStatus)
     {
         var service = new FakeActivityLogService
         {
             Update = (_, _, _, _) => notFound
-                ? Task.FromException<ActivityLogResponseDto>(new InvalidOperationException("Activity log not found"))
-                : Task.FromException<ActivityLogResponseDto>(new ArgumentException("At least one field must be provided"))
+                ? Task.FromException<ActivityLogResponseDto>(new NotFoundException(ErrorCodes.Activity.LogNotFound, "Activity log not found"))
+                : Task.FromException<ActivityLogResponseDto>(new ValidationException(ErrorCodes.Activity.StepsNegative, "Steps cannot be negative"))
         };
 
-        var result = await Controller(service).Update(_petId, _logId, new PatchActivityLogDto());
+        var exception = await Assert.ThrowsAnyAsync<AppException>(() =>
+            Controller(service).Update(_petId, _logId, new PatchActivityLogDto()));
 
-        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
-        Assert.Equal(expectedStatus, objectResult.StatusCode);
-        Assert.IsType<ApiErrorResponse>(objectResult.Value);
+        Assert.Equal(expectedStatus, exception.StatusCode);
+        Assert.NotNull(exception.Code);
     }
 
     private ActivityLogController Controller(IActivityLogService service)

@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -25,20 +26,9 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(PatchUserDto patchDto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var updatedUser = await _userService.UpdateAsync(userId, patchDto);
-                return Ok(updatedUser);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating the user" });
-            }
+            var userId = User.GetUserId();
+            var updatedUser = await _userService.UpdateAsync(userId, patchDto);
+            return Ok(updatedUser);
         }
 
         [HttpDelete("{id}")]
@@ -49,18 +39,15 @@ namespace smart_pet_care_api.Modules.UserModule.Api
         public async Task<IActionResult> Delete(Guid id)
         {
             if (id != User.GetUserId())
-                return Forbid();
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorResponse.FromMessage(
+                        "A user can only delete their own account", ErrorCodes.User.DeleteForbidden));
 
-            try
-            {
-                var deleted = await _userService.DeleteAsync(id);
-                if (!deleted) return NotFound();
-                return NoContent();
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An error occurred while deleting the user" });
-            }
+            var deleted = await _userService.DeleteAsync(id);
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("User not found", ErrorCodes.User.NotFound));
+            return NoContent();
         }
 
 

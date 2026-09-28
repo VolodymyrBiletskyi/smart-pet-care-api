@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.FeedingModule.Repository;
 using smart_pet_care_api.Modules.NutritionModule.DTOs.Requests;
@@ -12,7 +13,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
 {
     public class NutritionService : INutritionService
     {
-        // ±14h covers every real-world UTC offset (matches the widest civil offsets).
+        // Â±14h covers every real-world UTC offset (matches the widest civil offsets).
         private const int MaxOffsetMinutes = 14 * 60;
 
         private readonly INutritionGoalRepository _goalRepo;
@@ -66,7 +67,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
             await EnsurePetBelongsToUserAsync(petId, userId);
 
             var goal = await _goalRepo.GetTrackedByPetIdAsync(petId)
-                ?? throw new InvalidOperationException("Nutrition goal not found");
+                ?? throw new NotFoundException(ErrorCodes.Nutrition.GoalNotFound, "Nutrition goal not found");
 
             goal.PatchEntity(dto);
             ValidateFinalState(goal);
@@ -133,12 +134,12 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
             DateOnly? date, int utcOffsetMinutes)
         {
             if (utcOffsetMinutes < -MaxOffsetMinutes || utcOffsetMinutes > MaxOffsetMinutes)
-                throw new ArgumentException("utcOffsetMinutes is out of range");
+                throw new ValidationException(ErrorCodes.Nutrition.UtcOffsetInvalid, "utcOffsetMinutes is out of range");
 
             // Default to "today" in the caller's local time.
             var localDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(utcOffsetMinutes));
 
-            // Local midnight → UTC. Npgsql requires Kind=Utc for timestamptz comparisons.
+            // Local midnight â†’ UTC. Npgsql requires Kind=Utc for timestamptz comparisons.
             var startUtc = DateTime.SpecifyKind(
                 localDate.ToDateTime(TimeOnly.MinValue).AddMinutes(-utcOffsetMinutes), DateTimeKind.Utc);
 
@@ -180,23 +181,24 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         private async Task EnsurePetBelongsToUserAsync(Guid petId, Guid userId)
         {
             if (!await _petRepo.ExistsForUserAsync(petId, userId))
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void ValidateFinalState(NutritionGoal goal)
         {
             if (goal.DailyCalorieTarget is < 0)
-                throw new ArgumentException("DailyCalorieTarget cannot be negative");
+                throw new ValidationException(ErrorCodes.Nutrition.CalorieTargetNegative, "DailyCalorieTarget cannot be negative");
             if (goal.DailyPortionTarget is < 0)
-                throw new ArgumentException("DailyPortionTarget cannot be negative");
+                throw new ValidationException(ErrorCodes.Nutrition.PortionTargetNegative, "DailyPortionTarget cannot be negative");
             if (goal.MealsPerDay is < 0)
-                throw new ArgumentException("MealsPerDay cannot be negative");
+                throw new ValidationException(ErrorCodes.Nutrition.MealsPerDayNegative, "MealsPerDay cannot be negative");
 
             if (goal.PortionUnit.HasValue && !Enum.IsDefined(goal.PortionUnit.Value))
-                throw new ArgumentException("PortionUnit is invalid");
+                throw new ValidationException(ErrorCodes.Nutrition.PortionUnitInvalid, "PortionUnit is invalid");
 
             if (goal.DailyPortionTarget.HasValue && !goal.PortionUnit.HasValue)
-                throw new ArgumentException("PortionUnit is required when DailyPortionTarget is specified");
+                throw new ValidationException(ErrorCodes.Nutrition.PortionUnitRequired, "PortionUnit is required when DailyPortionTarget is specified");
         }
     }
 }
+

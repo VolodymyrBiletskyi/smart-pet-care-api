@@ -1,3 +1,5 @@
+﻿using Microsoft.AspNetCore.Http;
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using smart_pet_care_api.Common.Patching;
@@ -44,7 +46,7 @@ public class PetServiceTests
         var dto = ValidCreate();
         dto.WeightKg = decimal.Parse(rawWeight, System.Globalization.CultureInfo.InvariantCulture);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             Service(new FakePetRepository()).CreateAsync(dto, userId));
     }
 
@@ -56,7 +58,7 @@ public class PetServiceTests
         var dto = ValidCreate();
         dto.Species = (AnimalSpecies)rawSpecies;
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(new FakePetRepository()).CreateAsync(dto, userId));
 
         Assert.Equal("Species is invalid", exception.Message);
@@ -69,7 +71,7 @@ public class PetServiceTests
         var dto = ValidCreate();
         dto.BirthDate = DateTime.UtcNow.Date.AddDays(1);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => Service(repo).CreateAsync(dto, userId));
+        await Assert.ThrowsAsync<ValidationException>(() => Service(repo).CreateAsync(dto, userId));
 
         Assert.Null(repo.AddedPet);
     }
@@ -79,10 +81,10 @@ public class PetServiceTests
     {
         var repo = new FakePetRepository();
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             Service(repo).UpdateAsync(Guid.NewGuid(), userId, new UpdatePetDto { Name = "Buddy" }));
 
-        Assert.Equal("Pet does not exist", exception.Message);
+        Assert.Equal(ErrorCodes.PetNotFound, exception.Code);
         Assert.Equal(0, repo.SaveChangesCalls);
     }
 
@@ -91,7 +93,7 @@ public class PetServiceTests
     {
         var repo = new FakePetRepository { TrackedPet = Pet() };
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).UpdateAsync(repo.TrackedPet.Id, userId, new UpdatePetDto()));
 
         Assert.Equal("At least one field must be provided", exception.Message);
@@ -145,6 +147,8 @@ public class PetServiceTests
         };
         var cloudinary = new FakeCloudinaryService();
 
+        // The save failure is not a domain error: it must surface as itself and
+        // become a 500, not be repackaged as something the client can act on.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Service(repo, cloudinary).UpdatePhotoAsync(repo.TrackedPet.Id, userId, ValidPhoto()));
 
@@ -200,3 +204,4 @@ public class PetServiceTests
         };
     }
 }
+

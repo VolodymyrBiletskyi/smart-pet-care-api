@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.NotificationModule.DTOs.Requests;
 using smart_pet_care_api.Modules.NotificationModule.Repository;
@@ -18,7 +19,7 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
         public async Task RegisterAsync(Guid userId, RegisterDeviceTokenDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Token))
-                throw new ArgumentException("Device token is required");
+                throw new ValidationException(ErrorCodes.Notification.DeviceTokenRequired, "Device token is required");
 
             var token = dto.Token.Trim();
 
@@ -47,3 +48,4 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
         }
     }
 }
+

@@ -48,16 +48,9 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(CreatePetDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var createdPet = await _petService.CreateAsync(dto, userId);
-                return CreatedAtAction(nameof(GetById), new { id = createdPet.Id }, createdPet);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
-            }
+            var userId = User.GetUserId();
+            var createdPet = await _petService.CreateAsync(dto, userId);
+            return CreatedAtAction(nameof(GetById), new { id = createdPet.Id }, createdPet);
         }
 
         [HttpPatch("{id}")]
@@ -67,20 +60,8 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid id, UpdatePetDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var updatedPet = await _petService.UpdateAsync(id, userId, dto);
-                return Ok(updatedPet);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message, "pet_not_found"));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
-            }
+            var userId = User.GetUserId();
+            return Ok(await _petService.UpdateAsync(id, userId, dto));
         }
 
         [HttpPatch("{id}/photo")]
@@ -92,31 +73,13 @@ namespace smart_pet_care_api.Modules.PetModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status502BadGateway)]
         public async Task<IActionResult> UpdatePhoto(Guid id, [FromForm] UploadPetPhotoDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var photo = dto.Photo
-                    ?? Request.Form.Files.GetFile("photo")
-                    ?? Request.Form.Files.GetFile("Photo")
-                    ?? Request.Form.Files.FirstOrDefault();
+            var userId = User.GetUserId();
+            var photo = dto.Photo
+                ?? Request.Form.Files.GetFile("photo")
+                ?? Request.Form.Files.GetFile("Photo")
+                ?? Request.Form.Files.FirstOrDefault();
 
-                var updatedPet = await _petService.UpdatePhotoAsync(id, userId, photo);
-                return Ok(updatedPet);
-            }
-            catch (CloudinaryUploadException ex)
-            {
-                return StatusCode(
-                    StatusCodes.Status502BadGateway,
-                    Error(ex.Message, "pet_photo_upload_failed"));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message, "pet_not_found"));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message, ValidationErrorCode(ex.Message)));
-            }
+            return Ok(await _petService.UpdatePhotoAsync(id, userId, photo));
         }
 
         [HttpDelete("{id}")]
@@ -133,24 +96,5 @@ namespace smart_pet_care_api.Modules.PetModule.Api
 
         private static ApiErrorResponse Error(string message, string code) =>
             ApiErrorResponse.FromMessage(message, code);
-
-        private static string ValidationErrorCode(string message) => message switch
-        {
-            "Name is required" => "pet_name_required",
-            "Species is required" => "pet_species_required",
-            "Species is invalid" => "pet_species_invalid",
-            "At least one field must be provided" => "pet_update_empty",
-            "Name cannot be empty" => "pet_name_empty",
-            "PhotoUrl cannot be empty" => "pet_photo_url_empty",
-            "PhotoPublicId cannot be empty" => "pet_photo_public_id_empty",
-            "BirthDate cannot be in the future" => "pet_birth_date_in_future",
-            "WeightKg must be greater than zero" => "pet_weight_not_positive",
-            "WeightKg cannot be greater than 230" => "pet_weight_too_large",
-            "Sex is invalid" => "pet_sex_invalid",
-            "Photo is required" => "pet_photo_required",
-            "Photo must be a JPEG, PNG, or WEBP image" => "pet_photo_type_invalid",
-            "Photo size must be 5MB or less" => "pet_photo_too_large",
-            _ => "pet_validation_failed"
-        };
     }
 }

@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
@@ -126,7 +127,7 @@ public sealed class ChatSessionConcurrencyPostgresTests : IAsyncLifetime
 
         classifier.CompleteFirst();
         await firstRetry;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => duplicateRetry);
+        await Assert.ThrowsAsync<ConflictException>(() => duplicateRetry);
 
         Assert.Single(classifier.Requests);
         await using var assertionContext = CreateContext();

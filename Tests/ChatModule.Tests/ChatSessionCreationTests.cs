@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
@@ -54,7 +55,7 @@ public sealed class ChatSessionCreationTests
         var pet = SeedPet(dbContext, ownerId, Enums.AnimalSpecies.Dog);
         var service = new ChatService(dbContext, new UnusedClassifierClient());
 
-        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.CreateSessionAsync(
                 Guid.NewGuid(),
                 pet.Id,
@@ -114,7 +115,7 @@ public sealed class ChatSessionCreationTests
         Assert.Equal("summary", sessions[0].SymptomSummary);
         Assert.Equal("summary", details.SymptomSummary);
         Assert.Equal(["first", "second"], messages.Items.Select(message => message.Content));
-        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetSessionAsync(
                 session.Id,
                 Guid.NewGuid(),
@@ -161,3 +162,4 @@ public sealed class ChatSessionCreationTests
         }
     }
 }
+

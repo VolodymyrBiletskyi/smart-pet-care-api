@@ -12,16 +12,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         EmailNotConfirmed
     }
 
-    public class EmailConfirmationException : Exception
+    /// <summary>
+    /// Carries its own status and alias like any other <see cref="AppException"/>.
+    /// The aliases are screaming case because the mobile client already branches
+    /// on the exact strings — see the note on
+    /// <see cref="ErrorCodes.EmailConfirmation"/>.
+    /// </summary>
+    public class EmailConfirmationException(EmailConfirmationError error)
+        : AppException(CodeFor(error), StatusFor(error), MessageFor(error))
     {
-        public EmailConfirmationError Error { get; }
+        public EmailConfirmationError Error { get; } = error;
 
-        public EmailConfirmationException(EmailConfirmationError error) : base(MessageFor(error))
-        {
-            Error = error;
-        }
+        public string ErrorCode => Code;
 
-        public string ErrorCode => Error switch
+        private static string CodeFor(EmailConfirmationError error) => error switch
         {
             EmailConfirmationError.CodeInvalid => ErrorCodes.EmailConfirmation.CodeInvalid,
             EmailConfirmationError.CodeExpired => ErrorCodes.EmailConfirmation.CodeExpired,
@@ -30,6 +34,16 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             EmailConfirmationError.ResendTooSoon => ErrorCodes.EmailConfirmation.ResendTooSoon,
             EmailConfirmationError.EmailNotConfirmed => ErrorCodes.EmailConfirmation.NotConfirmed,
             _ => ErrorCodes.EmailConfirmation.CodeInvalid
+        };
+
+        private static int StatusFor(EmailConfirmationError error) => error switch
+        {
+            EmailConfirmationError.AlreadyConfirmed => StatusCodes.Status409Conflict,
+            EmailConfirmationError.CodeExpired => StatusCodes.Status410Gone,
+            EmailConfirmationError.TooManyAttempts => StatusCodes.Status429TooManyRequests,
+            EmailConfirmationError.ResendTooSoon => StatusCodes.Status429TooManyRequests,
+            EmailConfirmationError.EmailNotConfirmed => StatusCodes.Status403Forbidden,
+            _ => StatusCodes.Status400BadRequest
         };
 
         private static string MessageFor(EmailConfirmationError error) => error switch

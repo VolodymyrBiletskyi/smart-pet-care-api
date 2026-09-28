@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using System.ComponentModel.DataAnnotations;
 using static smart_pet_care_api.Models.Enums;
 
@@ -19,13 +20,13 @@ namespace smart_pet_care_api.Modules.NutritionModule.DTOs.Requests
     {
         public AnimalSpecies? Species { get; set; }
 
-        [StringLength(100)]
+        [StringLength(100, ErrorMessage = ErrorCodes.Field.NutritionBreedTooLong)]
         public string? Breed { get; set; }
 
-        [Range(0.0001, 500.0, ErrorMessage = "WeightKg must be above 0 and at most 500.")]
+        [Range(0.0001, 500.0, ErrorMessage = ErrorCodes.Nutrition.WeightOutOfRange)]
         public decimal? WeightKg { get; set; }
 
-        [Range(0, 600)]
+        [Range(0, 600, ErrorMessage = ErrorCodes.Field.NutritionAgeOutOfRange)]
         public int? AgeMonths { get; set; }
 
         /// <summary>
@@ -33,17 +34,17 @@ namespace smart_pet_care_api.Modules.NutritionModule.DTOs.Requests
         /// property: it grades the day as having eaten nothing, whereas
         /// omitting it reads the day's feeding logs.
         /// </summary>
-        [MaxLength(100, ErrorMessage = "At most 100 products can be analysed at once.")]
+        [MaxLength(100, ErrorMessage = ErrorCodes.Field.NutritionProductsTooMany)]
         public List<NutritionAnalysisProductDto>? Products { get; set; }
     }
 
     public class NutritionAnalysisProductDto
     {
-        [Required]
-        [StringLength(200, MinimumLength = 1)]
+        [Required(ErrorMessage = ErrorCodes.Field.NutritionProductNameRequired)]
+        [StringLength(200, MinimumLength = 1, ErrorMessage = ErrorCodes.Field.NutritionProductNameTooLong)]
         public string Name { get; set; } = null!;
 
-        [Range(0.0, 20000.0)]
+        [Range(0.0, 20000.0, ErrorMessage = ErrorCodes.Field.NutritionProductCaloriesOutOfRange)]
         public decimal Calories { get; set; }
     }
 }

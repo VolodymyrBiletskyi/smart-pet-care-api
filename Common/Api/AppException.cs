@@ -10,12 +10,15 @@ public abstract class AppException(
     int statusCode,
     string message,
     IDictionary<string, object?>? parameters = null,
-    bool? retryable = null) : Exception(message)
+    bool? retryable = null,
+    int? retryAfterSeconds = null,
+    Exception? innerException = null) : Exception(message, innerException)
 {
     public string Code { get; } = code;
     public int StatusCode { get; } = statusCode;
     public IDictionary<string, object?>? Parameters { get; } = parameters;
     public bool? Retryable { get; } = retryable;
+    public int? RetryAfterSeconds { get; } = retryAfterSeconds;
 }
 
 public class NotFoundException(string code, string message)
@@ -30,5 +33,34 @@ public class ValidationException(
 public class ConflictException(string code, string message)
     : AppException(code, StatusCodes.Status409Conflict, message);
 
+public class UnauthorizedException(string code, string message)
+    : AppException(code, StatusCodes.Status401Unauthorized, message);
+
+public class GoneException(string code, string message)
+    : AppException(code, StatusCodes.Status410Gone, message);
+
+public class TooManyRequestsException(string code, string message)
+    : AppException(code, StatusCodes.Status429TooManyRequests, message);
+
+public class ForbiddenException(string code, string message)
+    : AppException(code, StatusCodes.Status403Forbidden, message);
+
 public class UnprocessableException(string code, string message)
     : AppException(code, StatusCodes.Status422UnprocessableEntity, message);
+
+/// <summary>
+/// A dependency failed. Modules wrap their own alias around it — the client is
+/// told which feature is degraded, not which internal service broke.
+/// </summary>
+public class UpstreamException(
+    string code,
+    int statusCode,
+    string message,
+    bool retryable,
+    int? retryAfterSeconds = null,
+    Exception? innerException = null)
+    : AppException(
+        code, statusCode, message,
+        retryable: retryable,
+        retryAfterSeconds: retryAfterSeconds,
+        innerException: innerException);

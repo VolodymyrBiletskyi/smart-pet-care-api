@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.HealthModule.Repository;
 using smart_pet_care_api.Modules.PetModule.Repository;
@@ -34,27 +35,28 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             Guid reminderId, Guid userId, CompleteReminderDto dto)
         {
             var reminder = await _reminderRepo.GetByIdAsync(reminderId)
-                ?? throw new InvalidOperationException("Reminder not found");
+                ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
-                throw new InvalidOperationException("Reminder not found");
+                throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             var performedAt = ReminderMapper.NormalizeToUtc(dto.PerformedAt ?? DateTime.UtcNow);
             if (performedAt > DateTime.UtcNow.Add(FutureTolerance))
-                throw new ArgumentException("PerformedAt cannot be in the future");
+                throw new ValidationException(ErrorCodes.Reminder.PerformedAtInFuture, "PerformedAt cannot be in the future");
 
             if (dto.Note is { Length: > 2000 })
-                throw new ArgumentException("Note must be 2000 characters or less");
+                throw new ValidationException(ErrorCodes.Reminder.NoteTooLong, "Note must be 2000 characters or less", new Dictionary<string, object?> { ["maxLength"] = 2000 });
 
             // Dosage and provider only reach a health record; accepting them for a bath would
             // quietly drop them.
             var filesHealthRecord = ReminderTypePolicy.ToHealthRecordType(reminder.Type) is not null;
             if (!filesHealthRecord && (dto.Dosage is not null || dto.Provider is not null))
-                throw new ArgumentException(
+                throw new ValidationException(
+                    ErrorCodes.Reminder.ScheduleInvalid,
                     $"Dosage and provider do not apply to {reminder.Type} reminders.");
 
             var outcome = await _recalculation.RegisterCompletionAsync(reminderId, performedAt, dto.Note)
-                ?? throw new InvalidOperationException("Reminder not found");
+                ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             // Looked up by the stored run's date: a repeat completion only has to share the day,
             // so the incoming timestamp need not match to the tick.
@@ -111,3 +113,4 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         }
     }
 }
+

@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
@@ -55,7 +56,7 @@ public sealed class WellnessServiceTests
         await AddPetAsync(db, petId, userId);
         var service = CreateService(db, new RecordingClassifier(shouldFail: true));
 
-        await Assert.ThrowsAsync<ClassifierUnavailableException>(() =>
+        await Assert.ThrowsAsync<UpstreamException>(() =>
             service.GetOrCreateEvaluationAsync(
                 petId, userId, TestContext.Current.CancellationToken));
 
@@ -137,6 +138,73 @@ public sealed class WellnessServiceTests
         Assert.Equal(2, results.Length);
         Assert.Equal(1, classifier.TotalCalls);
         Assert.Equal(1, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// The classifier's own codes describe the classifier; the client is told
+    /// which feature is degraded. These three aliases are published, so the
+    /// wrapper has to keep producing them.
+    /// </summary>
+    [Theory]
+    [InlineData("rateLimited", 429, "wellness_service_rate_limited")]
+    [InlineData("invalid", 502, "wellness_service_invalid_response")]
+    [InlineData("unavailable", 503, "wellness_service_unavailable")]
+    public async Task GetOrCreateEvaluationAsync_WrapsClassifierFailuresInWellnessAliases(
+        string failure, int expectedStatus, string expectedCode)
+    {
+        await using var db = CreateContext();
+        var petId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        await AddPetAsync(db, petId, userId);
+        var service = CreateService(db, new FailingClassifier(failure));
+
+        var exception = await Assert.ThrowsAsync<UpstreamException>(() =>
+            service.GetOrCreateEvaluationAsync(petId, userId, TestContext.Current.CancellationToken));
+
+        Assert.Equal(expectedCode, exception.Code);
+        Assert.Equal(expectedStatus, exception.StatusCode);
+        Assert.DoesNotContain("internal details", exception.Message);
+        Assert.Equal(0, await db.PetWellnessAssessments.CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetOrCreateEvaluationAsync_KeepsRetryAfterFromTheClassifier()
+    {
+        await using var db = CreateContext();
+        var petId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        await AddPetAsync(db, petId, userId);
+        var service = CreateService(db, new FailingClassifier("rateLimited"));
+
+        var exception = await Assert.ThrowsAsync<UpstreamException>(() =>
+            service.GetOrCreateEvaluationAsync(petId, userId, TestContext.Current.CancellationToken));
+
+        Assert.Equal(30, exception.RetryAfterSeconds);
+        Assert.True(exception.Retryable);
+    }
+
+    private sealed class FailingClassifier(string failure) : IClassifierClient
+    {
+        public Task<ClassifierWellnessResponse> CalculateWellnessAsync(
+            ClassifierWellnessRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw (failure switch
+            {
+                "rateLimited" => new ClassifierRateLimitedException(
+                    "internal details", "rate_limit_exceeded", retryAfterSeconds: 30),
+                "invalid" => new ClassifierInvalidResponseException(
+                    "internal details", validationReason: "breakdown.activity.reasonCodes is empty"),
+                _ => (Exception)new ClassifierUnavailableException(
+                    "internal details", retryAfterSeconds: 20)
+            });
+
+        public Task<ClassifierChatResponse> ChatAsync(
+            ClassifierChatRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<ClassifierFeedingSummaryResponse> SummarizeFeedingAsync(
+            ClassifierFeedingSummaryRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private static WellnessService CreateService(
@@ -271,3 +339,5 @@ public sealed class WellnessServiceTests
         };
     }
 }
+
+

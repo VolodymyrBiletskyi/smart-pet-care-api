@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
@@ -181,6 +182,9 @@ public sealed class ChatServiceTests
             new ThrowingClassifierClient(
                 new InvalidOperationException("Unexpected classifier failure.")));
 
+        // An unexpected failure stays itself: the handler turns it into a 500,
+        // and dressing it as a conflict would tell the client to change its
+        // request when nothing about the request was wrong.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.HandleUserMessageAsync(
                 session.Id,
@@ -249,7 +253,7 @@ public sealed class ChatServiceTests
             clientMessageId,
             TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             service.HandleUserMessageAsync(
                 session.Id,
                 session.UserId,
@@ -351,7 +355,7 @@ public sealed class ChatServiceTests
             dbContext,
             new QueueClassifierClient(CreateResponse("unused", "unused")));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             service.RetryUserMessageAsync(
                 session.Id,
                 session.UserId,
@@ -379,7 +383,7 @@ public sealed class ChatServiceTests
         var client = new QueueClassifierClient(CreateResponse("unused", "unused"));
         var service = new ChatService(dbContext, client);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             service.RetryUserMessageAsync(
                 session.Id,
                 session.UserId,
@@ -443,7 +447,7 @@ public sealed class ChatServiceTests
             dbContext,
             new QueueClassifierClient(CreateResponse("answer", "summary")));
 
-        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.HandleUserMessageAsync(
                 session.Id,
                 Guid.NewGuid(),
@@ -515,7 +519,7 @@ public sealed class ChatServiceTests
             dbContext,
             new QueueClassifierClient(CreateResponse("unused", "unused")));
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.GetMessagesAsync(
                 session.Id,
                 session.UserId,
@@ -533,7 +537,7 @@ public sealed class ChatServiceTests
             dbContext,
             new QueueClassifierClient(CreateResponse("unused", "unused")));
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.GetMessagesAsync(
                 session.Id,
                 session.UserId,
@@ -649,3 +653,4 @@ public sealed class ChatServiceTests
         }
     }
 }
+

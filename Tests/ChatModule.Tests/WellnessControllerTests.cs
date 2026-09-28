@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,82 +32,25 @@ public sealed class WellnessControllerTests
         Assert.Equal(userId, service.UserId);
     }
 
+    /// <summary>
+    /// The status and alias travel on the exception, so the controller only has
+    /// to stay out of the way. What each failure maps to is covered where it is
+    /// decided: the wrapper in WellnessServiceTests and GlobalExceptionHandler.
+    /// </summary>
     [Fact]
-    public async Task GetOrCreateEvaluation_WhenInformationIsInsufficient_Returns422()
+    public async Task GetOrCreateEvaluation_LetsInsufficientDataThrough()
     {
         var controller = CreateController(new StubWellnessService
         {
             EvaluationException = new WellnessInsufficientDataException()
         });
 
-        var action = await controller.GetOrCreateEvaluation(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<WellnessInsufficientDataException>(() =>
+            controller.GetOrCreateEvaluation(
+                Guid.NewGuid(), TestContext.Current.CancellationToken));
 
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
-        var error = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal("wellness_insufficient_data", error.Code);
-    }
-
-    [Fact]
-    public async Task GetOrCreateEvaluation_WhenRateLimited_Returns429WithCodeAndRetryAfter()
-    {
-        var controller = CreateController(new StubWellnessService
-        {
-            EvaluationException = new ClassifierRateLimitedException(
-                "internal details",
-                "rate_limit_exceeded",
-                retryAfterSeconds: 30)
-        });
-
-        var action = await controller.GetOrCreateEvaluation(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status429TooManyRequests, result.StatusCode);
-        Assert.Equal("30", controller.Response.Headers.RetryAfter.ToString());
-        var error = Assert.IsType<ApiErrorResponse>(result.Value);
-        Assert.Equal("wellness_service_rate_limited", error.Code);
-        Assert.Equal(30, error.RetryAfterSeconds);
-    }
-
-    [Fact]
-    public async Task GetOrCreateEvaluation_WhenClassifierResponseIsInvalid_Returns502()
-    {
-        var controller = CreateController(new StubWellnessService
-        {
-            EvaluationException = new ClassifierInvalidResponseException(
-                "internal details",
-                validationReason: "breakdown.activity.reasonCodes is empty")
-        });
-
-        var action = await controller.GetOrCreateEvaluation(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status502BadGateway, result.StatusCode);
-    }
-
-    [Fact]
-    public async Task GetOrCreateEvaluation_WhenClassifierUnavailable_Returns503AndRetryAfter()
-    {
-        var controller = CreateController(new StubWellnessService
-        {
-            EvaluationException = new ClassifierUnavailableException(
-                "internal details",
-                retryAfterSeconds: 20)
-        });
-
-        var action = await controller.GetOrCreateEvaluation(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        var result = Assert.IsType<ObjectResult>(action);
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
-        Assert.Equal("20", controller.Response.Headers.RetryAfter.ToString());
+        Assert.Equal(ErrorCodes.Wellness.InsufficientData, exception.Code);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, exception.StatusCode);
     }
 
     [Fact]
@@ -136,29 +79,26 @@ public sealed class WellnessControllerTests
     }
 
     [Fact]
-    public async Task History_WhenPaginationIsInvalid_Returns400()
+    public async Task History_LetsPaginationFailuresThrough()
     {
         var controller = CreateController(new StubWellnessService
         {
-            HistoryException = new ArgumentException("Page must be at least 1")
+            HistoryException = new ValidationException(
+                ErrorCodes.Wellness.HistoryQueryInvalid, "Page must be at least 1")
         });
 
-        var action = await controller.History(
-            Guid.NewGuid(),
-            page: 0,
-            pageSize: 20,
-            TestContext.Current.CancellationToken);
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            controller.History(
+                Guid.NewGuid(), page: 0, pageSize: 20, TestContext.Current.CancellationToken));
 
-        Assert.IsType<BadRequestObjectResult>(action);
+        Assert.Equal(ErrorCodes.Wellness.HistoryQueryInvalid, exception.Code);
     }
 
     private static WellnessController CreateController(
         IWellnessService service,
         Guid? userId = null)
     {
-        var controller = new WellnessController(
-            service,
-            NullLogger<WellnessController>.Instance)
+        var controller = new WellnessController(service)
         {
             ControllerContext = new ControllerContext
             {
@@ -235,3 +175,4 @@ public sealed class WellnessControllerTests
         }
     }
 }
+

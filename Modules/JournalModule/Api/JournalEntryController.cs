@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -33,20 +34,9 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, symptom, from, to);
-                return Ok(entries);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var entries = await _service.GetByPetIdAsync(petId, userId, type, severity, symptom, from, to);
+            return Ok(entries);
         }
 
         [HttpGet("{entryId:guid}")]
@@ -55,17 +45,11 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetById(Guid petId, Guid entryId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var entry = await _service.GetByIdAsync(petId, entryId, userId);
-                if (entry is null) return NotFound();
-                return Ok(entry);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var entry = await _service.GetByIdAsync(petId, entryId, userId);
+            if (entry is null)
+                return NotFound(ApiErrorResponse.FromMessage("Journal entry not found", ErrorCodes.Journal.EntryNotFound));
+            return Ok(entry);
         }
 
         [HttpPost]
@@ -75,20 +59,9 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(Guid petId, [FromBody] CreateJournalEntryDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var created = await _service.CreateAsync(petId, userId, dto);
-                return CreatedAtAction(nameof(GetById), new { petId, entryId = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var created = await _service.CreateAsync(petId, userId, dto);
+            return CreatedAtAction(nameof(GetById), new { petId, entryId = created.Id }, created);
         }
 
         [HttpPatch("{entryId:guid}")]
@@ -98,20 +71,9 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid petId, Guid entryId, [FromBody] PatchJournalEntryDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var updated = await _service.UpdateAsync(petId, entryId, userId, dto);
-                return Ok(updated);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var updated = await _service.UpdateAsync(petId, entryId, userId, dto);
+            return Ok(updated);
         }
 
         [HttpDelete("{entryId:guid}")]
@@ -120,17 +82,13 @@ namespace smart_pet_care_api.Modules.JournalModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid petId, Guid entryId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var deleted = await _service.DeleteAsync(petId, entryId, userId);
-                if (!deleted) return NotFound();
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var deleted = await _service.DeleteAsync(petId, entryId, userId);
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("Journal entry not found", ErrorCodes.Journal.EntryNotFound));
+            return NoContent();
         }
     }
 }
+
+

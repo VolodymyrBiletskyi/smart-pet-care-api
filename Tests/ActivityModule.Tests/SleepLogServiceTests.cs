@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
@@ -72,7 +73,7 @@ public class SleepLogServiceTests
     {
         var repo = new FakeSleepLogRepository { LoggedHours = 20m };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).CreateAsync(_petId, _userId, Dto(hours: 5m)));
 
         Assert.Contains("more than 24 hours", ex.Message);
@@ -99,7 +100,7 @@ public class SleepLogServiceTests
     {
         var repo = new FakeSleepLogRepository();
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).CreateAsync(_petId, _userId, Dto(hours: hours)));
 
         Assert.Contains(expectedFragment, ex.Message);
@@ -112,7 +113,7 @@ public class SleepLogServiceTests
         var repo = new FakeSleepLogRepository();
         var service = new SleepLogService(repo);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(sleepDate: DateTime.UtcNow.AddDays(1))));
         Assert.Null(repo.AddedLog);
 
@@ -125,7 +126,7 @@ public class SleepLogServiceTests
     {
         var repo = new FakeSleepLogRepository();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).CreateAsync(_petId, _userId, Dto(note: new string('x', 2001))));
 
         Assert.Null(repo.AddedLog);
@@ -150,7 +151,7 @@ public class SleepLogServiceTests
     {
         var repo = new FakeSleepLogRepository();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).GetByPetIdAsync(_petId, _userId, DateTime.UtcNow, DateTime.UtcNow.AddDays(-1)));
 
         Assert.Null(repo.RequestedFrom);
@@ -205,12 +206,12 @@ public class SleepLogServiceTests
         };
         var service = new SleepLogService(repo);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPetIdAsync(_petId, _userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(_petId, _userId, Dto()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetByPetIdAsync(_petId, _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.CreateAsync(_petId, _userId, Dto()));
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(_petId, Guid.NewGuid(), _userId, Patch(hours: PatchField<decimal>.Set(8m))));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
 
         Assert.Null(repo.AddedLog);
         Assert.Null(repo.DeletedLog);
@@ -273,7 +274,7 @@ public class SleepLogServiceTests
         var log = NewLog();
         var repo = new FakeSleepLogRepository { TrackedLog = log, LoggedHours = 20m };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).UpdateAsync(_petId, log.Id, _userId,
                 Patch(hours: PatchField<decimal>.Set(5m))));
 
@@ -286,7 +287,7 @@ public class SleepLogServiceTests
     {
         var repo = new FakeSleepLogRepository { TrackedLog = NewLog() };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             new SleepLogService(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchSleepLogDto()));
 
         Assert.Contains("At least one field", ex.Message);
@@ -304,7 +305,7 @@ public class SleepLogServiceTests
         async Task AssertRejects(PatchSleepLogDto dto)
         {
             var repo = new FakeSleepLogRepository { TrackedLog = NewLog() };
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<ValidationException>(() =>
                 new SleepLogService(repo).UpdateAsync(_petId, repo.TrackedLog!.Id, _userId, dto));
             Assert.Equal(0, repo.SaveChangesCalls);
         }
@@ -316,11 +317,11 @@ public class SleepLogServiceTests
         var repo = new FakeSleepLogRepository();
         var patch = Patch(hours: PatchField<decimal>.Set(8m));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             new SleepLogService(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, patch));
 
         repo.TrackedLog = NewLog(Guid.NewGuid());
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             new SleepLogService(repo).UpdateAsync(_petId, repo.TrackedLog.Id, _userId, patch));
 
         Assert.Equal(0, repo.SaveChangesCalls);

@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
@@ -81,7 +82,7 @@ public sealed class ChatSessionFlowIntegrationTests
         Assert.NotEqual(created.SessionId, replacement.SessionId);
         Assert.Empty(await dbContext.ChatMessages.ToListAsync(
             TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetSessionAsync(
                 created.SessionId,
                 user.Id,
@@ -186,3 +187,4 @@ public sealed class ChatSessionFlowIntegrationTests
         }
     }
 }
+

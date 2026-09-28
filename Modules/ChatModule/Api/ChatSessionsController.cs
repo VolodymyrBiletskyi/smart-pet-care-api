@@ -37,19 +37,12 @@ public sealed class ChatSessionsController(IChatService chatService) : Controlle
         Guid sessionId,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var session = await chatService.GetSessionAsync(
-                sessionId,
-                User.GetUserId(),
-                cancellationToken);
+        var session = await chatService.GetSessionAsync(
+            sessionId,
+            User.GetUserId(),
+            cancellationToken);
 
-            return Ok(ChatSessionDetailsResponseDto.FromResult(session));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(Error(exception.Message, "chat_session_not_found"));
-        }
+        return Ok(ChatSessionDetailsResponseDto.FromResult(session));
     }
 
     [HttpPost]
@@ -61,26 +54,12 @@ public sealed class ChatSessionsController(IChatService chatService) : Controlle
         [FromBody] CreateChatSessionRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await chatService.CreateSessionAsync(
-                User.GetUserId(),
-                request.PetId,
-                cancellationToken);
-            var response = ChatSessionResponseDto.FromResult(result);
+        var result = await chatService.CreateSessionAsync(
+            User.GetUserId(),
+            request.PetId,
+            cancellationToken);
+        var response = ChatSessionResponseDto.FromResult(result);
 
-            return Created($"/api/sessions/{result.SessionId:D}", response);
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(Error(exception.Message, "chat_pet_id_required"));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(Error(exception.Message, "pet_not_found"));
-        }
+        return Created($"/api/sessions/{result.SessionId:D}", response);
     }
-
-    private static ApiErrorResponse Error(string message, string code) =>
-        ApiErrorResponse.FromMessage(message, code);
 }

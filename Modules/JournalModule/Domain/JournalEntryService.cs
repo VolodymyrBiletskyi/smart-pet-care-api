@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.JournalModule.DTOs.Requests;
 using smart_pet_care_api.Modules.JournalModule.DTOs.Responses;
@@ -28,7 +29,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
             var toUtc = to is { } t ? JournalEntryMapper.NormalizeToUtc(t) : (DateTime?)null;
 
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc.Value > toUtc.Value)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Journal.DateRangeInvalid, "From cannot be later than To");
 
             var entries = await _repo.GetByPetIdAsync(petId, type, severity, symptom, fromUtc, toUtc);
             return entries.Select(e => e.ToDto()).ToList();
@@ -64,7 +65,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
 
             var entry = await _repo.GetTrackedByIdAsync(entryId);
             if (entry is null || entry.PetId != petId)
-                throw new InvalidOperationException("Journal entry not found");
+                throw new NotFoundException(ErrorCodes.Journal.EntryNotFound, "Journal entry not found");
 
             entry.PatchEntity(dto);
 
@@ -90,7 +91,7 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void ValidateCreate(CreateJournalEntryDto dto)
@@ -116,13 +117,13 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         private static void ValidateType(JournalEntryType type)
         {
             if (!Enum.IsDefined(type))
-                throw new ArgumentException("Type is invalid");
+                throw new ValidationException(ErrorCodes.Journal.TypeInvalid, "Type is invalid");
         }
 
         private static void ValidateSeverity(JournalEntrySeverity severity)
         {
             if (!Enum.IsDefined(severity))
-                throw new ArgumentException("Severity is invalid");
+                throw new ValidationException(ErrorCodes.Journal.SeverityInvalid, "Severity is invalid");
         }
 
         private static void ValidateSymptoms(List<SymptomType>? symptoms)
@@ -135,28 +136,29 @@ namespace smart_pet_care_api.Modules.JournalModule.Domain
         private static void ValidateSymptom(SymptomType symptom)
         {
             if (!Enum.IsDefined(symptom))
-                throw new ArgumentException("Symptom is invalid");
+                throw new ValidationException(ErrorCodes.Journal.SymptomInvalid, "Symptom is invalid");
         }
 
         private static void ValidateTitle(string? title)
         {
             if (string.IsNullOrWhiteSpace(title))
-                throw new ArgumentException("Title is required");
+                throw new ValidationException(ErrorCodes.Journal.TitleRequired, "Title is required");
 
             if (title.Trim().Length > 200)
-                throw new ArgumentException("Title must be 200 characters or less");
+                throw new ValidationException(ErrorCodes.Journal.TitleTooLong, "Title must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });
         }
 
         private static void ValidateObservedAt(DateTime observedAt)
         {
             if (JournalEntryMapper.NormalizeToUtc(observedAt) > DateTime.UtcNow.AddMinutes(10))
-                throw new ArgumentException("ObservedAt cannot be in the future");
+                throw new ValidationException(ErrorCodes.Journal.ObservedAtInFuture, "ObservedAt cannot be in the future");
         }
 
         private static void ValidateNotes(string? notes)
         {
             if (notes is { Length: > 4000 })
-                throw new ArgumentException("Notes must be 4000 characters or less");
+                throw new ValidationException(ErrorCodes.Journal.NotesTooLong, "Notes must be 4000 characters or less", new Dictionary<string, object?> { ["maxLength"] = 4000 });
         }
     }
 }
+

@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using System.Text.Json;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Options;
@@ -43,12 +44,12 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
                 }));
 
             if (!tokenResponse.IsSuccessStatusCode)
-                throw new InvalidOperationException("Google authentication failed");
+                throw new UnauthorizedException(ErrorCodes.Auth.GoogleAuthFailed, "Google authentication failed");
 
             var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
             if (!tokenJson.TryGetProperty("id_token", out var idTokenElement)
                 || idTokenElement.GetString() is not { Length: > 0 } idToken)
-                throw new InvalidOperationException("Google authentication failed");
+                throw new UnauthorizedException(ErrorCodes.Auth.GoogleAuthFailed, "Google authentication failed");
 
             return await ValidateIdTokenAsync(idToken);
         }
@@ -67,12 +68,12 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
             }
             catch (InvalidJwtException)
             {
-                throw new InvalidOperationException("Google authentication failed");
+                throw new UnauthorizedException(ErrorCodes.Auth.GoogleAuthFailed, "Google authentication failed");
             }
 
             // Tokens requested without the email scope can't be linked to an account.
             if (string.IsNullOrWhiteSpace(payload.Email))
-                throw new InvalidOperationException("Google authentication failed");
+                throw new UnauthorizedException(ErrorCodes.Auth.GoogleAuthFailed, "Google authentication failed");
 
             return new GoogleUserInfo
             {

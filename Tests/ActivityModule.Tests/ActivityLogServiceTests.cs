@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ActivityModule.Domain;
@@ -80,7 +81,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, new CreateActivityLogDto
             {
                 RecordedAt = DateTime.UtcNow.AddMinutes(-5),
@@ -206,7 +207,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, Dto(durationMinutes: duration)));
 
         Assert.Contains(expectedFragment, ex.Message);
@@ -219,9 +220,9 @@ public class ActivityLogServiceTests
         var repo = new FakeActivityLogRepository();
         var service = Service(repo);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(type: (ActivityType)42)));
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(intensity: (ActivityIntensity)42)));
 
         Assert.Null(repo.AddedLog);
@@ -234,7 +235,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, Dto(steps: steps)));
 
         Assert.Contains(expectedFragment, ex.Message);
@@ -246,7 +247,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, Dto(recordedAt: DateTime.UtcNow.AddHours(1))));
 
         Assert.Null(repo.AddedLog);
@@ -258,9 +259,9 @@ public class ActivityLogServiceTests
         var repo = new FakeActivityLogRepository();
         var service = Service(repo);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(location: new string('x', 201))));
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(note: new string('x', 2001))));
 
         Assert.Null(repo.AddedLog);
@@ -271,7 +272,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, Dto(source: ActivitySource.Device)));
 
         Assert.Contains("not supported yet", ex.Message);
@@ -283,7 +284,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).CreateAsync(_petId, _userId, Dto(source: (ActivitySource)99)));
 
         Assert.Null(repo.AddedLog);
@@ -335,7 +336,7 @@ public class ActivityLogServiceTests
             new ActivityReading(DateTime.UtcNow.AddHours(-1), -5, null, null));
         var service = new ActivityLogService(repo, new ActivitySourceResolver([device]));
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             service.CreateAsync(_petId, _userId, Dto(steps: 100, source: ActivitySource.Device)));
 
         Assert.Contains("negative", ex.Message);
@@ -364,7 +365,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).GetByPetIdAsync(_petId, _userId, DateTime.UtcNow, DateTime.UtcNow.AddDays(-1)));
 
         Assert.Null(repo.RequestedFrom);
@@ -417,12 +418,12 @@ public class ActivityLogServiceTests
         var repo = new FakeActivityLogRepository { PetBelongsToUser = false, TrackedLog = NewLog(), Log = NewLog() };
         var service = Service(repo);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPetIdAsync(_petId, _userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(_petId, _userId, Dto()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetByPetIdAsync(_petId, _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetByIdAsync(_petId, Guid.NewGuid(), _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.CreateAsync(_petId, _userId, Dto()));
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(_petId, Guid.NewGuid(), _userId, Patch(steps: PatchField<int?>.Set(10))));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.DeleteAsync(_petId, Guid.NewGuid(), _userId));
 
         Assert.Null(repo.AddedLog);
         Assert.Null(repo.DeletedLog);
@@ -515,7 +516,7 @@ public class ActivityLogServiceTests
     {
         var repo = new FakeActivityLogRepository { TrackedLog = NewLog() };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, new PatchActivityLogDto()));
 
         Assert.Contains("At least one field", ex.Message);
@@ -532,7 +533,7 @@ public class ActivityLogServiceTests
         var log = NewLog();
         var repo = new FakeActivityLogRepository { TrackedLog = log };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
             Service(repo).UpdateAsync(_petId, log.Id, _userId, Patch(steps: PatchField<int?>.Set(null))));
 
         Assert.Contains("At least one of", ex.Message);
@@ -557,7 +558,7 @@ public class ActivityLogServiceTests
         async Task AssertRejects(PatchActivityLogDto dto)
         {
             var repo = new FakeActivityLogRepository { TrackedLog = NewLog() };
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<ValidationException>(() =>
                 Service(repo).UpdateAsync(_petId, repo.TrackedLog!.Id, _userId, dto));
             Assert.Equal(0, repo.SaveChangesCalls);
         }
@@ -569,11 +570,11 @@ public class ActivityLogServiceTests
         var repo = new FakeActivityLogRepository();
         var patch = Patch(steps: PatchField<int?>.Set(10));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             Service(repo).UpdateAsync(_petId, Guid.NewGuid(), _userId, patch));
 
         repo.TrackedLog = NewLog(Guid.NewGuid());
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             Service(repo).UpdateAsync(_petId, repo.TrackedLog.Id, _userId, patch));
 
         Assert.Equal(0, repo.SaveChangesCalls);

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Common.Api;
@@ -38,36 +38,38 @@ public class PetControllerTests
         Assert.Equal("Pet not found.", error.Message);
     }
 
+    /// <summary>
+    /// Status and alias come from the exception now, so the controller's job is
+    /// to let it past rather than translate it.
+    /// </summary>
     [Fact]
-    public async Task Create_WhenDomainValidationFails_Returns400Contract()
+    public async Task Create_LetsDomainValidationReachTheHandler()
     {
         var service = new StubPetService
         {
-            CreateException = new ArgumentException("Species is invalid")
+            CreateException = new ValidationException(
+                ErrorCodes.Pet.SpeciesInvalid, "Species is invalid")
         };
 
-        var result = await Controller(service).Create(new CreatePetDto());
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            Controller(service).Create(new CreatePetDto()));
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var error = Assert.IsType<ApiErrorResponse>(badRequest.Value);
-        Assert.Equal("pet_species_invalid", error.Code);
-        Assert.Equal("Species is invalid.", error.Message);
+        Assert.Equal(ErrorCodes.Pet.SpeciesInvalid, exception.Code);
+        Assert.Equal(StatusCodes.Status400BadRequest, exception.StatusCode);
     }
 
     [Fact]
-    public async Task Update_WhenPetIsNotOwned_Returns404Contract()
+    public async Task Update_WhenPetIsNotOwned_LetsTheNotFoundThrough()
     {
         var service = new StubPetService
         {
-            UpdateException = new InvalidOperationException("Pet does not exist")
+            UpdateException = new NotFoundException(ErrorCodes.PetNotFound, "Pet not found")
         };
 
-        var result = await Controller(service).Update(petId, new UpdatePetDto());
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            Controller(service).Update(petId, new UpdatePetDto()));
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        var error = Assert.IsType<ApiErrorResponse>(notFound.Value);
-        Assert.Equal("pet_not_found", error.Code);
-        Assert.Equal("Pet does not exist.", error.Message);
+        Assert.Equal(ErrorCodes.PetNotFound, exception.Code);
     }
 
     [Fact]
@@ -97,7 +99,7 @@ internal sealed class StubPetService : IPetService
 {
     public IReadOnlyList<PetResponseDto> Pets { get; init; } = [];
     public PetResponseDto? Pet { get; init; }
-    public ArgumentException? CreateException { get; init; }
+    public Exception? CreateException { get; init; }
     public Exception? UpdateException { get; init; }
     public Guid? RequestedUserId { get; private set; }
 
@@ -138,3 +140,4 @@ internal sealed class StubPetService : IPetService
         return Task.FromResult(Pet is not null);
     }
 }
+

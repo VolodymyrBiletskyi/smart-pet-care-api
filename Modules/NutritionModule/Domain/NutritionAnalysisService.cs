@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
@@ -63,7 +64,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
             CancellationToken cancellationToken = default)
         {
             var pet = await _petRepo.GetByIdAndUserIdAsync(petId, userId)
-                ?? throw new InvalidOperationException("Pet not found");
+                ?? throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             // Rejected before the day's logs are read — neither the weight nor
             // the offset check depends on them.
@@ -107,7 +108,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         public async Task<NutritionAnalysisHistoryResponseDto> GetRecentAsync(Guid petId, Guid userId)
         {
             if (!await _petRepo.ExistsForUserAsync(petId, userId))
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var analyses = await _analysisRepo.GetRecentByPetIdAsync(petId, RetainedAnalysesPerPet);
 
@@ -155,10 +156,20 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         /// </summary>
         private static decimal RequireWeight(decimal? weightKg)
         {
-            if (weightKg is not { } weight || weight <= 0 || weight > MaxWeightKg)
-                throw new ArgumentException(
+            // Two different fixes for the user: record a weight, or correct the
+            // one that is there. One alias for both would not tell them which.
+            if (weightKg is not { } weight)
+                throw new ValidationException(
+                    ErrorCodes.Nutrition.WeightRequired,
+                    "A weight is needed before feeding can be analysed — send weightKg "
+                    + "or record one on the pet");
+
+            if (weight <= 0 || weight > MaxWeightKg)
+                throw new ValidationException(
+                    ErrorCodes.Nutrition.WeightOutOfRange,
                     $"A weight above 0 and at most {MaxWeightKg:0} kg is needed before feeding "
-                    + "can be analysed — send weightKg or record one on the pet");
+                    + "can be analysed",
+                    new Dictionary<string, object?> { ["max"] = MaxWeightKg });
 
             return weight;
         }
@@ -316,3 +327,4 @@ namespace smart_pet_care_api.Modules.NutritionModule.Domain
         }
     }
 }
+

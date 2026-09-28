@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Common.Api;
+using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.Domain;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Requests;
 using smart_pet_care_api.Modules.PetWeightHistoryModule.DTOs.Responses;
@@ -26,8 +27,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAll(Guid petId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
-            if (!TryGetUserId(out var userId))
-                return Unauthorized(TokenInvalid());
+            var userId = User.GetUserId();
 
             return Ok(await _service.GetByPetIdAsync(petId, userId, from, to));
         }
@@ -40,8 +40,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(Guid petId, [FromBody] CreatePetWeightLogDto dto)
         {
-            if (!TryGetUserId(out var userId))
-                return Unauthorized(TokenInvalid());
+            var userId = User.GetUserId();
 
             var created = await _service.CreateAsync(petId, userId, dto);
             return Created($"/api/pets/{petId}/weight-history", created);
@@ -55,8 +54,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid petId, Guid weightLogId, [FromBody] PatchPetWeightLogDto dto)
         {
-            if (!TryGetUserId(out var userId))
-                return Unauthorized(TokenInvalid());
+            var userId = User.GetUserId();
 
             return Ok(await _service.UpdateAsync(petId, weightLogId, userId, dto));
         }
@@ -67,8 +65,7 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid petId, Guid weightLogId)
         {
-            if (!TryGetUserId(out var userId))
-                return Unauthorized(TokenInvalid());
+            var userId = User.GetUserId();
 
             var deleted = await _service.DeleteAsync(petId, weightLogId, userId);
             if (!deleted)
@@ -78,11 +75,5 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Api
             return NoContent();
         }
 
-        private bool TryGetUserId(out Guid userId) =>
-            Guid.TryParse(User.FindFirst("userId")?.Value, out userId);
-
-        private static ApiErrorResponse TokenInvalid() =>
-            ApiErrorResponse.FromMessage(
-                "Authentication token is invalid", ErrorCodes.AuthenticationTokenInvalid);
     }
 }

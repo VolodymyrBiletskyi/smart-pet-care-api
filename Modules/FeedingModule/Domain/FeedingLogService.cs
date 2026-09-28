@@ -1,3 +1,4 @@
+﻿using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.FeedingModule.DTOs.Requests;
 using smart_pet_care_api.Modules.FeedingModule.DTOs.Responses;
@@ -52,7 +53,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(
                     reminderId, log.FedAt, expectedPetId: petId)
-                    ?? throw new InvalidOperationException("Reminder not found");
+                    ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
             }
 
             await _repo.AddAsync(log);
@@ -68,7 +69,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
 
             var log = await _repo.GetTrackedByIdAsync(logId);
             if (log is null || log.PetId != petId)
-                throw new InvalidOperationException("Feeding log not found");
+                throw new NotFoundException(ErrorCodes.Feeding.LogNotFound, "Feeding log not found");
 
             log.PatchEntity(dto);
             ValidateFinalState(log);
@@ -95,7 +96,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
         {
             var petBelongsToUser = await _repo.PetBelongsToUserAsync(petId, userId);
             if (!petBelongsToUser)
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
         private static void ValidateCreate(CreateFeedingLogDto dto)
@@ -106,7 +107,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
             ValidateApproxCalories(dto.ApproxCalories);
 
             if (dto.PortionAmount.HasValue && !dto.PortionUnit.HasValue)
-                throw new ArgumentException("PortionUnit is required when PortionAmount is specified");
+                throw new ValidationException(ErrorCodes.Feeding.PortionUnitRequired, "PortionUnit is required when PortionAmount is specified");
 
             if (dto.PortionUnit.HasValue)
                 ValidatePortionUnit(dto.PortionUnit.Value);
@@ -122,7 +123,7 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
                 && !dto.ApproxCalories.IsSet
                 && !dto.Notes.IsSet)
             {
-                throw new ArgumentException("At least one field must be provided");
+                throw new ValidationException(ErrorCodes.Feeding.UpdateEmpty, "At least one field must be provided");
             }
 
             if (dto.FedAt.IsSet) ValidateFedAt(dto.FedAt.Value);
@@ -135,40 +136,41 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
         private static void ValidateFinalState(FeedingLog log)
         {
             if (log.PortionAmount.HasValue && !log.PortionUnit.HasValue)
-                throw new ArgumentException("PortionUnit is required when PortionAmount is specified");
+                throw new ValidationException(ErrorCodes.Feeding.PortionUnitRequired, "PortionUnit is required when PortionAmount is specified");
         }
 
         private static void ValidateFedAt(DateTime? fedAt)
         {
             if (fedAt is null || fedAt.Value == default)
-                throw new ArgumentException("FedAt is required");
+                throw new ValidationException(ErrorCodes.Feeding.TimeRequired, "FedAt is required");
 
             if (FeedingLogMapper.NormalizeToUtc(fedAt.Value) > DateTime.UtcNow.AddMinutes(10))
-                throw new ArgumentException("FedAt cannot be more than 10 minutes in the future");
+                throw new ValidationException(ErrorCodes.Feeding.TimeTooFarInFuture, "FedAt cannot be more than 10 minutes in the future", new Dictionary<string, object?> { ["maxMinutes"] = 10 });
         }
 
         private static void ValidatePortionAmount(decimal? portionAmount)
         {
             if (portionAmount.HasValue && portionAmount.Value < 0)
-                throw new ArgumentException("PortionAmount cannot be negative");
+                throw new ValidationException(ErrorCodes.Feeding.PortionAmountNegative, "PortionAmount cannot be negative");
         }
 
         private static void ValidateApproxCalories(int? approxCalories)
         {
             if (approxCalories.HasValue && approxCalories.Value < 0)
-                throw new ArgumentException("ApproxCalories cannot be negative");
+                throw new ValidationException(ErrorCodes.Feeding.CaloriesNegative, "ApproxCalories cannot be negative");
         }
 
         private static void ValidateFoodType(FoodType foodType)
         {
             if (!Enum.IsDefined(foodType))
-                throw new ArgumentException("FoodType is invalid");
+                throw new ValidationException(ErrorCodes.Feeding.FoodTypeInvalid, "FoodType is invalid");
         }
 
         private static void ValidatePortionUnit(PortionUnit portionUnit)
         {
             if (!Enum.IsDefined(portionUnit))
-                throw new ArgumentException("PortionUnit is invalid");
+                throw new ValidationException(ErrorCodes.Feeding.PortionUnitInvalid, "PortionUnit is invalid");
         }
     }
 }
+

@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.PetModule.Repository;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
@@ -36,7 +37,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         public async Task<IReadOnlyList<ReminderResponseDto>> GetByPetIdAsync(Guid petId, Guid userId)
         {
             if (!await _petRepo.ExistsForUserAsync(petId, userId))
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var reminders = await _reminderRepo.GetByPetIdAsync(petId);
             return reminders.Select(r => r.ToDto()).ToList();
@@ -53,10 +54,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         public async Task<ReminderResponseDto> CreateAsync(CreateReminderDto dto, Guid userId)
         {
             var pet = await _petRepo.GetByIdAndUserIdAsync(dto.PetId, userId)
-                ?? throw new InvalidOperationException("Pet not found");
+                ?? throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
-                throw new InvalidOperationException("EndAt must be in the future");
+                throw new ValidationException(ErrorCodes.Reminder.EndAtNotInFuture, "EndAt must be in the future");
 
             var strategy = ResolveStrategy(dto.Type, dto.RepeatType, dto.RecalcStrategy);
             ValidateSchedule(dto.RepeatType, dto.IntervalN, strategy, dto.Days, dto.Date);
@@ -77,13 +78,13 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         public async Task<ReminderResponseDto> UpdateAsync(Guid id, PatchReminderDto dto, Guid userId)
         {
             var reminder = await _reminderRepo.GetByIdAsync(id)
-                ?? throw new InvalidOperationException("Reminder not found");
+                ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
-                throw new InvalidOperationException("Reminder not found");
+                throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             if (dto.EndAt.HasValue && dto.EndAt.Value <= DateTime.UtcNow)
-                throw new InvalidOperationException("EndAt must be in the future");
+                throw new ValidationException(ErrorCodes.Reminder.EndAtNotInFuture, "EndAt must be in the future");
 
             reminder.PatchEntity(dto);
 
@@ -104,9 +105,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 // Reject request fields that don't belong to the (target) mode; stale entity
                 // fields left over from a mode switch are cleared silently instead.
                 if (!usesDate && dto.Date.HasValue)
-                    throw new InvalidOperationException($"{repeatType} reminders must not include a date.");
+                    throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, $"{repeatType} reminders must not include a date.");
                 if (!ReminderMapper.KeepDays(repeatType, strategy) && dto.Days is { Length: > 0 })
-                    throw new InvalidOperationException($"{repeatType} reminders must not include days.");
+                    throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, $"{repeatType} reminders must not include days.");
 
                 var days = ReminderMapper.KeepDays(repeatType, strategy) ? (dto.Days ?? reminder.Days) : [];
                 DateOnly? date = usesDate ? (dto.Date ?? reminder.Date) : null;
@@ -150,10 +151,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         public async Task DeleteAsync(Guid id, Guid userId)
         {
             var reminder = await _reminderRepo.GetByIdAsync(id)
-                ?? throw new InvalidOperationException("Reminder not found");
+                ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             if (!await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
-                throw new InvalidOperationException("Reminder not found");
+                throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             await _reminderRepo.DeleteAsync(reminder);
             await _reminderRepo.SaveChangesAsync();
@@ -163,7 +164,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         {
             var reminder = await _reminderRepo.GetByIdAsync(reminderId);
             if (reminder == null || !await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
-                throw new InvalidOperationException("Reminder not found");
+                throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             var runs = await _reminderRepo.GetRunsByReminderIdAsync(reminderId);
             return runs.Select(r => r.ToDto()).ToList();
@@ -173,13 +174,13 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             Guid petId, Guid userId, DateTime? from, DateTime? to, ReminderType? type)
         {
             if (!await _petRepo.ExistsForUserAsync(petId, userId))
-                throw new InvalidOperationException("Pet not found");
+                throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
 
             var fromUtc = from is { } f ? ReminderMapper.NormalizeToUtc(f) : (DateTime?)null;
             var toUtc = to is { } t ? ReminderMapper.NormalizeToUtc(t) : (DateTime?)null;
 
             if (fromUtc.HasValue && toUtc.HasValue && fromUtc > toUtc)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Reminder.DateRangeInvalid, "From cannot be later than To");
 
             var rows = await _reminderRepo.GetRunHistoryByPetIdAsync(petId, fromUtc, toUtc, type);
             return rows.Select(row => row.Run.ToHistoryDto(row.Reminder)).ToList();
@@ -198,16 +199,16 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var toUtc = ReminderMapper.NormalizeToUtc(to);
 
             if (fromUtc > toUtc)
-                throw new ArgumentException("From cannot be later than To");
+                throw new ValidationException(ErrorCodes.Reminder.DateRangeInvalid, "From cannot be later than To");
 
             if (toUtc - fromUtc > MaxHorizon)
-                throw new ArgumentException($"Window cannot exceed {MaxHorizon.TotalDays:0} days");
+                throw new ValidationException(ErrorCodes.Reminder.DateRangeInvalid, $"Window cannot exceed {MaxHorizon.TotalDays:0} days", new Dictionary<string, object?> { ["maxDays"] = MaxHorizon.TotalDays });
 
             IReadOnlyList<Guid> petIds;
             if (petId is { } single)
             {
                 if (!await _petRepo.ExistsForUserAsync(single, userId))
-                    throw new InvalidOperationException("Pet not found");
+                    throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
                 petIds = [single];
             }
             else
@@ -282,14 +283,14 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         public async Task<ReminderRunResponseDto> AcknowledgeRunAsync(Guid runId, Guid userId)
         {
             var run = await _reminderRepo.GetRunByIdAsync(runId)
-                ?? throw new InvalidOperationException("Reminder run not found");
+                ?? throw new NotFoundException(ErrorCodes.Reminder.RunNotFound, "Reminder run not found");
 
             var reminder = await _reminderRepo.GetByIdAsync(run.ReminderId);
             if (reminder == null || !await _petRepo.ExistsForUserAsync(reminder.PetId, userId))
-                throw new InvalidOperationException("Reminder run not found");
+                throw new NotFoundException(ErrorCodes.Reminder.RunNotFound, "Reminder run not found");
 
             if (run.Status == ReminderRunStatus.Completed)
-                throw new InvalidOperationException("Run already acknowledged");
+                throw new ConflictException(ErrorCodes.Reminder.RunAlreadyAcknowledged, "Run already acknowledged");
 
             run.Status = ReminderRunStatus.Completed;
             run.CompletedAt = DateTime.UtcNow;
@@ -322,7 +323,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 var once = DateTime.SpecifyKind(
                     date!.Value.ToDateTime(localTime).AddMinutes(-offsetMinutes), DateTimeKind.Utc);
                 if (once <= nowUtc)
-                    throw new InvalidOperationException("Date must be in the future.");
+                    throw new ValidationException(ErrorCodes.Reminder.DateNotInFuture, "Date must be in the future.");
                 return (once, once.TimeOfDay);
             }
 
@@ -330,7 +331,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 repeatType, intervalN, days, date, timeOfDayUtc, offsetMinutes, nowUtc, strategy);
 
             var trigger = FirstTrigger(plan, nowUtc)
-                ?? throw new InvalidOperationException("Could not compute a valid trigger time");
+                ?? throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Could not compute a valid trigger time");
 
             return (trigger, timeOfDayUtc);
         }
@@ -339,9 +340,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             RepeatType repeatType, int intervalN, RecalcStrategy strategy, DaysOfWeek[] days, DateOnly? date)
         {
             if (!Enum.IsDefined(repeatType))
-                throw new InvalidOperationException("Unknown repeat type.");
+                throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Unknown repeat type.");
             if (!Enum.IsDefined(strategy))
-                throw new InvalidOperationException("Unknown recalculation strategy.");
+                throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Unknown recalculation strategy.");
 
             var maxInterval = repeatType switch
             {
@@ -352,16 +353,18 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             };
 
             if (intervalN < 1 || intervalN > maxInterval)
-                throw new InvalidOperationException(
-                    $"IntervalN must be between 1 and {maxInterval} for {repeatType} reminders.");
+                throw new ValidationException(
+                    ErrorCodes.Reminder.ScheduleInvalid,
+                    $"IntervalN must be between 1 and {maxInterval} for {repeatType} reminders.",
+                    new Dictionary<string, object?> { ["min"] = 1, ["max"] = maxInterval });
 
             if (repeatType == RepeatType.Once && strategy != RecalcStrategy.Calendar)
-                throw new InvalidOperationException(
-                    "Once reminders have no interval to recalculate from.");
+                throw new ValidationException(
+                    ErrorCodes.Reminder.ScheduleInvalid, "Once reminders have no interval to recalculate from.");
 
             if (strategy == RecalcStrategy.FromCompletionAlignedToWeekday && days.Length == 0)
-                throw new InvalidOperationException(
-                    "Weekday-aligned recalculation requires at least one day to align to.");
+                throw new ValidationException(
+                    ErrorCodes.Reminder.ScheduleInvalid, "Weekday-aligned recalculation requires at least one day to align to.");
 
             var daysAllowed = ReminderMapper.KeepDays(repeatType, strategy);
 
@@ -369,26 +372,27 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             {
                 case RepeatType.Weekly:
                     if (days.Length == 0)
-                        throw new InvalidOperationException("Weekly reminders require at least one day.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Weekly reminders require at least one day.");
                     if (date.HasValue)
-                        throw new InvalidOperationException("Weekly reminders must not include a date.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Weekly reminders must not include a date.");
                     break;
                 case RepeatType.Daily:
                     if (days.Length > 0 && !daysAllowed)
-                        throw new InvalidOperationException("Daily reminders must not include days.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Daily reminders must not include days.");
                     if (date.HasValue)
-                        throw new InvalidOperationException("Daily reminders must not include a date.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Daily reminders must not include a date.");
                     break;
                 case RepeatType.Monthly:
                 case RepeatType.Once:
                     if (!date.HasValue)
-                        throw new InvalidOperationException($"{repeatType} reminders require a date.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, $"{repeatType} reminders require a date.");
                     if (days.Length > 0 && !daysAllowed)
-                        throw new InvalidOperationException($"{repeatType} reminders must not include days.");
+                        throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, $"{repeatType} reminders must not include days.");
                     break;
                 default:
-                    throw new InvalidOperationException("Unknown repeat type.");
+                    throw new ValidationException(ErrorCodes.Reminder.ScheduleInvalid, "Unknown repeat type.");
             }
         }
     }
 }
+

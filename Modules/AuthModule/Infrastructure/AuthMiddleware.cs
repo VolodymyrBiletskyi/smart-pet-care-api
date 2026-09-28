@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using System.Security.Claims;
 using Microsoft.Extensions.Caching.Memory;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -41,8 +42,15 @@ namespace smart_pet_care_api.Modules.AuthModule.Infrastructure
 
             if (!isValid)
             {
+                // A valid token for an account that is gone. Its own code, because
+                // refreshing cannot fix it: the client has to start a new session.
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Unauthorized");
+                await context.Response.WriteAsJsonAsync(new ApiErrorResponse
+                {
+                    Code = ErrorCodes.Auth.AccountNoLongerExists,
+                    Message = "This account no longer exists.",
+                    TraceId = context.TraceIdentifier
+                });
                 return;
             }
 

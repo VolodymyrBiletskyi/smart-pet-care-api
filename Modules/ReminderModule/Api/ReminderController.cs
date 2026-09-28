@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -42,16 +43,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetByPetId(Guid petId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var reminders = await _service.GetByPetIdAsync(petId, userId);
-                return Ok(reminders);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var reminders = await _service.GetByPetIdAsync(petId, userId);
+            return Ok(reminders);
         }
 
         [HttpGet("{id:guid}")]
@@ -61,7 +55,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         {
             var userId = User.GetUserId();
             var reminder = await _service.GetByIdAsync(id, userId);
-            if (reminder == null) return NotFound();
+            if (reminder is null)
+                return NotFound(ApiErrorResponse.FromMessage(
+                    "Reminder not found", ErrorCodes.ReminderNotFound));
             return Ok(reminder);
         }
 
@@ -71,16 +67,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create([FromBody] CreateReminderDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var created = await _service.CreateAsync(dto, userId);
-                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var created = await _service.CreateAsync(dto, userId);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPatch("{id:guid}")]
@@ -89,16 +78,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid id, [FromBody] PatchReminderDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var updated = await _service.UpdateAsync(id, dto, userId);
-                return Ok(updated);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var updated = await _service.UpdateAsync(id, dto, userId);
+            return Ok(updated);
         }
 
         [HttpDelete("{id:guid}")]
@@ -107,16 +89,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                await _service.DeleteAsync(id, userId);
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var userId = User.GetUserId();
+            await _service.DeleteAsync(id, userId);
+            return NoContent();
         }
 
         [HttpGet("{id:guid}/runs")]
@@ -140,20 +115,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteReminderDto? dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var result = await _completion.CompleteAsync(id, userId, dto ?? new CompleteReminderDto());
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var result = await _completion.CompleteAsync(id, userId, dto ?? new CompleteReminderDto());
+            return Ok(result);
         }
 
         /// <summary>
@@ -168,20 +132,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
         public async Task<IActionResult> GetOccurrences(
             [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] Guid? petId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var occurrences = await _service.GetOccurrencesAsync(userId, petId, from, to);
-                return Ok(occurrences);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var occurrences = await _service.GetOccurrencesAsync(userId, petId, from, to);
+            return Ok(occurrences);
         }
 
         /// <summary>Execution history across every rule of one pet, for a period.</summary>
@@ -196,20 +149,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
             [FromQuery] DateTime? to,
             [FromQuery] ReminderType? type)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var history = await _service.GetRunHistoryAsync(petId, userId, from, to, type);
-                return Ok(history);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var history = await _service.GetRunHistoryAsync(petId, userId, from, to, type);
+            return Ok(history);
         }
 
         [HttpPost("runs/{runId:guid}/acknowledge")]
@@ -219,16 +161,10 @@ namespace smart_pet_care_api.Modules.ReminderModule.Api
 
         public async Task<IActionResult> AcknowledgeRun(Guid runId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var run = await _service.AcknowledgeRunAsync(runId, userId);
-                return Ok(run);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var userId = User.GetUserId();
+            var run = await _service.AcknowledgeRunAsync(runId, userId);
+            return Ok(run);
         }
     }
 }
+

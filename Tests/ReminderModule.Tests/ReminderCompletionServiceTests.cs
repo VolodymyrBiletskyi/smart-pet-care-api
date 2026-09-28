@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Xunit;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.ReminderModule.Domain;
@@ -122,7 +123,7 @@ public class ReminderCompletionServiceTests
     {
         var harness = Build(ReminderType.Vaccination);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
+        await Assert.ThrowsAsync<ValidationException>(() => harness.Service.CompleteAsync(
             harness.Reminder.Id, UserId,
             new CompleteReminderDto { PerformedAt = DateTime.UtcNow.AddDays(1) }));
     }
@@ -133,7 +134,7 @@ public class ReminderCompletionServiceTests
         var harness = Build(ReminderType.Vaccination);
         harness.Pets.Exists = false;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => harness.Service.CompleteAsync(
+        await Assert.ThrowsAsync<NotFoundException>(() => harness.Service.CompleteAsync(
             harness.Reminder.Id, UserId, new CompleteReminderDto()));
     }
 
@@ -188,7 +189,7 @@ public class ReminderCompletionServiceTests
         // Accepting it would drop it silently.
         var harness = Build(ReminderType.Bathing, RecalcStrategy.Calendar);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => harness.Service.CompleteAsync(
+        await Assert.ThrowsAsync<ValidationException>(() => harness.Service.CompleteAsync(
             harness.Reminder.Id, UserId, new CompleteReminderDto { Dosage = "10 mg" }));
     }
 }

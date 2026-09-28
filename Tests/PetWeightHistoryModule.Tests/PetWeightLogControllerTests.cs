@@ -154,40 +154,34 @@ public class PetWeightLogControllerTests
         Assert.Equal(ErrorCodes.PetNotFound, exception.Code);
     }
 
-    [Fact]
-    public async Task GetAll_WhenUserIdClaimIsMissing_ReturnsUnauthorizedMessage()
+    /// <summary>
+    /// This module used to parse the claim by hand and was the only one that
+    /// answered 401 for a token with no usable id; everywhere else the same
+    /// token produced a 500. It now goes through the shared helper, so the two
+    /// cases below are a guard against that split coming back.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not-a-guid")]
+    public async Task GetAll_WhenTheUserIdClaimIsUnusable_Throws401(string? claimValue)
     {
+        var httpContext = new DefaultHttpContext();
+        if (claimValue is not null)
+        {
+            httpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity([new Claim("userId", claimValue)], "test"));
+        }
+
         var controller = new PetWeightLogController(new FakePetWeightLogService())
         {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
 
-        var result = await controller.GetAll(_petId, null, null);
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            controller.GetAll(_petId, null, null));
 
-        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-        var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
-        Assert.Equal("authentication_token_invalid", response.Code);
-        Assert.Equal("Authentication token is invalid.", response.Message);
-    }
-
-    [Fact]
-    public async Task GetAll_WhenUserIdClaimIsInvalid_ReturnsUnauthorizedMessage()
-    {
-        var identity = new ClaimsIdentity([new Claim("userId", "not-a-guid")], "test");
-        var controller = new PetWeightLogController(new FakePetWeightLogService())
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
-            }
-        };
-
-        var result = await controller.GetAll(_petId, null, null);
-
-        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-        var response = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
-        Assert.Equal("authentication_token_invalid", response.Code);
-        Assert.Equal("Authentication token is invalid.", response.Message);
+        Assert.Equal(ErrorCodes.AuthenticationTokenInvalid, exception.Code);
+        Assert.Equal(StatusCodes.Status401Unauthorized, exception.StatusCode);
     }
 
     private PetWeightLogController Controller(IPetWeightLogService service)

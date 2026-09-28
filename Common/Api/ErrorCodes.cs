@@ -15,11 +15,44 @@ public static class ErrorCodes
     /// <summary>Anything that is not a deliberate, named failure.</summary>
     public const string Internal = "internal_error";
 
+    /// <summary>
+    /// The envelope for a body that failed model binding. The per-field entries
+    /// in <c>errors</c> are aliases too — see <see cref="Field"/>.
+    /// </summary>
     public const string RequestValidationFailed = "request_validation_failed";
     public const string AuthenticationTokenInvalid = "authentication_token_invalid";
 
     public const string PetNotFound = "pet_not_found";
     public const string ReminderNotFound = "reminder_not_found";
+
+    /// <summary>
+    /// Aliases for the field-level entries of <c>errors</c>. They are the
+    /// <c>ErrorMessage</c> of a DataAnnotations attribute, which is what ends up
+    /// in the dictionary: leaving the default there would hand the client an
+    /// English sentence it cannot localize.
+    /// </summary>
+    public static class Field
+    {
+        public const string EmailRequired = "auth_email_required";
+        public const string EmailInvalid = "auth_email_invalid";
+        public const string PasswordRequired = "auth_password_required";
+        public const string PasswordTooShort = "auth_password_too_short";
+        public const string PasswordTooWeak = "auth_password_too_weak";
+        public const string PasswordConfirmRequired = "auth_password_confirm_required";
+        public const string TermsNotAccepted = "auth_terms_not_accepted";
+        public const string PasswordsDoNotMatch = "auth_passwords_do_not_match";
+        public const string ConfirmationCodeRequired = "auth_confirmation_code_required";
+        public const string ConfirmationCodeMalformed = "auth_confirmation_code_malformed";
+
+        public const string ReminderUtcOffsetRequired = "reminder_utc_offset_required";
+
+        public const string NutritionBreedTooLong = "nutrition_breed_too_long";
+        public const string NutritionAgeOutOfRange = "nutrition_age_out_of_range";
+        public const string NutritionProductsTooMany = "nutrition_products_too_many";
+        public const string NutritionProductNameRequired = "nutrition_product_name_required";
+        public const string NutritionProductNameTooLong = "nutrition_product_name_too_long";
+        public const string NutritionProductCaloriesOutOfRange = "nutrition_product_calories_out_of_range";
+    }
 
     public static class Pet
     {
@@ -38,7 +71,6 @@ public static class ErrorCodes
         public const string PhotoTypeInvalid = "pet_photo_type_invalid";
         public const string PhotoTooLarge = "pet_photo_too_large";
         public const string PhotoUploadFailed = "pet_photo_upload_failed";
-        public const string ValidationFailed = "pet_validation_failed";
     }
 
     public static class WeightLog
@@ -65,7 +97,114 @@ public static class ErrorCodes
         public const string PortionUnitInvalid = "feeding_portion_unit_invalid";
         public const string CaloriesNegative = "feeding_calories_negative";
         public const string FoodTypeInvalid = "feeding_food_type_invalid";
-        public const string ValidationFailed = "feeding_validation_failed";
+    }
+
+    public static class Activity
+    {
+        public const string LogNotFound = "activity_log_not_found";
+        public const string UpdateEmpty = "activity_update_empty";
+        public const string SourceInvalid = "activity_source_invalid";
+        public const string DateRangeInvalid = "activity_date_range_invalid";
+        public const string RecordedAtInFuture = "activity_recorded_at_in_future";
+        public const string StepsNegative = "activity_steps_negative";
+        public const string TypeInvalid = "activity_type_invalid";
+        public const string IntensityInvalid = "activity_intensity_invalid";
+        public const string DurationNotPositive = "activity_duration_not_positive";
+        public const string DurationTooLong = "activity_duration_too_long";
+        public const string StepsTooLarge = "activity_steps_too_large";
+        public const string LocationTooLong = "activity_location_too_long";
+        public const string NoteTooLong = "activity_note_too_long";
+        public const string SourceNotSupported = "activity_source_not_supported";
+        public const string NothingRecorded = "activity_nothing_recorded";
+    }
+
+    public static class Sleep
+    {
+        public const string LogNotFound = "sleep_log_not_found";
+        public const string UpdateEmpty = "sleep_update_empty";
+        public const string DateRangeInvalid = "sleep_date_range_invalid";
+        public const string DateInFuture = "sleep_date_in_future";
+        public const string HoursNotPositive = "sleep_hours_not_positive";
+        public const string HoursTooLarge = "sleep_hours_too_large";
+        public const string NoteTooLong = "sleep_note_too_long";
+        public const string DailyHoursExceeded = "sleep_daily_hours_exceeded";
+    }
+
+    public static class Health
+    {
+        public const string RecordNotFound = "health_record_not_found";
+        public const string DateRangeInvalid = "health_date_range_invalid";
+        public const string TypeInvalid = "health_type_invalid";
+        public const string TitleRequired = "health_title_required";
+        public const string TitleTooLong = "health_title_too_long";
+        public const string PerformedAtInFuture = "health_performed_at_in_future";
+        public const string NextDueBeforePerformed = "health_next_due_before_performed";
+        public const string SymptomInvalid = "health_symptom_invalid";
+        public const string DescriptionTooLong = "health_description_too_long";
+        public const string DosageTooLong = "health_dosage_too_long";
+        public const string ProviderTooLong = "health_provider_too_long";
+    }
+
+    public static class Journal
+    {
+        public const string EntryNotFound = "journal_entry_not_found";
+        public const string DateRangeInvalid = "journal_date_range_invalid";
+        public const string TypeInvalid = "journal_type_invalid";
+        public const string SeverityInvalid = "journal_severity_invalid";
+        public const string SymptomInvalid = "journal_symptom_invalid";
+        public const string TitleRequired = "journal_title_required";
+        public const string TitleTooLong = "journal_title_too_long";
+        public const string ObservedAtInFuture = "journal_observed_at_in_future";
+        public const string NotesTooLong = "journal_notes_too_long";
+    }
+
+    public static class Reminder
+    {
+        public const string RunNotFound = "reminder_run_not_found";
+        public const string RunAlreadyAcknowledged = "reminder_run_already_acknowledged";
+        public const string EndAtNotInFuture = "reminder_end_at_not_in_future";
+        public const string DateNotInFuture = "reminder_date_not_in_future";
+        public const string DateRangeInvalid = "reminder_date_range_invalid";
+        public const string ScheduleInvalid = "reminder_schedule_invalid";
+        public const string PerformedAtInFuture = "reminder_performed_at_in_future";
+        public const string NoteTooLong = "reminder_note_too_long";
+    }
+
+    public static class Auth
+    {
+        public const string EmailAlreadyTaken = "auth_email_already_taken";
+        public const string AccountNotFound = "auth_account_not_found";
+        public const string InvalidCredentials = "auth_invalid_credentials";
+        public const string GoogleAuthFailed = "auth_google_failed";
+        public const string RefreshTokenInvalid = "auth_refresh_token_invalid";
+        public const string OAuthCodeRequired = "auth_oauth_code_required";
+
+        /// <summary>No token, an expired one, or one that fails validation.</summary>
+        public const string AuthenticationRequired = "auth_authentication_required";
+
+        /// <summary>
+        /// The token itself is valid but its account is gone. Distinct from
+        /// <see cref="AuthenticationRequired"/> because refreshing will not help
+        /// — the client has to clear its session and start over.
+        /// </summary>
+        public const string AccountNoLongerExists = "auth_account_no_longer_exists";
+
+        public const string Forbidden = "auth_forbidden";
+    }
+
+    public static class User
+    {
+        public const string NotFound = "user_not_found";
+        public const string PhotoRequired = "user_photo_required";
+        public const string PhotoTypeInvalid = "user_photo_type_invalid";
+        public const string PhotoTooLarge = "user_photo_too_large";
+        public const string AvatarNotFound = "user_avatar_not_found";
+        public const string DeleteForbidden = "user_delete_forbidden";
+    }
+
+    public static class Notification
+    {
+        public const string DeviceTokenRequired = "device_token_required";
     }
 
     public static class Chat
@@ -82,18 +221,23 @@ public static class ErrorCodes
         public const string MessageNotRetryable = "chat_message_not_retryable";
         public const string MessageProcessingOrRetryRequired = "chat_message_processing_or_retry_required";
         public const string StoredResponseInvalid = "chat_stored_response_invalid";
-        public const string RequestInvalid = "chat_request_invalid";
-        public const string StateConflict = "chat_state_conflict";
     }
 
-    /// <summary>
-    /// Coarse for now: the nutrition module still raises plain framework
-    /// exceptions, so its validation failures share one alias until it moves to
-    /// <see cref="AppException"/> like the weight history module has.
-    /// </summary>
     public static class Nutrition
     {
-        public const string AnalysisInvalid = "nutrition_analysis_invalid";
+        /// <summary>The pet has no weight recorded, and none was supplied.</summary>
+        public const string WeightRequired = "nutrition_weight_required";
+
+        /// <summary>A weight was available but is outside what can be analysed.</summary>
+        public const string WeightOutOfRange = "nutrition_weight_out_of_range";
+
+        public const string GoalNotFound = "nutrition_goal_not_found";
+        public const string UtcOffsetInvalid = "nutrition_utc_offset_invalid";
+        public const string CalorieTargetNegative = "nutrition_calorie_target_negative";
+        public const string PortionTargetNegative = "nutrition_portion_target_negative";
+        public const string MealsPerDayNegative = "nutrition_meals_per_day_negative";
+        public const string PortionUnitInvalid = "nutrition_portion_unit_invalid";
+        public const string PortionUnitRequired = "nutrition_portion_unit_required";
     }
 
     public static class Wellness
@@ -127,3 +271,4 @@ public static class ErrorCodes
         public const string Unavailable = "service_unavailable";
     }
 }
+

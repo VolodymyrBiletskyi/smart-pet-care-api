@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -65,14 +65,6 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
                     petId, User.GetUserId(), date, utcOffsetMinutes, request, cancellationToken);
                 return Ok(analysis);
             }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message, ErrorCodes.PetNotFound));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(Error(ex.Message, ErrorCodes.Nutrition.AnalysisInvalid));
-            }
             catch (ClassifierRateLimitedException ex)
             {
                 _logger.LogWarning(
@@ -133,14 +125,7 @@ namespace smart_pet_care_api.Modules.NutritionModule.Api
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetRecent(Guid petId)
         {
-            try
-            {
-                return Ok(await _service.GetRecentAsync(petId, User.GetUserId()));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(Error(ex.Message, ErrorCodes.PetNotFound));
-            }
+            return Ok(await _service.GetRecentAsync(petId, User.GetUserId()));
         }
 
         private ObjectResult ClassifierError(

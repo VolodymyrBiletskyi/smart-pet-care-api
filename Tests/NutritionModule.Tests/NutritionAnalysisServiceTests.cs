@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
 using smart_pet_care_api.Models;
@@ -106,7 +107,7 @@ public class NutritionAnalysisServiceTests
     {
         var harness = BuildHarness(petExists: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
             harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("Pet not found", ex.Message);
@@ -119,7 +120,7 @@ public class NutritionAnalysisServiceTests
     {
         var harness = BuildHarness(petExists: false);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             harness.Service.GetRecentAsync(_petId, _userId));
     }
 
@@ -128,7 +129,7 @@ public class NutritionAnalysisServiceTests
     {
         var harness = BuildHarness();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             harness.Service.AnalyzeAsync(_petId, _userId, null, 841, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Empty(harness.Classifier.Requests);
@@ -147,7 +148,7 @@ public class NutritionAnalysisServiceTests
     {
         var harness = BuildHarness(weightKg: weight);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             harness.Service.AnalyzeAsync(_petId, _userId, null, 0, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Empty(harness.Classifier.Requests);
@@ -400,7 +401,7 @@ public class NutritionAnalysisServiceTests
     {
         var harness = BuildHarness();
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        await Assert.ThrowsAsync<ValidationException>(() =>
             harness.Service.AnalyzeAsync(
                 _petId,
                 _userId,

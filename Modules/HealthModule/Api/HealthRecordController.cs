@@ -1,3 +1,4 @@
+using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -32,20 +33,9 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var records = await _service.GetByPetIdAsync(petId, userId, type, symptom, from, to);
-                return Ok(records);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var records = await _service.GetByPetIdAsync(petId, userId, type, symptom, from, to);
+            return Ok(records);
         }
 
         [HttpGet("{recordId:guid}")]
@@ -54,17 +44,11 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetById(Guid petId, Guid recordId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var record = await _service.GetByIdAsync(petId, recordId, userId);
-                if (record is null) return NotFound();
-                return Ok(record);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var record = await _service.GetByIdAsync(petId, recordId, userId);
+            if (record is null)
+                return NotFound(ApiErrorResponse.FromMessage("Health record not found", ErrorCodes.Health.RecordNotFound));
+            return Ok(record);
         }
 
         [HttpPost]
@@ -74,20 +58,9 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Create(Guid petId, [FromBody] CreateHealthRecordDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var created = await _service.CreateAsync(petId, userId, dto);
-                return CreatedAtAction(nameof(GetById), new { petId, recordId = created.Id }, created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var created = await _service.CreateAsync(petId, userId, dto);
+            return CreatedAtAction(nameof(GetById), new { petId, recordId = created.Id }, created);
         }
 
         [HttpPatch("{recordId:guid}")]
@@ -97,20 +70,9 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Update(Guid petId, Guid recordId, [FromBody] PatchHealthRecordDto dto)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var updated = await _service.UpdateAsync(petId, recordId, userId, dto);
-                return Ok(updated);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var updated = await _service.UpdateAsync(petId, recordId, userId, dto);
+            return Ok(updated);
         }
 
         [HttpDelete("{recordId:guid}")]
@@ -119,17 +81,13 @@ namespace smart_pet_care_api.Modules.HealthModule.Api
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Delete(Guid petId, Guid recordId)
         {
-            try
-            {
-                var userId = User.GetUserId();
-                var deleted = await _service.DeleteAsync(petId, recordId, userId);
-                if (!deleted) return NotFound();
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var userId = User.GetUserId();
+            var deleted = await _service.DeleteAsync(petId, recordId, userId);
+            if (!deleted)
+                return NotFound(ApiErrorResponse.FromMessage("Health record not found", ErrorCodes.Health.RecordNotFound));
+            return NoContent();
         }
     }
 }
+
+

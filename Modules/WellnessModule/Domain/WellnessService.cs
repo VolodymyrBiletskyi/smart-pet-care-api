@@ -1,6 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Infrastructure.Classifier;
 using smart_pet_care_api.Infrastructure.Classifier.Contracts;
@@ -51,7 +52,7 @@ public sealed class WellnessService(
 
         var request = await aggregator.AggregateAsync(
             petId, userId, currentSymptoms: null, evaluatedAt, cancellationToken);
-        var response = await classifierClient.CalculateWellnessAsync(request, cancellationToken);
+        var response = await CalculateAsync(request, cancellationToken);
 
         if (response.ScoreStatus == ClassifierWellnessScoreStatus.InsufficientData)
             throw new WellnessInsufficientDataException();
@@ -77,6 +78,50 @@ public sealed class WellnessService(
         return ToDto(response);
     }
 
+    /// <summary>
+    /// The classifier's own codes say the classifier is down; these say the
+    /// wellness score is unavailable, which is what the client shows. The
+    /// aliases predate this wrapper, so they are kept exactly as published.
+    /// </summary>
+    private async Task<ClassifierWellnessResponse> CalculateAsync(
+        ClassifierWellnessRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await classifierClient.CalculateWellnessAsync(request, cancellationToken);
+        }
+        catch (ClassifierRateLimitedException exception)
+        {
+            throw new UpstreamException(
+                ErrorCodes.Wellness.ServiceRateLimited,
+                StatusCodes.Status429TooManyRequests,
+                "Wellness evaluation is rate limited",
+                retryable: true,
+                exception.RetryAfterSeconds,
+                exception);
+        }
+        catch (ClassifierInvalidResponseException exception)
+        {
+            throw new UpstreamException(
+                ErrorCodes.Wellness.ServiceInvalidResponse,
+                StatusCodes.Status502BadGateway,
+                "The wellness service returned an invalid response",
+                retryable: false,
+                innerException: exception);
+        }
+        catch (ClassifierUnavailableException exception)
+        {
+            throw new UpstreamException(
+                ErrorCodes.Wellness.ServiceUnavailable,
+                StatusCodes.Status503ServiceUnavailable,
+                "The wellness service is unavailable",
+                retryable: true,
+                exception.RetryAfterSeconds,
+                exception);
+        }
+    }
+
     public async Task<WellnessHistoryResponseDto> GetHistoryAsync(
         Guid petId,
         Guid userId,
@@ -84,9 +129,14 @@ public sealed class WellnessService(
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1) throw new ArgumentException("Page must be at least 1");
+        if (page < 1)
+            throw new ValidationException(
+                ErrorCodes.Wellness.HistoryQueryInvalid, "Page must be at least 1");
         if (pageSize is < 1 or > MaximumPageSize)
-            throw new ArgumentException($"PageSize must be between 1 and {MaximumPageSize}");
+            throw new ValidationException(
+                ErrorCodes.Wellness.HistoryQueryInvalid,
+                $"PageSize must be between 1 and {MaximumPageSize}",
+                new Dictionary<string, object?> { ["min"] = 1, ["max"] = MaximumPageSize });
 
         await EnsurePetBelongsToUserAsync(petId, userId, cancellationToken);
         var query = dbContext.PetWellnessAssessments.AsNoTracking()
@@ -111,7 +161,7 @@ public sealed class WellnessService(
     {
         if (!await dbContext.Pets.AsNoTracking()
             .AnyAsync(item => item.Id == petId && item.UserId == userId, cancellationToken))
-            throw new InvalidOperationException("Pet not found");
+            throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
     }
 
     private static WellnessResponseDto ToDto(PetWellnessAssessment assessment) =>
@@ -162,3 +212,4 @@ public sealed class WellnessService(
             .DistinctBy(item => (item.Type, item.Text))
             .ToList();
 }
+
