@@ -197,11 +197,27 @@ full alias catalogue and which modules are covered so far — is
 `docs/error-codes.md`.
 
 The alias is set where the failure is raised, not derived from the message
-afterwards: services throw an `AppException` (`NotFoundException`,
-`ValidationException`, `ConflictException`, `UnprocessableException`) carrying
-its `Code`, `StatusCode` and optional `Params`, and `GlobalExceptionHandler`
-turns it into the response. Deriving the code from the message text instead
-would mean that rewording a message silently changes the code a client sees.
+afterwards: services throw an `AppException` carrying its `Code`, `StatusCode`
+and optional `Params`, and `GlobalExceptionHandler` turns it into the response.
+Deriving the code from the message text instead would mean that rewording a
+message silently changes the code a client sees. The subclass picks the status,
+so no controller decides one: `ValidationException` (400),
+`UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException`
+(404), `ConflictException` (409), `GoneException` (410),
+`UnprocessableException` (422), `TooManyRequestsException` (429) and
+`UpstreamException` (status as given, plus `Retryable`).
+
+Three places put that shape on the wire, because a failure can reach the client
+without ever being an exception:
+
+- `GlobalExceptionHandler` — anything thrown.
+- `ErrorTraceIdFilter` — stamps `TraceId` on an `ApiErrorResponse` a controller
+  returned directly. Doing it at each call site would leave every new
+  `NotFound(...)` one forgotten argument away from an error nobody can correlate
+  with a log line.
+- `JwtBearerEvents` in `AuthModuleExtensions` — the bearer scheme answers 401
+  and 403 with an empty body by default, which would make the two statuses a
+  client meets most often the only ones it cannot read a code from.
 
 Anything that is not an `AppException` or a known classifier failure is reported
 as `internal_error` with a 500 and its detail kept in the log. An exception
