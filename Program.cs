@@ -32,6 +32,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddHealthChecks();
 
 builder.Services.AddUserModule();
 builder.Services.AddPetModule();
@@ -131,5 +132,10 @@ app.UseAuthentication();
 app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+
+// Liveness only, and that is the point: Migrate() above runs before the server
+// starts listening, so a failed migration means this never answers and the
+// container never turns healthy -- which is what the deploy waits on.
+app.MapHealthChecks("/health");
 
 app.Run();
