@@ -141,19 +141,26 @@ jobs:
             ( crontab -l 2>/dev/null | grep -v 'scripts/backup-db.sh' || true; \
               echo "17 3 * * * $CRON_CMD" ) | crontab -
 
+            # Written before the release goes out, not after: PREV_SHA is the
+            # build that was serving either way, and a deploy that fails below
+            # is exactly when `rollback.sh --last` has to name it.
+            echo "$PREV_SHA" > backups/.last-deployed-sha
+
             # No `down` and no `--build`: the image is already on the host, so
             # compose recreates only the services whose config moved and the api
             # is out for as long as one container takes to start. nginx keeps
             # serving throughout.
-            docker compose up -d
+            #
+            # --wait is what makes a failed migration fail the deploy. Migrate()
+            # runs before the server listens, so a migration that throws leaves
+            # the container restarting and never healthy; without this the job
+            # would go green over an api answering nothing but 502.
+            docker compose up -d --wait --wait-timeout 180
 
             # The image this release replaced is now untagged. Nothing else
             # accumulates on the host any more -- the sdk image and the build
             # cache live on the runner now.
             docker image prune -f
-
-            # Only now: the rollback target is the release that last came up.
-            echo "$PREV_SHA" > backups/.last-deployed-sha
 
             docker compose ps
             echo "Deployment completed successfully!"

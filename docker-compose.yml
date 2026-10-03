@@ -25,6 +25,12 @@ services:
       # falls back to Information and EF logs every statement it runs. Override
       # to Information in .env when you need to see the SQL.
       - Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command=${EF_COMMAND_LOG_LEVEL:-Warning}
+      # Same reason, and now also the healthcheck: a probe every 10s would write
+      # four Information lines a time and push everything else out of the
+      # rotation window within hours. Nothing is lost on the server -- nginx
+      # already logs every request with its path and status.
+      - Logging__LogLevel__Microsoft.AspNetCore.Hosting.Diagnostics=${REQUEST_LOG_LEVEL:-Warning}
+      - Logging__LogLevel__Microsoft.AspNetCore.Routing=${REQUEST_LOG_LEVEL:-Warning}
       - ApiPublicUrl=${API_PUBLIC_URL:-http://localhost:8080}
       - ConnectionStrings__DbConnection=Host=db;Port=5432;Database=smartPetCareDb;Username=postgres;Password=${DB_PASSWORD}
       - JwtOptions__SecretKey=${JWT_SECRET}
@@ -60,6 +66,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # start_period covers the migrations: Migrate() runs before the first
+    # request is served, and on a release that adds one this takes longer than
+    # a plain start.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
     restart: always
     logging: *default-logging
 
@@ -124,3 +139,4 @@ services:
 volumes:
   postgres_data:
   dataprotection_keys:
+
