@@ -16,8 +16,14 @@ services:
     # though it takes whatever :latest is rather than matching the checkout.
     image: ${API_IMAGE:-ghcr.io/volodymyrbiletskyi/smart-pet-care-api:latest}
     build: .
+    # Loopback only. nginx reaches the api as api:8080 over the compose network
+    # and the healthcheck runs inside the container, so nothing outside the host
+    # needs this port -- published on every interface it was a second way into
+    # the same application, one that skips both TLS and the basic auth guarding
+    # the docs, since both of those live in the nginx config and not in the app.
+    # Still bound on the host, so localhost:8080 works in development.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       # Set here rather than in appsettings.json, which .dockerignore keeps out
