@@ -158,6 +158,16 @@ public static class ErrorCodes
         public const string NotesTooLong = "journal_notes_too_long";
     }
 
+    public static class Note
+    {
+        public const string NotFound = "note_not_found";
+        public const string UpdateEmpty = "note_update_empty";
+        public const string TitleRequired = "note_title_required";
+        public const string TitleTooLong = "note_title_too_long";
+        public const string ContentRequired = "note_content_required";
+        public const string ContentTooLong = "note_content_too_long";
+    }
+
     public static class Reminder
     {
         public const string RunNotFound = "reminder_run_not_found";

@@ -38,6 +38,7 @@ namespace smart_pet_care_api.Models
         public ICollection<FeedingLog> FeedingLogs { get; set; } = new List<FeedingLog>();
         public ICollection<HealthRecord> HealthRecords { get; set; } = new List<HealthRecord>();
         public ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
+        public ICollection<Note> Notes { get; set; } = new List<Note>();
         public ICollection<PetWeightLog> WeightLogs { get; set; } = new List<PetWeightLog>();
         public ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
     }

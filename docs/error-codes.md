@@ -346,6 +346,17 @@ ever has to know these. Chat is the opposite — see the Classifier section.
 | `journal_observed_at_in_future` | 400 | — | `observedAt` is in the future. |
 | `journal_notes_too_long` | 400 | `maxLength` | Notes too long. |
 
+### Notes
+
+| Code | HTTP | `params` | When |
+|---|---|---|---|
+| `note_not_found` | 404 | — | No such note for this pet. |
+| `note_update_empty` | 400 | — | A `PATCH` body with no fields set. |
+| `note_title_required` | 400 | — | Title missing, blank, or cleared by a patch. |
+| `note_title_too_long` | 400 | `maxLength` | Title too long. |
+| `note_content_required` | 400 | — | Content missing, blank, or cleared by a patch. |
+| `note_content_too_long` | 400 | `maxLength` | Content too long. |
+
 ### Reminder
 
 | Code | HTTP | `params` | When |
@@ -575,6 +586,13 @@ for your own translations.
   "journal_title_too_long": "",
   "journal_observed_at_in_future": "",
   "journal_notes_too_long": "",
+
+  "note_not_found": "",
+  "note_update_empty": "",
+  "note_title_required": "",
+  "note_title_too_long": "",
+  "note_content_required": "",
+  "note_content_too_long": "",
 
   "reminder_run_not_found": "",
   "reminder_run_already_acknowledged": "",

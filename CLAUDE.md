@@ -189,6 +189,20 @@ same day means same occurrence. Matching exactly would let the second call
 through, and it would not merely duplicate history: it materialises the next
 occurrence and closes that too, skipping a slot.
 
+### Notes
+
+`Note` — `POST /api/pets/{petId}/notes` — is free text the owner keeps about a
+pet: a title, a body, nothing else. It is deliberately not a `JournalEntry`,
+which carries a type, symptoms, a severity and an `ObservedAt`. Those fields
+are what make the journal a health record other features can read, so filing
+"the sitter's phone number" there would mean every reader of the journal has to
+filter out rows that mean nothing to it.
+
+Both fields are required, so the `PATCH` rejects `null` rather than treating it
+as "clear", and the result is revalidated as a whole row the way the activity
+logs are. The list is ordered by `UpdatedAt`, which is set on insert as well as
+on edit so that ordering reads one column and the client never meets a null.
+
 ### Errors
 
 Every failure answers with one shape, `ApiErrorResponse`, carrying a stable
