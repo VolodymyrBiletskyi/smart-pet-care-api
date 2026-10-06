@@ -162,9 +162,8 @@ public static class ErrorCodes
     {
         public const string NotFound = "note_not_found";
         public const string UpdateEmpty = "note_update_empty";
-        public const string TitleRequired = "note_title_required";
+        public const string Empty = "note_empty";
         public const string TitleTooLong = "note_title_too_long";
-        public const string ContentRequired = "note_content_required";
         public const string ContentTooLong = "note_content_too_long";
     }
 

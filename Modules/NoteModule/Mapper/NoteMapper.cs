@@ -13,8 +13,8 @@ namespace smart_pet_care_api.Modules.NoteModule.Mapper
             return new Note
             {
                 PetId = petId,
-                Title = dto.Title.Trim(),
-                Content = dto.Content.Trim(),
+                Title = Normalize(dto.Title),
+                Content = Normalize(dto.Content),
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -32,9 +32,14 @@ namespace smart_pet_care_api.Modules.NoteModule.Mapper
 
         public static void PatchEntity(this Note note, PatchNoteDto dto)
         {
-            if (dto.Title.IsSet) note.Title = dto.Title.Value!.Trim();
-            if (dto.Content.IsSet) note.Content = dto.Content.Value!.Trim();
+            if (dto.Title.IsSet) note.Title = Normalize(dto.Title.Value);
+            if (dto.Content.IsSet) note.Content = Normalize(dto.Content.Value);
             note.UpdatedAt = DateTime.UtcNow;
         }
+
+        // A blank field is stored as null rather than "": the two mean the same
+        // thing here, and one of them keeps the absent case to a single check.
+        private static string? Normalize(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
