@@ -40,8 +40,7 @@ namespace smart_pet_care_api.Modules.NoteModule.Domain
         {
             await EnsurePetBelongsToUserAsync(petId, userId);
 
-            ValidateTitle(dto.Title);
-            ValidateContent(dto.Content);
+            ValidateNote(dto.Title, dto.Content);
 
             var note = NoteMapper.ToEntity(dto, petId);
 
@@ -63,10 +62,12 @@ namespace smart_pet_care_api.Modules.NoteModule.Domain
                 throw new NotFoundException(ErrorCodes.Note.NotFound, "Note not found");
 
             // Validated as the row the patch results in, the way the create path
-            // is: both fields are required, so a cleared one has to fail against
-            // the note that would remain rather than against the field alone.
-            ValidateTitle(dto.Title.IsSet ? dto.Title.Value : note.Title);
-            ValidateContent(dto.Content.IsSet ? dto.Content.Value : note.Content);
+            // is: "a note has to say something" is a rule about the pair, so
+            // clearing one field can only be judged against the other's state
+            // after the patch.
+            ValidateNote(
+                dto.Title.IsSet ? dto.Title.Value : note.Title,
+                dto.Content.IsSet ? dto.Content.Value : note.Content);
 
             note.PatchEntity(dto);
 
@@ -95,21 +96,15 @@ namespace smart_pet_care_api.Modules.NoteModule.Domain
                 throw new NotFoundException(ErrorCodes.PetNotFound, "Pet not found");
         }
 
-        private static void ValidateTitle(string? title)
+        private static void ValidateNote(string? title, string? content)
         {
-            if (string.IsNullOrWhiteSpace(title))
-                throw new ValidationException(ErrorCodes.Note.TitleRequired, "Title is required");
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(content))
+                throw new ValidationException(ErrorCodes.Note.Empty, "A note must have a title or content");
 
-            if (title.Trim().Length > TitleMaxLength)
+            if (title?.Trim().Length > TitleMaxLength)
                 throw new ValidationException(ErrorCodes.Note.TitleTooLong, $"Title must be {TitleMaxLength} characters or less", new Dictionary<string, object?> { ["maxLength"] = TitleMaxLength });
-        }
 
-        private static void ValidateContent(string? content)
-        {
-            if (string.IsNullOrWhiteSpace(content))
-                throw new ValidationException(ErrorCodes.Note.ContentRequired, "Content is required");
-
-            if (content.Trim().Length > ContentMaxLength)
+            if (content?.Trim().Length > ContentMaxLength)
                 throw new ValidationException(ErrorCodes.Note.ContentTooLong, $"Content must be {ContentMaxLength} characters or less", new Dictionary<string, object?> { ["maxLength"] = ContentMaxLength });
         }
     }

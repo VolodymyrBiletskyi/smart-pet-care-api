@@ -6,8 +6,10 @@ namespace smart_pet_care_api.Models
 
         public Guid PetId { get; set; }
 
-        public string Title { get; set; } = null!;
-        public string Content { get; set; } = null!;
+        // Either one may be absent -- a one-line title with nothing under it and
+        // a body with no heading are both notes. Only a row with neither is not.
+        public string? Title { get; set; }
+        public string? Content { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

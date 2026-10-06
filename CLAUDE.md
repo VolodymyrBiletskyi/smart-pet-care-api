@@ -53,6 +53,13 @@ controller status mapping, the swappable activity source, the effort maths
 patch paths (partial application, clearing, whole-row revalidation, intensity
 re-derivation, self-exclusion from the sleep day total).
 
+Note module tests are in `Tests/NoteModule.Tests/`. They cover the service
+(either field alone accepted, neither rejected, blanks normalised to null,
+length ceilings measured after trimming, ownership, the patch revalidating the
+whole row including the swap that clears one field while filling the other),
+the mapper, the repository (pet filter, `UpdatedAt` ordering, tracking
+behaviour) and the controller status mapping.
+
 ### Activity logs
 
 `ActivityLog` is one walk, play session or other activity record, with optional
@@ -198,10 +205,14 @@ are what make the journal a health record other features can read, so filing
 "the sitter's phone number" there would mean every reader of the journal has to
 filter out rows that mean nothing to it.
 
-Both fields are required, so the `PATCH` rejects `null` rather than treating it
-as "clear", and the result is revalidated as a whole row the way the activity
-logs are. The list is ordered by `UpdatedAt`, which is set on insert as well as
-on edit so that ordering reads one column and the client never meets a null.
+Either field may be absent — a title with nothing under it and a body with no
+heading are both notes a user means to keep — but a row with neither is not a
+note at all, so that is the one case rejected (`note_empty`). The rule is about
+the pair, so the `PATCH` is revalidated as a whole row the way the activity logs
+are: `null` clears a field, and only clearing the last remaining one fails. A
+blank string is stored as `null`, which keeps "absent" to a single check for
+every reader. The list is ordered by `UpdatedAt`, which is set on insert as well
+as on edit so that ordering reads one column and the client never meets a null.
 
 ### Errors
 

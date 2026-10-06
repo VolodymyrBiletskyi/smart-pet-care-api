@@ -352,9 +352,8 @@ ever has to know these. Chat is the opposite — see the Classifier section.
 |---|---|---|---|
 | `note_not_found` | 404 | — | No such note for this pet. |
 | `note_update_empty` | 400 | — | A `PATCH` body with no fields set. |
-| `note_title_required` | 400 | — | Title missing, blank, or cleared by a patch. |
+| `note_empty` | 400 | — | Both title and content are missing, blank, or left blank by a patch. Either one alone is accepted. |
 | `note_title_too_long` | 400 | `maxLength` | Title too long. |
-| `note_content_required` | 400 | — | Content missing, blank, or cleared by a patch. |
 | `note_content_too_long` | 400 | `maxLength` | Content too long. |
 
 ### Reminder
@@ -589,9 +588,8 @@ for your own translations.
 
   "note_not_found": "",
   "note_update_empty": "",
-  "note_title_required": "",
+  "note_empty": "",
   "note_title_too_long": "",
-  "note_content_required": "",
   "note_content_too_long": "",
 
   "reminder_run_not_found": "",
