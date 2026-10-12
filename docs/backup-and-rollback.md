@@ -22,7 +22,10 @@ than a new build of the same source.
 | Format | `pg_dump -Fc` (compressed, restorable selectively) |
 | Location | `/home/ubuntu/smart-pet-care-api/backups`, mounted into the db container as `/backups` |
 | Off-host copy | `s3://$BACKUP_S3_BUCKET/` when `BACKUP_S3_BUCKET` is set |
-| Local retention | 14 days (`BACKUP_RETENTION_DAYS`) |
+| Local retention | 14 days (`BACKUP_RETENTION_DAYS`); a failed `.partial` goes after 2 |
+| Refuses to start | below 500 MB free (`BACKUP_MIN_FREE_MB`) |
+| Success ping | `BACKUP_PING_URL`, after the dump verifies |
+| Disk ping | hourly, `scripts/disk-space-ping.sh`, while above 1000 MB free |
 
 File names carry why the dump exists:
 `smartPetCareDb-20260922T031700Z-scheduled.dump`,
@@ -54,14 +57,51 @@ pass on every backup, which is the price of the check meaning anything.)
    overwrite is still recoverable) and a lifecycle rule: transition to
    Glacier Instant Retrieval after 30 days, expire after 180. Pick your own
    numbers, but write them down somewhere.
-4. **`.env` on the server** — add:
+4. **A watcher off the host** — two checks on any service that alerts when a
+   ping stops arriving (healthchecks.io's free tier is enough): one for the
+   daily backup, one for the hourly disk ping. See "Why the alerts are
+   inverted" below for what this buys.
+5. **`.env` on the server** — add:
 
    ```
    BACKUP_S3_BUCKET=your-bucket/smart-pet-care/postgres
    BACKUP_RETENTION_DAYS=14
+   BACKUP_MIN_FREE_MB=500
+   BACKUP_PING_URL=https://hc-ping.com/<backup-check-uuid>
+   DISK_PING_URL=https://hc-ping.com/<disk-check-uuid>
+   DISK_MIN_FREE_MB=1000
    ```
 
-5. Deploy once. The cron entry installs itself; check it with `crontab -l`.
+   Both urls may be left out. With them unset the scripts simply do not ping,
+   so the cron entries are safe to install before the watcher exists.
+6. Deploy once. The cron entries install themselves; check with `crontab -l`.
+
+## Why the alerts are inverted
+
+Both pings are sent when things are **fine**, and the alert fires on their
+absence. That is the opposite of the obvious design, and the reason is what
+happened on 2026-10-10: the root volume filled, the nightly cron ran, `pg_dump`
+streamed into a full disk, and the run left a 0-byte `.partial` and a non-zero
+exit in a log nobody reads. Postgres began refusing connections the next
+morning. Nothing told anyone, for two days.
+
+An alert that fires on failure has to run somewhere to fire from. A cron with
+nowhere to write cannot mail anyone about having nowhere to write, and anything
+watching this host from inside it goes down with it. So the host's job is only
+to report that it is well, and the judgement about silence belongs to a service
+that is not affected by the thing it is judging.
+
+The free-space floor in `backup-db.sh` is the other half. A dump that cannot
+complete should say so in one line instead of discovering it halfway through,
+and since the pre-deploy dump is not allowed to fail, the floor also stops a
+release going out onto a disk too full to hold a backup of the database it is
+about to migrate. `DISK_MIN_FREE_MB` is deliberately the larger of the two, so
+the warning arrives while a backup still runs.
+
+Both floors are absolute rather than a share of the volume: what matters is
+whether Postgres can write a WAL segment and the dump can be written, and
+neither cost scales with the disk. A percentage would also quietly loosen every
+time the volume grows.
 
 ## Taking and checking backups by hand
 

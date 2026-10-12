@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Common.Api;
+using smart_pet_care_api.Common.Health;
 using smart_pet_care_api.Common.Patching;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Extensions;
@@ -33,7 +34,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
 
 builder.Services.AddUserModule();
 builder.Services.AddPetModule();
@@ -135,9 +137,18 @@ app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
-// Liveness only, and that is the point: Migrate() above runs before the server
-// starts listening, so a failed migration means this never answers and the
-// container never turns healthy -- which is what the deploy waits on.
+// Covers the database, not just the process. Migrate() above runs before the
+// server starts listening, so a failed migration still means this never answers
+// and the container never turns healthy -- which is what the deploy waits on.
+// Liveness alone used to be the whole check, and it was what let an outage run
+// for 27 hours unnoticed: the process was fine, the database was refusing every
+// connection, and nothing that watches this endpoint could tell the difference.
+//
+// Folding the database in rather than adding a second readiness route on
+// purpose: every consumer here -- the container healthcheck, `up -d --wait` and
+// the external uptime probe -- wants "can this serve a request", and nothing
+// acts on liveness on its own. Docker does not restart an unhealthy container,
+// so an unreachable database turns the api unhealthy and leaves it running.
 app.MapHealthChecks("/health");
 
 app.Run();
