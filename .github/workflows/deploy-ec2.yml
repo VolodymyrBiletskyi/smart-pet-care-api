@@ -136,10 +136,18 @@ jobs:
                 | sed 's/^/  - /' || true
             } > "backups/releases/$(date -u +%Y%m%dT%H%M%SZ)-$SHORT_SHA.txt"
 
-            # Re-installed every deploy so the schedule survives a rebuilt host.
-            CRON_CMD="cd /home/ubuntu/smart-pet-care-api && bash scripts/backup-db.sh scheduled >> backups/backup.log 2>&1"
-            ( crontab -l 2>/dev/null | grep -v 'scripts/backup-db.sh' || true; \
-              echo "17 3 * * * $CRON_CMD" ) | crontab -
+            # Both re-installed every deploy so the schedules survive a rebuilt
+            # host. The disk ping runs hourly and pings only while there is room
+            # left, so the watcher alerts on its silence -- it does nothing at
+            # all until DISK_PING_URL is set in .env, which is what makes
+            # installing it here safe before the watcher exists.
+            CRON_DIR="cd /home/ubuntu/smart-pet-care-api"
+            CRON_BACKUP="$CRON_DIR && bash scripts/backup-db.sh scheduled >> backups/backup.log 2>&1"
+            CRON_DISK="$CRON_DIR && bash scripts/disk-space-ping.sh >> backups/disk-space.log 2>&1"
+            ( crontab -l 2>/dev/null \
+                | grep -v -e 'scripts/backup-db.sh' -e 'scripts/disk-space-ping.sh' || true; \
+              echo "17 3 * * * $CRON_BACKUP"; \
+              echo "41 * * * * $CRON_DISK" ) | crontab -
 
             # Written before the release goes out, not after: PREV_SHA is the
             # build that was serving either way, and a deploy that fails below
@@ -157,9 +165,25 @@ jobs:
             # would go green over an api answering nothing but 502.
             docker compose up -d --wait --wait-timeout 180
 
-            # The image this release replaced is now untagged. Nothing else
-            # accumulates on the host any more -- the sdk image and the build
-            # cache live on the runner now.
+            # Every release is tagged with its own commit sha, so nothing ever
+            # takes that tag away: the replaced image ends up unused rather than
+            # dangling, and `prune -f` -- which collects only dangling ones --
+            # left every release on the host until the disk filled. They have to
+            # be named. PREV_SHA is kept so rollback.sh starts a local image
+            # instead of depending on the registry in the middle of an incident.
+            #
+            # By tag rather than by image id: a stray `latest` from a manual
+            # `docker compose up` shares an id with the running container, and
+            # naming the tag drops the tag where naming the id would fail. Never
+            # allowed to fail the deploy -- `set -e` is on and the release is
+            # already live, the same reason the ghcr cleanup is continue-on-error.
+            IMAGE_REF="${API_IMAGE%:*}"
+            docker image ls "$IMAGE_REF" --format '{{.Repository}}:{{.Tag}}' \
+              | grep -v -e '<none>' -e ":$NEW_SHA" -e ":$PREV_SHA" \
+              | xargs -r docker image rmi || true
+
+            # Dangling leftovers -- an interrupted pull, a local build. The
+            # removal above names tags, so it never sees these.
             docker image prune -f
 
             docker compose ps

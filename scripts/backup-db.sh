@@ -18,6 +18,11 @@
 #   BACKUP_RETENTION_DAYS   how long local dumps are kept (default 14)
 #   BACKUP_S3_BUCKET        bucket (or bucket/prefix) for the off-host copy;
 #                           the upload is skipped when it is unset
+#   BACKUP_MIN_FREE_MB      refuse to start a dump below this much free space
+#                           (default 500)
+#   BACKUP_PING_URL         pinged after a dump verifies, so a watcher outside
+#                           this host can alert when the ping stops arriving;
+#                           skipped when unset
 set -euo pipefail
 
 # Git Bash rewrites arguments that look like absolute paths, which turns the
@@ -44,6 +49,15 @@ BACKUP_DIR="$PROJECT_DIR/backups"
 S3_BUCKET="${BACKUP_S3_BUCKET-$(env_value BACKUP_S3_BUCKET)}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-$(env_value BACKUP_RETENTION_DAYS)}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
+MIN_FREE_MB="${BACKUP_MIN_FREE_MB:-$(env_value BACKUP_MIN_FREE_MB)}"
+MIN_FREE_MB="${MIN_FREE_MB:-500}"
+PING_URL="${BACKUP_PING_URL-$(env_value BACKUP_PING_URL)}"
+
+# A failed dump is kept for inspection, but not for as long as a good one and
+# not on the retention knob: a .partial is the size of the database and it
+# appears exactly when the disk is already short, which is the worst moment to
+# hold a copy nobody has looked at in two days.
+PARTIAL_RETENTION_DAYS=2
 
 mkdir -p "$BACKUP_DIR"
 cd "$PROJECT_DIR"
@@ -64,6 +78,20 @@ if command -v flock > /dev/null 2>&1; then
         log "another backup is still running, giving up"
         exit 1
     fi
+fi
+
+# Checked before the dump starts rather than discovered during it. pg_dump
+# streaming into a full disk is how October 2026 went: the cron wrote a 0-byte
+# .partial every night, exited non-zero into a log nobody reads, and the last
+# good dump quietly became two days old. Refusing up front turns that into one
+# line saying why, and -- because the pre-deploy dump is not allowed to fail --
+# it also stops a release going out onto a disk that cannot hold a backup of
+# the database it is about to migrate.
+AVAIL_MB="$(df -Pk "$BACKUP_DIR" | awk 'NR == 2 { print int($4 / 1024) }')"
+if [ "${AVAIL_MB:-0}" -lt "$MIN_FREE_MB" ]; then
+    log "ERROR: ${AVAIL_MB}MB free where $BACKUP_DIR lives, need ${MIN_FREE_MB}MB"
+    log "       free space and re-run; nothing was written"
+    exit 1
 fi
 
 log "dumping $DB_NAME -> $NAME"
@@ -100,9 +128,32 @@ if [ -n "$S3_BUCKET" ]; then
     fi
 fi
 
-DELETED="$(find "$BACKUP_DIR" -maxdepth 1 -name "$DB_NAME-*.dump" -mtime "+$RETENTION_DAYS" -print -delete | wc -l)"
+# Both patterns, on separate clocks. The original prune named only *.dump, so
+# every .partial a failed run left behind stayed on the host for good -- the
+# one category of file here that nothing was bounding.
+DELETED="$(find "$BACKUP_DIR" -maxdepth 1 \
+    \( \
+        \( -name "$DB_NAME-*.dump" -mtime "+$RETENTION_DAYS" \) -o \
+        \( -name "$DB_NAME-*.dump.partial" -mtime "+$PARTIAL_RETENTION_DAYS" \) \
+    \) \
+    -print -delete | wc -l)"
 if [ "$DELETED" -gt 0 ]; then
-    log "pruned $DELETED dump(s) older than $RETENTION_DAYS days"
+    log "pruned $DELETED file(s) past retention"
+fi
+
+# Last, and only on the path where the dump exists and verified. The watcher on
+# the other end alerts on the ping *not* arriving, which is the only way to
+# learn about a backup that failed by being unable to say so -- a cron on a full
+# disk cannot mail anyone, and an alert living on this host goes down with it.
+#
+# Never fatal: a backup that exists and verified is a backup, and losing the
+# report is not losing it.
+if [ -n "$PING_URL" ]; then
+    if curl -fsS -m 10 "$PING_URL" > /dev/null 2>&1; then
+        log "reported success to the backup watcher"
+    else
+        log "WARNING: could not reach BACKUP_PING_URL, the watcher will alert"
+    fi
 fi
 
 log "done"

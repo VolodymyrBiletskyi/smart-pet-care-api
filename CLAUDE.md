@@ -371,6 +371,37 @@ unchanged — `api` carries both `image:` and `build:`. The ten most recent
 versions are kept in the registry and older ones are deleted after each push,
 since nothing there expires on its own.
 
+On the host, the deploy removes the api images it replaced by name, keeping the
+current release and the previous one. `docker image prune -f` cannot do this —
+every release is tagged with its own commit sha, so nothing ever takes that tag
+away and the replaced image is *unused* rather than *dangling*. Running the
+plain prune on every deploy therefore reclaimed nothing for weeks, and the
+accumulated images are what filled the root volume on 2026-10-10. The previous
+release is kept so `rollback.sh` starts a local image instead of depending on
+the registry mid-incident.
+
+### Health and alerting
+
+`/health` checks the database, not just the process (`DatabaseHealthCheck`).
+Liveness alone used to be the whole check and was deliberate — a failed
+migration means the server never listens, which is what `up -d --wait` gates
+on, and that still holds. But it is also what let an outage run for 27 hours
+unnoticed: the process was fine, Postgres was refusing every connection, and
+the container healthcheck and the uptime probe both stayed green while every
+request failed. The database is folded into the same route rather than put
+behind a second readiness one because every consumer here wants "can this serve
+a request", and nothing acts on liveness by itself — Docker does not restart an
+unhealthy container, so an unreachable database turns the api unhealthy and
+leaves it running.
+
+Backups and free disk space are watched by **absence** of a signal, not by
+failure reports: `backup-db.sh` pings `BACKUP_PING_URL` once a dump verifies,
+`scripts/disk-space-ping.sh` pings hourly while free space is above its floor,
+and a service off the host alerts when a ping stops arriving. The reasoning —
+a cron on a full disk cannot mail anyone about the disk being full — is in
+`docs/backup-and-rollback.md`, along with the floors and why they are absolute
+rather than a percentage.
+
 ### Authentication
 
 Dual auth strategy — JWT cookies + Google OAuth:
