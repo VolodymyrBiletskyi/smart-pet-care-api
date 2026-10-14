@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
@@ -86,12 +87,19 @@ internal sealed class FakeDeviceTokenService : IDeviceTokenService
     public List<(Guid UserId, string Token)> Unregistered { get; } = new();
     public bool UnregisterResult { get; set; } = true;
 
+    /// <summary>Stands in for the delete losing its row to the push sender's own pruning.</summary>
+    public bool ThrowOnUnregister { get; set; }
+
     public Task RegisterAsync(Guid userId, RegisterDeviceTokenDto dto) =>
         throw new NotSupportedException();
 
     public Task<bool> UnregisterAsync(Guid userId, string token)
     {
         Unregistered.Add((userId, token));
+
+        if (ThrowOnUnregister)
+            throw new DbUpdateConcurrencyException("the row was deleted concurrently");
+
         return Task.FromResult(UnregisterResult);
     }
 }

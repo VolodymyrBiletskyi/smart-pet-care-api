@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using Xunit;
@@ -65,7 +66,7 @@ public class AuthServiceLogoutTests
 
     /// <summary>
     /// The refresh tokens may already be gone -- an expired session, or a second logout
-    /// call -- and that early return used to be the whole method. The device still has to
+    /// call -- and returning there used to be the whole method. The device still has to
     /// be unregistered, otherwise the one case where a client retries a failed logout is
     /// the case where the push registration is kept.
     /// </summary>
@@ -79,6 +80,26 @@ public class AuthServiceLogoutTests
 
         Assert.Equal((_userId, Token), Assert.Single(deviceTokens.Unregistered));
         Assert.Equal(0, authRepo.SaveChangesCalls);
+    }
+
+    /// <summary>
+    /// The unregistration races the push sender's own pruning of the same row, so it runs
+    /// last: a failure there is a 500 the client can retry, while a session left unrevoked
+    /// stays usable for the refresh token's full seven days.
+    /// </summary>
+    [Fact]
+    public async Task LogoutAsync_RevokesTheSessionEvenWhenUnregisteringFails()
+    {
+        var authRepo = new FakeAuthRepository();
+        var mine = new RefreshToken { UserId = _userId };
+        authRepo.ActiveTokens.Add(mine);
+        var deviceTokens = new FakeDeviceTokenService { ThrowOnUnregister = true };
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => Service(authRepo, deviceTokens).LogoutAsync(_userId, Token));
+
+        Assert.NotNull(mine.RevokedAt);
+        Assert.Equal(1, authRepo.SaveChangesCalls);
     }
 
     private static AuthService Service(

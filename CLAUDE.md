@@ -239,8 +239,13 @@ Registration now reassigns the row (`ON CONFLICT ("Token") DO UPDATE SET
 "UserId" = …`), so the registration follows whoever is signed in.
 
 That covers switching accounts. Plain logout is the other half: `LogoutAsync`
-takes an optional `deviceToken` and unregisters exactly that device, before the
-early return for a session whose refresh tokens are already gone. The field is
+takes an optional `deviceToken` and unregisters exactly that device — after the
+session has been revoked, not before. The registration delete races the push
+sender's own pruning of the same row, and a `DbUpdateConcurrencyException` there
+used to abort logout with the refresh tokens still live for their full seven
+days. For the same reason the delete is one `ExecuteDeleteAsync` statement
+rather than a tracked load and `Remove`, and a session whose refresh tokens are
+already gone no longer returns early. The field is
 optional so a client that sends no body logs out as it always did — such a
 client simply keeps relying on the reassignment above. Only the signing-out
 device is dropped; wiping every token for the user would silence the pushes on

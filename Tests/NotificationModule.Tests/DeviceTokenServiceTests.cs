@@ -103,11 +103,10 @@ public class DeviceTokenServiceTests
 
         Assert.False(removed);
         Assert.Single(repo.Rows);
-        Assert.Equal(0, repo.SaveChangesCalls);
     }
 
     [Fact]
-    public async Task UnregisterAsync_TrimsAndSavesWhenTheRowIsTheCallers()
+    public async Task UnregisterAsync_TrimsAndRemovesWhenTheRowIsTheCallers()
     {
         var repo = new FakeDeviceTokenRepository();
         repo.Rows.Add(new DeviceToken { UserId = _userId, Token = Token });
@@ -116,7 +115,6 @@ public class DeviceTokenServiceTests
 
         Assert.True(removed);
         Assert.Empty(repo.Rows);
-        Assert.Equal(1, repo.SaveChangesCalls);
         Assert.Equal((_userId, Token), Assert.Single(repo.ScopedRemovals));
     }
 

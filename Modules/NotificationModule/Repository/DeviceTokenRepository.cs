@@ -41,13 +41,12 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
 
         public async Task<bool> RemoveByUserAndTokenAsync(Guid userId, string token)
         {
-            var existing = await _dbContext.DeviceTokens
-                .FirstOrDefaultAsync(t => t.UserId == userId && t.Token == token);
-
-            if (existing is null) return false;
-
-            _dbContext.DeviceTokens.Remove(existing);
-            return true;
+            // Deleted in one statement rather than loaded and tracked: the push sender
+            // prunes invalid tokens from its own scope, and a row that goes between the
+            // select and the save is a DbUpdateConcurrencyException out of SaveChanges.
+            return await _dbContext.DeviceTokens
+                .Where(t => t.UserId == userId && t.Token == token)
+                .ExecuteDeleteAsync() > 0;
         }
 
         public async Task RemoveByTokensAsync(IEnumerable<string> tokens)

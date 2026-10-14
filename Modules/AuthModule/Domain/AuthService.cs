@@ -164,21 +164,26 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         public async Task LogoutAsync(Guid userId, string? deviceToken = null)
         {
+            var activeTokens = await _authRepo.GetActiveByUserAsync(userId);
+            if (activeTokens.Count > 0)
+            {
+                foreach (var token in activeTokens)
+                    token.RevokedAt = DateTime.UtcNow;
+
+                await _authRepo.SaveChangesAsync();
+            }
+
             // Dropped alongside the session rather than left to the client's own call to
             // DELETE /api/notifications/device-token: a registration that outlives the
             // session keeps delivering this account's reminders — pet name and all — to a
             // device somebody else may now be signed in on. Only the device that is signing
             // out is unregistered, so the user's other devices keep their pushes.
+            //
+            // It runs after the revocation, not before: the registration delete races the
+            // push sender's own pruning of the same row, and a failure there must not leave
+            // the session alive for its full seven days.
             if (!string.IsNullOrWhiteSpace(deviceToken))
                 await _deviceTokenService.UnregisterAsync(userId, deviceToken);
-
-            var activeTokens = await _authRepo.GetActiveByUserAsync(userId);
-            if (activeTokens.Count == 0) return;
-
-            foreach (var token in activeTokens)
-                token.RevokedAt = DateTime.UtcNow;
-
-            await _authRepo.SaveChangesAsync();
         }
 
         public async Task<AuthTokenPair?> RefreshAsync(string rawRefreshToken)
