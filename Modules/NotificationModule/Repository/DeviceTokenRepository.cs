@@ -21,13 +21,19 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Registers the token, moving it to this user if another account registered it first.
+        /// Reassignment rather than a second row is the point: the device has one token, and
+        /// whoever is signed in on it now is the only account whose pushes belong there.
+        /// </summary>
         public async Task UpsertAsync(DeviceToken token)
         {
             await _dbContext.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO "DeviceTokens" ("Id", "UserId", "Token", "Platform", "CreatedAt", "LastSeenAt")
                 VALUES ({token.Id}, {token.UserId}, {token.Token}, {(int)token.Platform}, {token.CreatedAt}, {token.LastSeenAt})
-                ON CONFLICT ("UserId", "Token")
+                ON CONFLICT ("Token")
                 DO UPDATE SET
+                    "UserId" = EXCLUDED."UserId",
                     "LastSeenAt" = EXCLUDED."LastSeenAt",
                     "Platform" = EXCLUDED."Platform"
                 """);
@@ -35,13 +41,12 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
 
         public async Task<bool> RemoveByUserAndTokenAsync(Guid userId, string token)
         {
-            var existing = await _dbContext.DeviceTokens
-                .FirstOrDefaultAsync(t => t.UserId == userId && t.Token == token);
-
-            if (existing is null) return false;
-
-            _dbContext.DeviceTokens.Remove(existing);
-            return true;
+            // Deleted in one statement rather than loaded and tracked: the push sender
+            // prunes invalid tokens from its own scope, and a row that goes between the
+            // select and the save is a DbUpdateConcurrencyException out of SaveChanges.
+            return await _dbContext.DeviceTokens
+                .Where(t => t.UserId == userId && t.Token == token)
+                .ExecuteDeleteAsync() > 0;
         }
 
         public async Task RemoveByTokensAsync(IEnumerable<string> tokens)

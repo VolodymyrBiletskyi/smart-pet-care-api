@@ -14,8 +14,11 @@ public class DeviceTokenConfiguration : IEntityTypeConfiguration<DeviceToken>
         builder.Property(t => t.CreatedAt).HasDefaultValueSql("now()");
         builder.Property(t => t.LastSeenAt).HasDefaultValueSql("now()");
 
-        // upsert key: a given token is unique per user
-        builder.HasIndex(t => new { t.UserId, t.Token }).IsUnique();
+        // upsert key: an FCM token identifies a device, not an account, so it is unique on
+        // its own. Keyed per user it could sit under several accounts at once, and the row
+        // left under an account the device had been signed out of kept receiving that
+        // account's pushes until it went stale 60 days later.
+        builder.HasIndex(t => t.Token).IsUnique();
         builder.HasIndex(t => t.LastSeenAt);
 
         builder.HasOne<User>()

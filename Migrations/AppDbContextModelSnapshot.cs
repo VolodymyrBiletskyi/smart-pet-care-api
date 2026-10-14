@@ -251,8 +251,10 @@ namespace smart_pet_care_api.Migrations
 
                     b.HasIndex("LastSeenAt");
 
-                    b.HasIndex("UserId", "Token")
+                    b.HasIndex("Token")
                         .IsUnique();
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("DeviceTokens", (string)null);
                 });

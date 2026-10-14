@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonApi.Tests", "Tests\Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoteModule.Tests", "Tests\NoteModule.Tests\NoteModule.Tests.csproj", "{B385BAA5-EC59-4147-BD0A-0231F68E482B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationModule.Tests", "Tests\NotificationModule.Tests\NotificationModule.Tests.csproj", "{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +149,18 @@ Global
 		{B385BAA5-EC59-4147-BD0A-0231F68E482B}.Release|x64.Build.0 = Release|Any CPU
 		{B385BAA5-EC59-4147-BD0A-0231F68E482B}.Release|x86.ActiveCfg = Release|Any CPU
 		{B385BAA5-EC59-4147-BD0A-0231F68E482B}.Release|x86.Build.0 = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|x64.Build.0 = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Debug|x86.Build.0 = Debug|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|x64.ActiveCfg = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|x64.Build.0 = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|x86.ActiveCfg = Release|Any CPU
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -160,6 +174,7 @@ Global
 		{6F4D65CE-BA83-45EC-9FE9-274AE9661FF4} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{BD913B94-10B0-4A13-B5DA-13D13A327102} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{B385BAA5-EC59-4147-BD0A-0231F68E482B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{A126FD14-49BD-472E-AFA8-D75FCB02C7CB} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4D74BCE4-59EE-4BB7-A972-6A3233C3CF31}
