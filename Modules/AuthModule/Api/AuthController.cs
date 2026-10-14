@@ -1,6 +1,7 @@
 using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Requests;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Responses;
@@ -83,10 +84,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] LogoutRequest? request)
         {
             var userId = User.GetUserId();
-            await _authService.LogoutAsync(userId);
+            await _authService.LogoutAsync(userId, request?.DeviceToken);
             return NoContent();
         }
         [HttpGet("oauth/google")]

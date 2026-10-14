@@ -60,6 +60,14 @@ whole row including the swap that clears one field while filling the other),
 the mapper, the repository (pet filter, `UpdatedAt` ordering, tracking
 behaviour) and the controller status mapping.
 
+Notification module tests are in `Tests/NotificationModule.Tests/`. They cover
+device token registration (blank rejected, trimming, the 60-day staleness
+window, a token moving between accounts), unregistration scoped to the caller,
+and logout dropping the signing-out device's registration. Three of them need
+Docker: the upsert is raw SQL resolved by a unique index, so `ON CONFLICT` and
+the migration that creates its target can only be exercised against a real
+Postgres.
+
 ### Activity logs
 
 `ActivityLog` is one walk, play session or other activity record, with optional
@@ -213,6 +221,30 @@ are: `null` clears a field, and only clearing the last remaining one fails. A
 blank string is stored as `null`, which keeps "absent" to a single check for
 every reader. The list is ordered by `UpdatedAt`, which is set on insert as well
 as on edit so that ordering reads one column and the client never meets a null.
+
+### Device tokens and push targeting
+
+A reminder's push goes to the device tokens of the pet's owner
+(`NotificationService.SendReminderNotificationAsync`), so who receives a
+notification is decided entirely by which account a `DeviceTokens` row belongs
+to.
+
+A token is therefore unique on `Token` alone, not on `(UserId, Token)`. An FCM
+token names a device, not a session: keyed per user the same handset could hold
+a row under several accounts at once, and registering under a new one did not
+displace the old. The row left behind kept delivering the previous account's
+reminders — pet name in the title, the reminder's description in the body — to a
+phone that had been signed out of it, until staleness pruned it 60 days later.
+Registration now reassigns the row (`ON CONFLICT ("Token") DO UPDATE SET
+"UserId" = …`), so the registration follows whoever is signed in.
+
+That covers switching accounts. Plain logout is the other half: `LogoutAsync`
+takes an optional `deviceToken` and unregisters exactly that device, before the
+early return for a session whose refresh tokens are already gone. The field is
+optional so a client that sends no body logs out as it always did — such a
+client simply keeps relying on the reassignment above. Only the signing-out
+device is dropped; wiping every token for the user would silence the pushes on
+their other devices.
 
 ### Errors
 

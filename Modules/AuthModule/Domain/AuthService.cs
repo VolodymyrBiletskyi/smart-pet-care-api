@@ -7,6 +7,7 @@ using smart_pet_care_api.Modules.AuthModule.DTOs.Responses;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.AuthModule.OAuth;
 using smart_pet_care_api.Modules.AuthModule.Repository;
+using smart_pet_care_api.Modules.NotificationModule.Domain;
 using smart_pet_care_api.Modules.UserModule.Repository;
 using static smart_pet_care_api.Models.Enums;
 
@@ -19,18 +20,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         private readonly IAuthRepository _authRepo;
         private readonly IGoogleOAuth _googleOAuth;
         private readonly IEmailSender _emailSender;
+        private readonly IDeviceTokenService _deviceTokenService;
 
         private const int ConfirmationCodeMinutes = 15;
         private const int MaxConfirmationAttempts = 5;
         private const int ResendCooldownSeconds = 60;
 
-        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender)
+        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IDeviceTokenService deviceTokenService)
         {
             _jwt = jwt;
             _userRepo = userRepo;
             _authRepo = authRepo;
             _googleOAuth = googleOAuth;
             _emailSender = emailSender;
+            _deviceTokenService = deviceTokenService;
         }
 
         private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
@@ -159,8 +162,16 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             return await IssueTokensAsync(user);
         }
 
-        public async Task LogoutAsync(Guid userId)
+        public async Task LogoutAsync(Guid userId, string? deviceToken = null)
         {
+            // Dropped alongside the session rather than left to the client's own call to
+            // DELETE /api/notifications/device-token: a registration that outlives the
+            // session keeps delivering this account's reminders — pet name and all — to a
+            // device somebody else may now be signed in on. Only the device that is signing
+            // out is unregistered, so the user's other devices keep their pushes.
+            if (!string.IsNullOrWhiteSpace(deviceToken))
+                await _deviceTokenService.UnregisterAsync(userId, deviceToken);
+
             var activeTokens = await _authRepo.GetActiveByUserAsync(userId);
             if (activeTokens.Count == 0) return;
 

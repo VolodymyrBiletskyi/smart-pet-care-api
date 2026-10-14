@@ -22,16 +22,17 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
                 throw new ValidationException(ErrorCodes.Notification.DeviceTokenRequired, "Device token is required");
 
             var token = dto.Token.Trim();
+            var now = DateTime.UtcNow;
 
-            await _repo.RemoveStaleAsync(DateTime.UtcNow - StaleAfter);
+            await _repo.RemoveStaleAsync(now - StaleAfter);
 
             await _repo.UpsertAsync(new DeviceToken
             {
                 UserId = userId,
                 Token = token,
                 Platform = dto.Platform,
-                CreatedAt = DateTime.UtcNow,
-                LastSeenAt = DateTime.UtcNow
+                CreatedAt = now,
+                LastSeenAt = now
             });
         }
 

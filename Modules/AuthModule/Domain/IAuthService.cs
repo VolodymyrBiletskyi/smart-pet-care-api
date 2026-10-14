@@ -10,7 +10,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         Task ResendConfirmationAsync(string email);
         Task<AuthTokenPair> LoginAsync(LoginRequest request);
         Task<AuthTokenPair?> RefreshAsync(string rawRefreshToken);
-        Task LogoutAsync(Guid userId);
+        Task LogoutAsync(Guid userId, string? deviceToken = null);
         Task<AuthTokenPair> GoogleLoginAsync(string code);
         Task<AuthTokenPair> GoogleMobileLoginAsync(string idToken);
     }
