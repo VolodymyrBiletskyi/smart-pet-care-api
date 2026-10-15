@@ -20,19 +20,21 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         private readonly IAuthRepository _authRepo;
         private readonly IGoogleOAuth _googleOAuth;
         private readonly IEmailSender _emailSender;
+        private readonly IEmailTemplateProvider _emailTemplates;
         private readonly IDeviceTokenService _deviceTokenService;
 
         private const int ConfirmationCodeMinutes = 15;
         private const int MaxConfirmationAttempts = 5;
         private const int ResendCooldownSeconds = 60;
 
-        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IDeviceTokenService deviceTokenService)
+        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IEmailTemplateProvider emailTemplates, IDeviceTokenService deviceTokenService)
         {
             _jwt = jwt;
             _userRepo = userRepo;
             _authRepo = authRepo;
             _googleOAuth = googleOAuth;
             _emailSender = emailSender;
+            _emailTemplates = emailTemplates;
             _deviceTokenService = deviceTokenService;
         }
 
@@ -136,11 +138,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
             await _authRepo.SaveChangesAsync();
 
+            // Subject without the code in it on purpose: the subject is what a
+            // lock screen shows.
+            var body = _emailTemplates.ConfirmationCode(rawCode, ConfirmationCodeMinutes);
             await _emailSender.SendAsync(
-                user.Email,
-                "Your Smart Pet Care confirmation code",
-                $"Your confirmation code is: {rawCode}\n\nIt expires in {ConfirmationCodeMinutes} minutes. " +
-                "If you did not request this, you can ignore this email.");
+                user.Email, "Confirm your Miso email", body.Text, body.Html);
         }
 
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)

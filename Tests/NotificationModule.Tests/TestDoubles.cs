@@ -160,5 +160,12 @@ internal sealed class UnusedGoogleOAuth : IGoogleOAuth
 
 internal sealed class UnusedEmailSender : IEmailSender
 {
-    public Task SendAsync(string toAddress, string subject, string body) => throw new NotSupportedException();
+    public Task SendAsync(string toAddress, string subject, string textBody, string? htmlBody = null) =>
+        throw new NotSupportedException();
+}
+
+internal sealed class UnusedEmailTemplates : IEmailTemplateProvider
+{
+    public EmailBody ConfirmationCode(string code, int expiresInMinutes) =>
+        throw new NotSupportedException();
 }

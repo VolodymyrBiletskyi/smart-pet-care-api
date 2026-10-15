@@ -1,0 +1,16 @@
+Miso
+
+Confirm your email
+
+Enter this code in the app to finish setting up your Miso account:
+
+    {{code}}
+
+The code expires in {{minutes}} minutes.
+
+Didn't ask for this code? You can ignore this email - nothing happens until the
+code is entered.
+
+--
+Miso - smart pet care
+You received this because this address was entered when creating an account.

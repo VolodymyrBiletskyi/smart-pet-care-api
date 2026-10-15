@@ -109,5 +109,6 @@ public class AuthServiceLogoutTests
             authRepo,
             new UnusedGoogleOAuth(),
             new UnusedEmailSender(),
+            new UnusedEmailTemplates(),
             deviceTokens);
 }

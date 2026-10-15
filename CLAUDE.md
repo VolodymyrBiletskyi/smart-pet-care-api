@@ -356,6 +356,40 @@ data inventory in the Privacy Policy was written off the models and the
 infrastructure, so a feature that starts collecting something new, or a change
 of processor, needs section 3, 7 or 9 updated with it.
 
+### Transactional email
+
+One email is sent today: the six-digit confirmation code, from
+`AuthService.SendConfirmationCodeAsync` on register and on resend. It goes out as
+**multipart/alternative** -- `IEmailSender.SendAsync` takes an optional
+`htmlBody`, and `BodyBuilder` puts the text part first so a client picks the
+HTML wherever it can render it. The text part is not a leftover: it is the
+fallback for a plain-text client, and an HTML-only message looks like a blast to
+a spam filter.
+
+Both renderings live in `Emails/` as files, rendered by
+`EmailTemplateProvider` (`{{code}}`, `{{minutes}}`, HTML-escaped into the HTML
+variant). Files rather than strings in C# because email markup is tables with
+every style inlined -- unreadable in a verbatim string, and editable by someone
+who does not touch the service. Read once and cached; the `Content Include` in
+the csproj is what puts them in the publish output.
+
+The HTML is **email** HTML, which is a different craft from the legal pages:
+
+- Tables for layout and every style inlined. Outlook renders with Word's engine,
+  and several clients strip `<style>` from the head.
+- **No image at all.** Most clients block remote images by default, so the
+  wordmark is text -- a logo that always arrives beats one that usually does.
+- `color-scheme: light only` plus `supported-color-schemes`. Without them Gmail
+  and Outlook on iOS invert the card and the white design arrives grey.
+- The code sits in its own bordered block with `bgcolor` as well as
+  `background-color`, because Outlook ignores the CSS one.
+- Preview text is a hidden div, and **it does not contain the code** -- neither
+  does the subject. Both land on a lock screen.
+
+The sender name in the inbox is `EmailOptions.FromName`, defaulting to `Miso`
+and overridden by `Email__FromName` / `EMAIL_FROM_NAME` in a deployed
+environment, so changing the brand means changing `.env` on the host too.
+
 ### Errors
 
 Every failure answers with one shape, `ApiErrorResponse`, carrying a stable
