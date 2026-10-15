@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#ffffff">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Pet Care App - Privacy Policy</title>
+<style>
+:root {
+  /* Light, and only light: `color-scheme: light` keeps the scrollbars and the
+     WebView's own chrome from turning dark around a light page when the phone
+     is in dark mode. There is deliberately no prefers-color-scheme branch. */
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --fg: #1d1d23;
+  --muted: #6a6a75;
+  --accent: #2a6bb0;
+  --rule: #e6e7ec;
+  --pad-x: 1.25rem;
+}
+* { box-sizing: border-box; }
+html {
+  /* A WebView must not re-scale the text we sized for it, and the document
+     must not rubber-band past its own ends inside an app screen. */
+  -webkit-text-size-adjust: none;
+  overscroll-behavior-y: contain;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  /* Nothing here is tappable except the links, so the grey flash on every
+     paragraph touch reads as a bug. */
+  -webkit-tap-highlight-color: transparent;
+}
+main {
+  max-width: 38rem;
+  margin: 0 auto;
+  /* env() needs viewport-fit=cover, which the meta tag sets: an edge-to-edge
+     WebView otherwise puts the first line under the notch and the last one
+     under the home indicator. */
+  padding-top: calc(2.25rem + env(safe-area-inset-top));
+  padding-right: calc(var(--pad-x) + env(safe-area-inset-right));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-left: calc(var(--pad-x) + env(safe-area-inset-left));
+}
+h1 { font-size: 1.6rem; line-height: 1.25; letter-spacing: -0.015em; margin: 0 0 0.5rem; }
+h2 { font-size: 1.14rem; line-height: 1.35; margin: 2.3rem 0 0.6rem; }
+h3 { font-size: 1rem; margin: 1.7rem 0 0.4rem; }
+h1, h2, h3 { text-wrap: balance; scroll-margin-top: 1rem; }
+p, li { text-wrap: pretty; }
+p { margin: 0 0 1rem; }
+ul { margin: 0 0 1.2rem; padding-left: 1.2rem; }
+li { margin: 0 0 0.55rem; }
+li::marker { color: var(--muted); }
+strong { font-weight: 600; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+::selection { background: #dbe8f6; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+}
+.meta { color: var(--muted); font-size: 0.93rem; }
+
+/* The masthead: title, version and the download, as one block rather than
+   three paragraphs that happen to come first. */
+.masthead {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 1.4rem 1.25rem 1.3rem;
+  margin-bottom: 1.9rem;
+}
+.masthead p { margin: 0; }
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.2rem;
+  padding: 0.62rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.action:hover { border-color: var(--accent); color: var(--accent); }
+.action svg { width: 1.05em; height: 1.05em; flex: none; }
+
+/* Collapsed by default, and built from <details> so the page still needs no
+   JavaScript: 18 sections are worth an index, but not five screens of one. */
+.toc { margin: 0 0 2.4rem; }
+.toc summary { cursor: pointer; color: var(--accent); font-size: 0.95rem; font-weight: 500; }
+.toc ul { list-style: none; margin: 0; padding: 0.9rem 0 0; }
+.toc li { margin: 0 0 0.55rem; }
+.toc a { color: var(--fg); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+footer { margin-top: 3rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+footer p { margin: 0; }
+
+/* Small phones: the gutters cost more than they give at this width. */
+@media (max-width: 380px) {
+  :root { --pad-x: 1rem; }
+  body { font-size: 16.5px; }
+  h1 { font-size: 1.45rem; }
+  .action { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="masthead">
+<p class="eyebrow">Smart Pet Care App</p>
+<h1>Privacy Policy</h1>
+<p class="meta">Version 1.0. Effective 15 October 2026. Published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a></p>
+<a class="action" href="/privacy.pdf" download="privacy-policy.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg> Download PDF</a>
+</header>
+<nav class="toc" aria-label="Contents">
+<details><summary>Contents</summary>
+<ul>
+  <li><a href="#s1">1. Who is responsible, and what this covers</a></li>
+  <li><a href="#s2">2. The short version</a></li>
+  <li><a href="#s3">3. What we process</a></li>
+  <li><a href="#s4">4. A note on pet data, and on free text</a></li>
+  <li><a href="#s5">5. Why we process it, and on what legal basis</a></li>
+  <li><a href="#s6">6. Automated processing and no automated decisions</a></li>
+  <li><a href="#s7">7. Who else receives it</a></li>
+  <li><a href="#s8">8. International transfers</a></li>
+  <li><a href="#s9">9. How long we keep it</a></li>
+  <li><a href="#s10">10. Security</a></li>
+  <li><a href="#s11">11. Your rights</a></li>
+  <li><a href="#s12">12. Children</a></li>
+  <li><a href="#s13">13. Changes to this policy</a></li>
+  <li><a href="#s14">14. Contact</a></li>
+</ul>
+</details>
+</nav>
+<h2 id="s1">1. Who is responsible, and what this covers</h2>
+<p>Smart Pet Care App is a collaborative student project consisting of a mobile client, a backend API and supporting services. The Smart Pet Care App project team (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is the controller for the personal data described here. The project, its components and its contributors are documented at <a href="https://github.com/Gmust/smart-pet-care-app">https://github.com/Gmust/smart-pet-care-app</a>, which is the route for reaching us and for making any of the requests in section 11.</p>
+<p>This policy covers personal data processed through the App and the API at <a href="https://smart-pet-care.duckdns.org">https://smart-pet-care.duckdns.org</a>. It is written against the EU General Data Protection Regulation (GDPR) and uses its vocabulary. The <strong>Terms and Conditions </strong>at <a href="https://smart-pet-care.duckdns.org/terms">https://smart-pet-care.duckdns.org/terms</a> govern your use of the Service itself.</p>
+<h2 id="s2">2. The short version</h2>
+<ul>
+  <li>You give us an email address to have an account, and whatever you choose to record about your pets.</li>
+  <li>We use it to run the Service for you: store your records, fire your reminders, answer your questions. Nothing else.</li>
+  <li>We do not sell personal data, we do not share it for advertising, and we run no advertising or analytics trackers.</li>
+  <li>The AI features send pet records and your chat messages to the project's own AI service. Keep sensitive information about people out of those fields.</li>
+  <li>You can see, correct, export and delete your data, and you can delete your whole account from the App.</li>
+</ul>
+<h2 id="s3">3. What we process</h2>
+<h3 id="s3-1">3.1 Account data</h3>
+<p>Your email address; a password hash if you signed up with a password (hashed with bcrypt - we never hold the password itself); optionally a display name, a phone number and a profile picture; whether and when you accepted the Terms; whether and when you confirmed your email; and the dates your account was created and last changed.</p>
+<p>If you sign up with a password we send a confirmation code to your email and store it, hashed, until it is used or expires 15 minutes later.</p>
+<h3 id="s3-2">3.2 Signing in with Google</h3>
+<p>If you choose Google sign-in, Google tells us the identifier of your Google account, your email address and, if you have them, your name and profile picture. We store the link between your Smart Pet Care account and that Google account so you can sign in again. We never receive your Google password, and we ask Google for nothing beyond basic profile and email.</p>
+<h3 id="s3-3">3.3 Pet profiles</h3>
+<p>For each pet: name, species, breed, date of birth, sex, weight, and the free-text notes you keep about behaviour, allergies and chronic conditions. Optionally a photo.</p>
+<h3 id="s3-4">3.4 Pet care and health records</h3>
+<p>Everything you record over time against a pet: feeding logs, weight history, activity and sleep logs, journal entries (including symptoms and a severity), conditions, medications and their schedules, health records such as vaccinations and vet visits, free-text notes, reminders and the history of when each one was completed, nutrition goals, and the wellness scores and feeding analyses generated from all of it.</p>
+<h3 id="s3-5">3.5 Files you upload</h3>
+<p>Photos and documents you attach to a pet, along with their file name, type, size and any description you add.</p>
+<h3 id="s3-6">3.6 Assistant conversations</h3>
+<p>Your messages to the AI assistant, its replies, and the session they belong to. Recent messages in a session are replayed as context for the next question.</p>
+<h3 id="s3-7">3.7 Devices, sessions and technical data</h3>
+<ul>
+  <li>A push notification token for each device you allow notifications on, with the platform (Android, iOS or web) and when it was last seen. The token identifies a device to Google's messaging service; it is not an advertising identifier.</li>
+  <li>Session data: refresh tokens, stored as SHA-256 hashes rather than in the clear, with their expiry and whether they have been revoked. Tokens are held in your browser or app as HTTP-only, Secure cookies.</li>
+  <li>Server logs produced by handling your requests, which contain IP addresses, the requested route, timestamps, response status, user agent and a trace identifier. These are operational records used to find faults and detect abuse.</li>
+</ul>
+<h3 id="s3-8">3.8 What we do not collect</h3>
+<p>We do not collect location data, contacts, advertising identifiers or device sensor data, we do not run third-party analytics or advertising SDKs on the backend, and we do not profile you for marketing.</p>
+<h2 id="s4">4. A note on pet data, and on free text</h2>
+<p>Information about an animal is not personal data about a person, so a pet's health record is not &quot;data concerning health&quot; in the GDPR sense and the special rules for that category do not apply to it.</p>
+<p>But the same records are linked to you, and free-text fields do not police what goes into them. A journal entry, a note or a chat message can easily end up containing information about <strong>you </strong>or about another person - a household detail, a sitter's phone number, your own health. Please do not put sensitive personal information about anyone into those fields. We treat whatever is there as ordinary personal data under this policy, and the AI features send those fields on as described in section 7.</p>
+<h2 id="s5">5. Why we process it, and on what legal basis</h2>
+<ul>
+  <li><strong>To provide the Service </strong>- keeping your account, storing and showing your pet records, calculating reminder schedules, delivering notifications, answering assistant questions. Legal basis: performance of a contract with you (Art. 6(1)(b) GDPR).</li>
+  <li><strong>To verify your email address </strong>and to let you sign in with Google. Legal basis: performance of a contract (Art. 6(1)(b)).</li>
+  <li><strong>To send account and security email </strong>- confirmation codes, security notices, notice of changes to the Terms. Legal basis: performance of a contract (Art. 6(1)(b)).</li>
+  <li><strong>To keep the Service secure and working </strong>- authentication, authorisation checks that keep your pets visible only to you, rate limiting, abuse detection, fault diagnosis from logs, and backups so a failure does not lose your records. Legal basis: our legitimate interest in a secure and reliable service (Art. 6(1)(f)).</li>
+  <li><strong>To send push notifications </strong>to a device. Legal basis: your consent, given through your device's notification permission (Art. 6(1)(a)); withdraw it by turning notifications off, which also unregisters the device.</li>
+  <li><strong>To comply with the law</strong>, where we are obliged to. Legal basis: legal obligation (Art. 6(1)(c)).</li>
+</ul>
+<h2 id="s6">6. Automated processing and no automated decisions</h2>
+<p>Wellness scores, feeding summaries and assistant replies are produced automatically from your records. They are informational suggestions about an animal's care. They produce no legal effects for you, nothing is decided about you on their basis, and they are not automated decision-making or profiling within the meaning of Art. 22 GDPR. They are also not veterinary advice - see section 3 of the Terms.</p>
+<h2 id="s7">7. Who else receives it</h2>
+<p>We use the following processors and third parties. Each receives only what its function requires.</p>
+<ul>
+  <li><strong>The project's AI service </strong>- receives your assistant messages and recent conversation context, and, for the wellness and feeding features, the pet profile and aggregated care records the analysis is computed from. It is operated as part of this project.</li>
+  <li><strong>Cloudinary </strong>(image hosting) - receives pet photos you upload, and serves them back to the App.</li>
+  <li><strong>Google </strong>- as the sign-in provider when you use Google sign-in, and as the operator of Firebase Cloud Messaging, which delivers push notifications. Firebase receives your device token and the content of the notification, which includes the pet's name and the reminder's description.</li>
+  <li><strong>Our email provider </strong>- receives your email address and the content of the message in order to deliver confirmation codes and account email.</li>
+  <li><strong>Amazon Web Services </strong>- stores encrypted database backups in a restricted bucket in the us-east-1 region. These contain the production database and therefore your records.</li>
+  <li><strong>Our hosting provider </strong>- operates the virtual server the API and database run on.</li>
+</ul>
+<p>We do not sell personal data, and we do not disclose it to anyone else except where we are legally required to, or where it is necessary to establish or defend a legal claim.</p>
+<h2 id="s8">8. International transfers</h2>
+<p>Cloudinary, Google and Amazon Web Services may process data outside the European Economic Area, including in the United States. Where that happens, the transfer relies on the mechanisms those providers make available for it - the EU Standard Contractual Clauses and, where applicable, the EU-US Data Privacy Framework. You can ask us for details of the safeguards that apply to a specific provider.</p>
+<h2 id="s9">9. How long we keep it</h2>
+<ul>
+  <li><strong>Account and pet data </strong>- until you delete your account, or you delete the individual pet or record. Deleting an account deletes the account and the pets and records belonging to it.</li>
+  <li><strong>Email confirmation codes </strong>- 15 minutes, then they are expired and unusable.</li>
+  <li><strong>Refresh tokens </strong>- 7 days from issue; revoked immediately when you sign out of that device or change your password.</li>
+  <li><strong>Push notification tokens </strong>- until you turn notifications off, you sign out of that device, or the token goes unused for 60 days, after which it is pruned. Registering a device under a different account moves the token to that account.</li>
+  <li><strong>Feeding analyses </strong>- only the two most recent per pet are kept; older ones are discarded as new ones are produced.</li>
+  <li><strong>Server logs </strong>- kept short-term for fault diagnosis and security, and rotated out.</li>
+  <li><strong>Backups </strong>- encrypted database dumps are retained for a limited period (on the order of two weeks for the copies held on the server) and then deleted. A record you delete can survive in a backup until its retention lapses. Backups are restored only as a whole, to recover from failure or data loss; they are not browsed, and nothing is selectively restored from them.</li>
+</ul>
+<h2 id="s10">10. Security</h2>
+<ul>
+  <li>All traffic is served over HTTPS/TLS.</li>
+  <li>Passwords are stored as bcrypt hashes; refresh tokens as SHA-256 hashes. Neither can be read back.</li>
+  <li>Access tokens are short-lived (15 minutes) and held in HTTP-only, Secure, SameSite cookies, so page scripts cannot read them.</li>
+  <li>Every request for a pet's data is checked against the signed-in account, so one user cannot read another's records.</li>
+  <li>The database is not reachable from the public internet; the API reaches it on a private network.</li>
+  <li>Backups are taken regularly, verified after each dump, and monitored by the absence of a success signal rather than by failure reports.</li>
+  <li>Administrative access to the server and the database is limited to the project's maintainers.</li>
+</ul>
+<p>No service can promise perfect security. If a breach occurs that is likely to risk your rights and freedoms, we will notify the competent supervisory authority and, where required, you.</p>
+<h2 id="s11">11. Your rights</h2>
+<p>Under the GDPR you have the right to:</p>
+<ul>
+  <li><strong>access </strong>the personal data we hold about you, and get a copy of it;</li>
+  <li><strong>rectification </strong>of data that is inaccurate or incomplete - most of it you can correct in the App directly;</li>
+  <li><strong>erasure </strong>of your data (&quot;right to be forgotten&quot;), which you can exercise yourself by deleting your account;</li>
+  <li><strong>restriction </strong>of processing in certain circumstances;</li>
+  <li><strong>data portability </strong>- a copy of the data you gave us, in a structured, machine-readable format;</li>
+  <li><strong>object </strong>to processing based on our legitimate interests;</li>
+  <li><strong>withdraw consent </strong>at any time where we rely on it, such as push notifications, without affecting processing that already happened;</li>
+  <li><strong>not be subject </strong>to decisions based solely on automated processing - see section 6, which explains why none are made here.</li>
+</ul>
+<p>To exercise any of these, contact us through the project repository at <a href="https://github.com/Gmust/smart-pet-care-app">https://github.com/Gmust/smart-pet-care-app</a>. We will respond within one month. We may ask you to confirm you control the account's email address, so that we do not disclose someone's records to the wrong person.</p>
+<p>You also have the right to <strong>lodge a complaint </strong>with a data protection supervisory authority, normally the one for your country of residence.</p>
+<h2 id="s12">12. Children</h2>
+<p>The Service is not intended for children. You must be at least 16 to use it, or older where your country sets a higher age of digital consent. We do not knowingly process data about children below that age; if you believe we have, contact us and we will delete it.</p>
+<h2 id="s13">13. Changes to this policy</h2>
+<p>We may update this policy as the project develops. The current version is always at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a>, with its version number and effective date on the first page. For a change that materially affects how we use your data, we will give notice in the App or by email before it takes effect.</p>
+<h2 id="s14">14. Contact</h2>
+<p>Smart Pet Care App project team, through the project repository at <a href="https://github.com/Gmust/smart-pet-care-app">https://github.com/Gmust/smart-pet-care-app</a>.</p>
+<footer><p class="meta">The same document as a PDF: <a href="/privacy.pdf" download="privacy-policy.pdf">/privacy.pdf</a></p></footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#ffffff">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Pet Care App - Terms and Conditions</title>
+<style>
+:root {
+  /* Light, and only light: `color-scheme: light` keeps the scrollbars and the
+     WebView's own chrome from turning dark around a light page when the phone
+     is in dark mode. There is deliberately no prefers-color-scheme branch. */
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --fg: #1d1d23;
+  --muted: #6a6a75;
+  --accent: #2a6bb0;
+  --rule: #e6e7ec;
+  --pad-x: 1.25rem;
+}
+* { box-sizing: border-box; }
+html {
+  /* A WebView must not re-scale the text we sized for it, and the document
+     must not rubber-band past its own ends inside an app screen. */
+  -webkit-text-size-adjust: none;
+  overscroll-behavior-y: contain;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  /* Nothing here is tappable except the links, so the grey flash on every
+     paragraph touch reads as a bug. */
+  -webkit-tap-highlight-color: transparent;
+}
+main {
+  max-width: 38rem;
+  margin: 0 auto;
+  /* env() needs viewport-fit=cover, which the meta tag sets: an edge-to-edge
+     WebView otherwise puts the first line under the notch and the last one
+     under the home indicator. */
+  padding-top: calc(2.25rem + env(safe-area-inset-top));
+  padding-right: calc(var(--pad-x) + env(safe-area-inset-right));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-left: calc(var(--pad-x) + env(safe-area-inset-left));
+}
+h1 { font-size: 1.6rem; line-height: 1.25; letter-spacing: -0.015em; margin: 0 0 0.5rem; }
+h2 { font-size: 1.14rem; line-height: 1.35; margin: 2.3rem 0 0.6rem; }
+h3 { font-size: 1rem; margin: 1.7rem 0 0.4rem; }
+h1, h2, h3 { text-wrap: balance; scroll-margin-top: 1rem; }
+p, li { text-wrap: pretty; }
+p { margin: 0 0 1rem; }
+ul { margin: 0 0 1.2rem; padding-left: 1.2rem; }
+li { margin: 0 0 0.55rem; }
+li::marker { color: var(--muted); }
+strong { font-weight: 600; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+::selection { background: #dbe8f6; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+}
+.meta { color: var(--muted); font-size: 0.93rem; }
+
+/* The masthead: title, version and the download, as one block rather than
+   three paragraphs that happen to come first. */
+.masthead {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 1.4rem 1.25rem 1.3rem;
+  margin-bottom: 1.9rem;
+}
+.masthead p { margin: 0; }
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.2rem;
+  padding: 0.62rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.action:hover { border-color: var(--accent); color: var(--accent); }
+.action svg { width: 1.05em; height: 1.05em; flex: none; }
+
+/* Collapsed by default, and built from <details> so the page still needs no
+   JavaScript: 18 sections are worth an index, but not five screens of one. */
+.toc { margin: 0 0 2.4rem; }
+.toc summary { cursor: pointer; color: var(--accent); font-size: 0.95rem; font-weight: 500; }
+.toc ul { list-style: none; margin: 0; padding: 0.9rem 0 0; }
+.toc li { margin: 0 0 0.55rem; }
+.toc a { color: var(--fg); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+footer { margin-top: 3rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+footer p { margin: 0; }
+
+/* Small phones: the gutters cost more than they give at this width. */
+@media (max-width: 380px) {
+  :root { --pad-x: 1rem; }
+  body { font-size: 16.5px; }
+  h1 { font-size: 1.45rem; }
+  .action { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="masthead">
+<p class="eyebrow">Smart Pet Care App</p>
+<h1>Terms and Conditions</h1>
+<p class="meta">Version 1.0. Effective 15 October 2026. Published at <a href="https://smart-pet-care.duckdns.org/terms">https://smart-pet-care.duckdns.org/terms</a></p>
+<a class="action" href="/terms.pdf" download="terms-and-conditions.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg> Download PDF</a>
+</header>
+<nav class="toc" aria-label="Contents">
+<details><summary>Contents</summary>
+<ul>
+  <li><a href="#s1">1. Who we are, and what these Terms cover</a></li>
+  <li><a href="#s2">2. What the Service does</a></li>
+  <li><a href="#s3">3. The Service is not veterinary advice</a></li>
+  <li><a href="#s4">4. Eligibility and your account</a></li>
+  <li><a href="#s5">5. Accepting these Terms</a></li>
+  <li><a href="#s6">6. Your content</a></li>
+  <li><a href="#s7">7. Acceptable use</a></li>
+  <li><a href="#s8">8. AI-assisted features</a></li>
+  <li><a href="#s9">9. Reminders and notifications</a></li>
+  <li><a href="#s10">10. Suspension, termination and deletion</a></li>
+  <li><a href="#s11">11. No warranty</a></li>
+  <li><a href="#s12">12. Limitation of liability</a></li>
+  <li><a href="#s13">13. Intellectual property</a></li>
+  <li><a href="#s14">14. Third-party services</a></li>
+  <li><a href="#s15">15. Changes to these Terms</a></li>
+  <li><a href="#s16">16. Governing law and disputes</a></li>
+  <li><a href="#s17">17. General</a></li>
+  <li><a href="#s18">18. Contact</a></li>
+</ul>
+</details>
+</nav>
+<h2 id="s1">1. Who we are, and what these Terms cover</h2>
+<p>Smart Pet Care App (the &quot;App&quot;, the &quot;Service&quot;) is a collaborative student project made up of a mobile client, a backend API and supporting services. It is published by the Smart Pet Care App project team (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). The components of the project and the people behind it are documented in the project repository at <a href="https://github.com/Gmust/smart-pet-care-app">https://github.com/Gmust/smart-pet-care-app</a>, which is also the route for reaching us about anything in this document.</p>
+<p>These Terms form an agreement between you and the project team covering your use of the App and of the API behind it. The <strong>Privacy Policy</strong>, published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a>, explains what we do with personal data and forms part of this agreement.</p>
+<p>If you do not accept these Terms, do not create an account and do not use the Service.</p>
+<h2 id="s2">2. What the Service does</h2>
+<p>The Service is a record-keeping and reminder tool for people looking after animals. It lets you:</p>
+<ul>
+  <li>keep a profile for each pet, with species, breed, date of birth, sex, weight and free-text notes;</li>
+  <li>record care and health information over time: feeding, weight, activity, sleep, journal entries, conditions, medications, vet visits and preventive treatments;</li>
+  <li>upload photos and documents and attach them to a pet;</li>
+  <li>schedule reminders for recurring care and receive push notifications for them;</li>
+  <li>use AI-assisted features, which read the records above and produce a chat reply, a wellness score or a feeding summary.</li>
+</ul>
+<h2 id="s3">3. The Service is not veterinary advice</h2>
+<p>This is the most important term in this document.</p>
+<p>Nothing the Service produces is veterinary advice, a diagnosis, a prescription or a treatment plan, and nobody involved in producing it is acting as your animal's veterinarian. Wellness scores, feeding summaries, chat replies and reminder suggestions are <strong>informational only</strong>. They are generated from what you typed in, by automated models that can be wrong, incomplete or confidently mistaken.</p>
+<p>Always consult a qualified veterinarian about your animal's health, and do so immediately in an emergency or when an animal's condition changes suddenly. Never delay seeking professional care, change a medication or a dose, or withhold treatment because of something the Service showed you.</p>
+<h2 id="s4">4. Eligibility and your account</h2>
+<p>You must be at least 16 years old to use the Service. If the age of digital consent in your country of residence is higher than 16, that age applies instead.</p>
+<p>To use most of the Service you need an account. You agree to:</p>
+<ul>
+  <li>give a real email address you control, and confirm it with the code we send;</li>
+  <li>keep your password and any device you stay signed in on secure;</li>
+  <li>keep one account for yourself rather than sharing it, and not use anyone else's;</li>
+  <li>tell us promptly if you believe someone else has gained access to your account.</li>
+</ul>
+<p>You are responsible for activity carried out through your account. A signed-in session is held in short-lived access tokens with longer-lived refresh tokens behind them, so signing out on a device ends that device's session; it does not end sessions on your other devices.</p>
+<h2 id="s5">5. Accepting these Terms</h2>
+<p>You accept these Terms by creating an account or by continuing to use the Service. Your account records that you accepted them and when, and we may ask you to accept them again after a material change (see section 14).</p>
+<h2 id="s6">6. Your content</h2>
+<p>Pet profiles, records, notes, photos, documents and messages you put into the Service are <strong>your content</strong>. You keep whatever rights you already hold in them. We claim no ownership.</p>
+<p>So that the Service can function, you grant us a non-exclusive, worldwide, royalty-free licence to host, store, copy, back up, transmit, adapt in format and display your content, for as long as your account exists, and only for the purpose of operating the Service for you. This licence covers the processing described in the Privacy Policy and nothing more: we do not sell your content, and we do not use it to advertise to you.</p>
+<p>You confirm that you have the right to upload what you upload. If a photo shows another identifiable person, or a document was written by someone else - a veterinary report, for example - it is your responsibility to have whatever permission that requires.</p>
+<p>We do not promise to store your content indefinitely, and you should keep your own copies of anything you cannot afford to lose. See section 10 on deletion and section 11 on the limits of what we warrant.</p>
+<h2 id="s7">7. Acceptable use</h2>
+<p>You agree not to:</p>
+<ul>
+  <li>use the Service to break the law, or to harm, harass or impersonate anyone;</li>
+  <li>upload malware, or content that is unlawful, abusive or infringes someone else's rights;</li>
+  <li>attempt to reach accounts, pets or records that are not yours, or to defeat the authentication, authorisation or rate limits that stop you from doing so;</li>
+  <li>probe, scan, overload or disrupt the Service or the infrastructure behind it, beyond what is needed for ordinary use of the App;</li>
+  <li>scrape or bulk-extract data from the API, or automate it in a way that degrades the Service for others;</li>
+  <li>resell, sublicense or present the Service as your own product;</li>
+  <li>misrepresent anything the Service produced as veterinary advice to someone else.</li>
+</ul>
+<p>Security researchers are welcome; report what you find through the project repository rather than acting on it, and stay within the limits above.</p>
+<h2 id="s8">8. AI-assisted features</h2>
+<p>The chat assistant, the wellness score and the feeding summary send the relevant pet records - and, for chat, your message and recent conversation - to the project's AI service, which produces the response. Section 3 governs how much weight any of it deserves.</p>
+<p>Two practical consequences:</p>
+<ul>
+  <li>Keep sensitive personal information about yourself or other people out of pet notes, journal entries and chat messages. Those fields are free text, they are sent to the AI service, and a pet record is not the right place for them.</li>
+  <li>These features depend on a service that can be slow or unavailable. When it is, the feature fails and the rest of the App keeps working.</li>
+</ul>
+<h2 id="s9">9. Reminders and notifications</h2>
+<p>Reminders are a convenience, not a guarantee. Delivery of a push notification depends on Google's messaging infrastructure, on your device, on its network and on the notification permissions you granted - none of which we control. A reminder can arrive late or not at all.</p>
+<p><strong>Do not rely on the Service as the only safeguard for anything critical</strong>, such as a life-sustaining medication or a time-critical treatment. Keep an independent means of remembering it.</p>
+<p>We also send email about your account: confirmation codes, security notices and changes to these Terms. That email is part of the Service and is not marketing, so you cannot unsubscribe from it while keeping an account.</p>
+<h2 id="s10">10. Suspension, termination and deletion</h2>
+<p>You may stop using the Service at any time, and you can delete your account from the App. Deleting an account removes the account and its pet records as described in the Privacy Policy. Deletion is <strong>permanent and cannot be undone</strong></p>
+<ul>
+  <li>export anything you want to keep first.</li>
+</ul>
+<p>Encrypted database backups are kept for a limited retention period, so a deleted record can persist in a backup until that period lapses. Backups are only ever restored as a whole, to recover from failure or data loss; they are not browsed and nothing is restored from them selectively.</p>
+<p>We may suspend or terminate your access, with notice where we reasonably can, if you breach these Terms, if your use puts the Service or other users at risk, or if we are required to by law.</p>
+<p>Because this is a student project under active development, we may also change, suspend or withdraw the Service, or any feature of it, at any time. Where a change would mean losing data and we can give you advance notice, we will.</p>
+<h2 id="s11">11. No warranty</h2>
+<p>The Service is provided <strong>as is </strong>and <strong>as available</strong>. To the fullest extent the law allows, we make no warranties of any kind about it: not that it will be available, uninterrupted or error-free, not that it will be secure against every attack, not that reminders will fire on time, and not that anything it shows you is accurate, complete or fit for a particular purpose - including any decision about an animal's health.</p>
+<p>The Service has not been certified as a medical or veterinary device, and it is not one.</p>
+<h2 id="s12">12. Limitation of liability</h2>
+<p>To the fullest extent the law allows, we are not liable for:</p>
+<ul>
+  <li>any harm to an animal, or any veterinary cost, arising from reliance on the Service, including from a reminder that did not arrive or a suggestion that was wrong;</li>
+  <li>loss of or damage to your content or records, or any failure of a backup;</li>
+  <li>lost profit, lost opportunity, or indirect or consequential loss of any kind;</li>
+  <li>the acts, omissions or outages of the third-party services the Service depends on.</li>
+</ul>
+<p>Nothing in these Terms limits liability that cannot be limited by law - including liability for death or personal injury caused by negligence, for fraud, or for anything else the applicable law makes non-excludable - and nothing in them affects the statutory rights you have as a consumer.</p>
+<p>The Service is provided free of charge. Where liability can be limited but not excluded, our total liability to you is limited to the greater of the amount you paid us for the Service (which is nothing) and the minimum the applicable law permits.</p>
+<h2 id="s13">13. Intellectual property</h2>
+<p>The software, design, documentation and branding of the Smart Pet Care App project belong to the project's contributors. Copyright is addressed in the LICENSE file and in PROJECT_NOTICE.md in the project's repositories; the fact that a repository is publicly visible does not by itself grant anyone permission to use what is in it.</p>
+<p>These Terms give you permission to use the Service as an end user. They do not transfer any rights in the project's own materials to you.</p>
+<h2 id="s14">14. Third-party services</h2>
+<p>The Service relies on third parties, each with its own terms and privacy practices: Google for sign-in and for push delivery, an image hosting provider for photos, an email provider, a cloud provider for encrypted backups, and the project's AI service. The Privacy Policy names them and explains what each one receives. We are not responsible for how a third party operates its own service.</p>
+<h2 id="s15">15. Changes to these Terms</h2>
+<p>We may change these Terms as the project develops. The current version is always at <a href="https://smart-pet-care.duckdns.org/terms">https://smart-pet-care.duckdns.org/terms</a>, with its version number and effective date on the first page.</p>
+<p>For a material change we will give reasonable notice in the App or by email before it takes effect, and we may ask you to accept the new version. Continuing to use the Service after a change takes effect means you accept it. If you do not accept it, stop using the Service and delete your account.</p>
+<h2 id="s16">16. Governing law and disputes</h2>
+<p>These Terms are governed by the law of the country in which you have your habitual residence, and you may bring proceedings in the courts of that country. Mandatory consumer-protection rules of that country apply to you whatever these Terms say.</p>
+<p>Before starting proceedings, please contact us through the project repository: a student project can usually fix a problem faster than a court can.</p>
+<h2 id="s17">17. General</h2>
+<p>If a provision of these Terms turns out to be unenforceable, the rest stays in force. Our not enforcing a term immediately does not waive it. You may not transfer your rights under these Terms to anyone else; we may transfer ours to a successor of the project, on notice to you.</p>
+<p>These Terms, together with the Privacy Policy, are the whole agreement between you and us about the Service.</p>
+<h2 id="s18">18. Contact</h2>
+<p>Reach us through the Smart Pet Care App project repository at <a href="https://github.com/Gmust/smart-pet-care-app">https://github.com/Gmust/smart-pet-care-app</a>. For data-protection requests - access, correction, erasure, portability, objection - follow the process in the Privacy Policy at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a>.</p>
+<footer><p class="meta">The same document as a PDF: <a href="/terms.pdf" download="terms-and-conditions.pdf">/terms.pdf</a></p></footer>
+</main>
+</body>
+</html>

@@ -27,6 +27,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The documents /terms and /privacy serve, in both renderings. The Web SDK's
+      default content globs cover wwwroot, .json and .config but not these
+      anywhere else, so without this the files stay behind as None items and the
+      endpoints 500 on a published build while working fine from the project
+      directory.
+    -->
+    <Content Include="Legal\*.pdf;Legal\*.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.25.3" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
