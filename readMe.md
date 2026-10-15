@@ -50,6 +50,11 @@ Assistant documentation:
 - [Chat-classifier contract v1](docs/chat-classifier-contract-v1.md)
 - [Chat session API](docs/chat-session-api.md)
 
+Client documentation:
+
+- [Legal documents API](docs/legal-documents-api.md) — `/terms` and `/privacy`,
+  for the mobile client and the web front end
+
 ---
 
 ## 🧱 Flow

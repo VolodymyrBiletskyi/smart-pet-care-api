@@ -2,3 +2,13 @@
 # when they are edited from Windows.
 *.sh text eol=lf
 *.sql text eol=lf
+*.py text eol=lf
+
+# The generated legal documents. Stated rather than left to git's detection: a
+# line-ending conversion in a PDF breaks every byte offset in its xref table.
+*.pdf binary
+
+# Generated output, byte-compared by `generate-legal-pdfs.py --check`. A Windows
+# checkout that rewrote the endings would report it stale against a source that
+# had not moved.
+Legal/*.html text eol=lf

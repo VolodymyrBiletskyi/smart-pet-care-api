@@ -1,0 +1,3068 @@
+%PDF-1.4
+%äüö
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 5 /Kids [7 0 R 9 0 R 11 0 R 13 0 R 15 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Title (Smart Pet Care App - Privacy Policy) /Author (Smart Pet Care App project team) /Subject (Version 1.0. Effective 15 October 2026. Published at https://smart-pet-care.duckdns.org/privacy) /Producer (scripts/generate-legal-pdfs.py) /Creator (scripts/generate-legal-pdfs.py) /CreationDate (D:20261015000000Z) /ModDate (D:20261015000000Z) >>
+endobj
+6 0 obj
+<< /Length 7037 >>
+stream
+BT
+1 0 0 1 56.00 753.89 Tm
+/F2 19.00 Tf
+(Smart) Tj
+( Pet) Tj
+( Care) Tj
+( App) Tj
+( -) Tj
+( Privacy) Tj
+( Policy) Tj
+ET
+BT
+1 0 0 1 56.00 731.89 Tm
+/F1 9.00 Tf
+(Version) Tj
+( 1.0.) Tj
+( Effective) Tj
+( 15) Tj
+( October) Tj
+( 2026.) Tj
+( Published) Tj
+( at) Tj
+( https://smart-pet-care.duckdns.org/privacy) Tj
+ET
+BT
+1 0 0 1 56.00 688.89 Tm
+/F2 12.50 Tf
+(1.) Tj
+( Who) Tj
+( is) Tj
+( responsible,) Tj
+( and) Tj
+( what) Tj
+( this) Tj
+( covers) Tj
+ET
+BT
+1 0 0 1 56.00 670.29 Tm
+/F1 9.80 Tf
+(Smart) Tj
+( Pet) Tj
+( Care) Tj
+( App) Tj
+( is) Tj
+( a) Tj
+( collaborative) Tj
+( student) Tj
+( project) Tj
+( consisting) Tj
+( of) Tj
+( a) Tj
+( mobile) Tj
+( client,) Tj
+( a) Tj
+( backend) Tj
+( API) Tj
+( and) Tj
+ET
+BT
+1 0 0 1 56.00 656.69 Tm
+/F1 9.80 Tf
+(supporting) Tj
+( services.) Tj
+( The) Tj
+( Smart) Tj
+( Pet) Tj
+( Care) Tj
+( App) Tj
+( project) Tj
+( team) Tj
+( \("we",) Tj
+( "us",) Tj
+( "our"\)) Tj
+( is) Tj
+( the) Tj
+( controller) Tj
+( for) Tj
+( the) Tj
+( personal) Tj
+ET
+BT
+1 0 0 1 56.00 643.09 Tm
+/F1 9.80 Tf
+(data) Tj
+( described) Tj
+( here.) Tj
+( The) Tj
+( project,) Tj
+( its) Tj
+( components) Tj
+( and) Tj
+( its) Tj
+( contributors) Tj
+( are) Tj
+( documented) Tj
+( at) Tj
+ET
+BT
+1 0 0 1 56.00 629.49 Tm
+/F1 9.80 Tf
+(https://github.com/Gmust/smart-pet-care-app,) Tj
+( which) Tj
+( is) Tj
+( the) Tj
+( route) Tj
+( for) Tj
+( reaching) Tj
+( us) Tj
+( and) Tj
+( for) Tj
+( making) Tj
+( any) Tj
+( of) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 56.00 615.89 Tm
+/F1 9.80 Tf
+(requests) Tj
+( in) Tj
+( section) Tj
+( 11.) Tj
+ET
+BT
+1 0 0 1 56.00 595.29 Tm
+/F1 9.80 Tf
+(This) Tj
+( policy) Tj
+( covers) Tj
+( personal) Tj
+( data) Tj
+( processed) Tj
+( through) Tj
+( the) Tj
+( App) Tj
+( and) Tj
+( the) Tj
+( API) Tj
+( at) Tj
+( https://smart-pet-care.duckdns.org.) Tj
+ET
+BT
+1 0 0 1 56.00 581.69 Tm
+/F1 9.80 Tf
+(It) Tj
+( is) Tj
+( written) Tj
+( against) Tj
+( the) Tj
+( EU) Tj
+( General) Tj
+( Data) Tj
+( Protection) Tj
+( Regulation) Tj
+( \(GDPR\)) Tj
+( and) Tj
+( uses) Tj
+( its) Tj
+( vocabulary.) Tj
+( The) Tj
+/F2 9.80 Tf
+( Terms) Tj
+ET
+BT
+1 0 0 1 56.00 568.09 Tm
+/F2 9.80 Tf
+(and) Tj
+( Conditions) Tj
+/F1 9.80 Tf
+( at) Tj
+( https://smart-pet-care.duckdns.org/terms) Tj
+( govern) Tj
+( your) Tj
+( use) Tj
+( of) Tj
+( the) Tj
+( Service) Tj
+( itself.) Tj
+ET
+BT
+1 0 0 1 56.00 528.09 Tm
+/F2 12.50 Tf
+(2.) Tj
+( The) Tj
+( short) Tj
+( version) Tj
+ET
+BT
+1 0 0 1 70.00 509.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 509.49 Tm
+/F1 9.80 Tf
+(You) Tj
+( give) Tj
+( us) Tj
+( an) Tj
+( email) Tj
+( address) Tj
+( to) Tj
+( have) Tj
+( an) Tj
+( account,) Tj
+( and) Tj
+( whatever) Tj
+( you) Tj
+( choose) Tj
+( to) Tj
+( record) Tj
+( about) Tj
+( your) Tj
+( pets.) Tj
+ET
+BT
+1 0 0 1 70.00 491.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 491.89 Tm
+/F1 9.80 Tf
+(We) Tj
+( use) Tj
+( it) Tj
+( to) Tj
+( run) Tj
+( the) Tj
+( Service) Tj
+( for) Tj
+( you:) Tj
+( store) Tj
+( your) Tj
+( records,) Tj
+( fire) Tj
+( your) Tj
+( reminders,) Tj
+( answer) Tj
+( your) Tj
+( questions.) Tj
+ET
+BT
+1 0 0 1 81.44 478.29 Tm
+/F1 9.80 Tf
+(Nothing) Tj
+( else.) Tj
+ET
+BT
+1 0 0 1 70.00 460.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 460.69 Tm
+/F1 9.80 Tf
+(We) Tj
+( do) Tj
+( not) Tj
+( sell) Tj
+( personal) Tj
+( data,) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( share) Tj
+( it) Tj
+( for) Tj
+( advertising,) Tj
+( and) Tj
+( we) Tj
+( run) Tj
+( no) Tj
+( advertising) Tj
+( or) Tj
+( analytics) Tj
+ET
+BT
+1 0 0 1 81.44 447.09 Tm
+/F1 9.80 Tf
+(trackers.) Tj
+ET
+BT
+1 0 0 1 70.00 429.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 429.49 Tm
+/F1 9.80 Tf
+(The) Tj
+( AI) Tj
+( features) Tj
+( send) Tj
+( pet) Tj
+( records) Tj
+( and) Tj
+( your) Tj
+( chat) Tj
+( messages) Tj
+( to) Tj
+( the) Tj
+( project's) Tj
+( own) Tj
+( AI) Tj
+( service.) Tj
+( Keep) Tj
+( sensitive) Tj
+ET
+BT
+1 0 0 1 81.44 415.89 Tm
+/F1 9.80 Tf
+(information) Tj
+( about) Tj
+( people) Tj
+( out) Tj
+( of) Tj
+( those) Tj
+( fields.) Tj
+ET
+BT
+1 0 0 1 70.00 398.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 398.29 Tm
+/F1 9.80 Tf
+(You) Tj
+( can) Tj
+( see,) Tj
+( correct,) Tj
+( export) Tj
+( and) Tj
+( delete) Tj
+( your) Tj
+( data,) Tj
+( and) Tj
+( you) Tj
+( can) Tj
+( delete) Tj
+( your) Tj
+( whole) Tj
+( account) Tj
+( from) Tj
+( the) Tj
+( App.) Tj
+ET
+BT
+1 0 0 1 56.00 361.29 Tm
+/F2 12.50 Tf
+(3.) Tj
+( What) Tj
+( we) Tj
+( process) Tj
+ET
+BT
+1 0 0 1 56.00 331.29 Tm
+/F2 10.50 Tf
+(3.1) Tj
+( Account) Tj
+( data) Tj
+ET
+BT
+1 0 0 1 56.00 314.69 Tm
+/F1 9.80 Tf
+(Your) Tj
+( email) Tj
+( address;) Tj
+( a) Tj
+( password) Tj
+( hash) Tj
+( if) Tj
+( you) Tj
+( signed) Tj
+( up) Tj
+( with) Tj
+( a) Tj
+( password) Tj
+( \(hashed) Tj
+( with) Tj
+( bcrypt) Tj
+( -) Tj
+( we) Tj
+( never) Tj
+( hold) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 56.00 301.09 Tm
+/F1 9.80 Tf
+(password) Tj
+( itself\);) Tj
+( optionally) Tj
+( a) Tj
+( display) Tj
+( name,) Tj
+( a) Tj
+( phone) Tj
+( number) Tj
+( and) Tj
+( a) Tj
+( profile) Tj
+( picture;) Tj
+( whether) Tj
+( and) Tj
+( when) Tj
+( you) Tj
+ET
+BT
+1 0 0 1 56.00 287.49 Tm
+/F1 9.80 Tf
+(accepted) Tj
+( the) Tj
+( Terms;) Tj
+( whether) Tj
+( and) Tj
+( when) Tj
+( you) Tj
+( confirmed) Tj
+( your) Tj
+( email;) Tj
+( and) Tj
+( the) Tj
+( dates) Tj
+( your) Tj
+( account) Tj
+( was) Tj
+( created) Tj
+( and) Tj
+ET
+BT
+1 0 0 1 56.00 273.89 Tm
+/F1 9.80 Tf
+(last) Tj
+( changed.) Tj
+ET
+BT
+1 0 0 1 56.00 253.29 Tm
+/F1 9.80 Tf
+(If) Tj
+( you) Tj
+( sign) Tj
+( up) Tj
+( with) Tj
+( a) Tj
+( password) Tj
+( we) Tj
+( send) Tj
+( a) Tj
+( confirmation) Tj
+( code) Tj
+( to) Tj
+( your) Tj
+( email) Tj
+( and) Tj
+( store) Tj
+( it,) Tj
+( hashed,) Tj
+( until) Tj
+( it) Tj
+( is) Tj
+( used) Tj
+( or) Tj
+ET
+BT
+1 0 0 1 56.00 239.69 Tm
+/F1 9.80 Tf
+(expires) Tj
+( 15) Tj
+( minutes) Tj
+( later.) Tj
+ET
+BT
+1 0 0 1 56.00 207.69 Tm
+/F2 10.50 Tf
+(3.2) Tj
+( Signing) Tj
+( in) Tj
+( with) Tj
+( Google) Tj
+ET
+BT
+1 0 0 1 56.00 191.09 Tm
+/F1 9.80 Tf
+(If) Tj
+( you) Tj
+( choose) Tj
+( Google) Tj
+( sign-in,) Tj
+( Google) Tj
+( tells) Tj
+( us) Tj
+( the) Tj
+( identifier) Tj
+( of) Tj
+( your) Tj
+( Google) Tj
+( account,) Tj
+( your) Tj
+( email) Tj
+( address) Tj
+( and,) Tj
+( if) Tj
+ET
+BT
+1 0 0 1 56.00 177.49 Tm
+/F1 9.80 Tf
+(you) Tj
+( have) Tj
+( them,) Tj
+( your) Tj
+( name) Tj
+( and) Tj
+( profile) Tj
+( picture.) Tj
+( We) Tj
+( store) Tj
+( the) Tj
+( link) Tj
+( between) Tj
+( your) Tj
+( Smart) Tj
+( Pet) Tj
+( Care) Tj
+( account) Tj
+( and) Tj
+( that) Tj
+ET
+BT
+1 0 0 1 56.00 163.89 Tm
+/F1 9.80 Tf
+(Google) Tj
+( account) Tj
+( so) Tj
+( you) Tj
+( can) Tj
+( sign) Tj
+( in) Tj
+( again.) Tj
+( We) Tj
+( never) Tj
+( receive) Tj
+( your) Tj
+( Google) Tj
+( password,) Tj
+( and) Tj
+( we) Tj
+( ask) Tj
+( Google) Tj
+( for) Tj
+ET
+BT
+1 0 0 1 56.00 150.29 Tm
+/F1 9.80 Tf
+(nothing) Tj
+( beyond) Tj
+( basic) Tj
+( profile) Tj
+( and) Tj
+( email.) Tj
+ET
+BT
+1 0 0 1 56.00 118.29 Tm
+/F2 10.50 Tf
+(3.3) Tj
+( Pet) Tj
+( profiles) Tj
+ET
+BT
+1 0 0 1 56.00 101.69 Tm
+/F1 9.80 Tf
+(For) Tj
+( each) Tj
+( pet:) Tj
+( name,) Tj
+( species,) Tj
+( breed,) Tj
+( date) Tj
+( of) Tj
+( birth,) Tj
+( sex,) Tj
+( weight,) Tj
+( and) Tj
+( the) Tj
+( free-text) Tj
+( notes) Tj
+( you) Tj
+( keep) Tj
+( about) Tj
+ET
+BT
+1 0 0 1 56.00 88.09 Tm
+/F1 9.80 Tf
+(behaviour,) Tj
+( allergies) Tj
+( and) Tj
+( chronic) Tj
+( conditions.) Tj
+( Optionally) Tj
+( a) Tj
+( photo.) Tj
+ET
+BT
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 1 of 5) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 8007 >>
+stream
+BT
+1 0 0 1 56.00 763.89 Tm
+/F2 10.50 Tf
+(3.4) Tj
+( Pet) Tj
+( care) Tj
+( and) Tj
+( health) Tj
+( records) Tj
+ET
+BT
+1 0 0 1 56.00 747.29 Tm
+/F1 9.80 Tf
+(Everything) Tj
+( you) Tj
+( record) Tj
+( over) Tj
+( time) Tj
+( against) Tj
+( a) Tj
+( pet:) Tj
+( feeding) Tj
+( logs,) Tj
+( weight) Tj
+( history,) Tj
+( activity) Tj
+( and) Tj
+( sleep) Tj
+( logs,) Tj
+( journal) Tj
+ET
+BT
+1 0 0 1 56.00 733.69 Tm
+/F1 9.80 Tf
+(entries) Tj
+( \(including) Tj
+( symptoms) Tj
+( and) Tj
+( a) Tj
+( severity\),) Tj
+( conditions,) Tj
+( medications) Tj
+( and) Tj
+( their) Tj
+( schedules,) Tj
+( health) Tj
+( records) Tj
+( such) Tj
+ET
+BT
+1 0 0 1 56.00 720.09 Tm
+/F1 9.80 Tf
+(as) Tj
+( vaccinations) Tj
+( and) Tj
+( vet) Tj
+( visits,) Tj
+( free-text) Tj
+( notes,) Tj
+( reminders) Tj
+( and) Tj
+( the) Tj
+( history) Tj
+( of) Tj
+( when) Tj
+( each) Tj
+( one) Tj
+( was) Tj
+( completed,) Tj
+ET
+BT
+1 0 0 1 56.00 706.49 Tm
+/F1 9.80 Tf
+(nutrition) Tj
+( goals,) Tj
+( and) Tj
+( the) Tj
+( wellness) Tj
+( scores) Tj
+( and) Tj
+( feeding) Tj
+( analyses) Tj
+( generated) Tj
+( from) Tj
+( all) Tj
+( of) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 56.00 674.49 Tm
+/F2 10.50 Tf
+(3.5) Tj
+( Files) Tj
+( you) Tj
+( upload) Tj
+ET
+BT
+1 0 0 1 56.00 657.89 Tm
+/F1 9.80 Tf
+(Photos) Tj
+( and) Tj
+( documents) Tj
+( you) Tj
+( attach) Tj
+( to) Tj
+( a) Tj
+( pet,) Tj
+( along) Tj
+( with) Tj
+( their) Tj
+( file) Tj
+( name,) Tj
+( type,) Tj
+( size) Tj
+( and) Tj
+( any) Tj
+( description) Tj
+( you) Tj
+( add.) Tj
+ET
+BT
+1 0 0 1 56.00 625.89 Tm
+/F2 10.50 Tf
+(3.6) Tj
+( Assistant) Tj
+( conversations) Tj
+ET
+BT
+1 0 0 1 56.00 609.29 Tm
+/F1 9.80 Tf
+(Your) Tj
+( messages) Tj
+( to) Tj
+( the) Tj
+( AI) Tj
+( assistant,) Tj
+( its) Tj
+( replies,) Tj
+( and) Tj
+( the) Tj
+( session) Tj
+( they) Tj
+( belong) Tj
+( to.) Tj
+( Recent) Tj
+( messages) Tj
+( in) Tj
+( a) Tj
+( session) Tj
+ET
+BT
+1 0 0 1 56.00 595.69 Tm
+/F1 9.80 Tf
+(are) Tj
+( replayed) Tj
+( as) Tj
+( context) Tj
+( for) Tj
+( the) Tj
+( next) Tj
+( question.) Tj
+ET
+BT
+1 0 0 1 56.00 563.69 Tm
+/F2 10.50 Tf
+(3.7) Tj
+( Devices,) Tj
+( sessions) Tj
+( and) Tj
+( technical) Tj
+( data) Tj
+ET
+BT
+1 0 0 1 70.00 547.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 547.09 Tm
+/F1 9.80 Tf
+(A) Tj
+( push) Tj
+( notification) Tj
+( token) Tj
+( for) Tj
+( each) Tj
+( device) Tj
+( you) Tj
+( allow) Tj
+( notifications) Tj
+( on,) Tj
+( with) Tj
+( the) Tj
+( platform) Tj
+( \(Android,) Tj
+( iOS) Tj
+( or) Tj
+ET
+BT
+1 0 0 1 81.44 533.49 Tm
+/F1 9.80 Tf
+(web\)) Tj
+( and) Tj
+( when) Tj
+( it) Tj
+( was) Tj
+( last) Tj
+( seen.) Tj
+( The) Tj
+( token) Tj
+( identifies) Tj
+( a) Tj
+( device) Tj
+( to) Tj
+( Google's) Tj
+( messaging) Tj
+( service;) Tj
+( it) Tj
+( is) Tj
+( not) Tj
+( an) Tj
+ET
+BT
+1 0 0 1 81.44 519.89 Tm
+/F1 9.80 Tf
+(advertising) Tj
+( identifier.) Tj
+ET
+BT
+1 0 0 1 70.00 502.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 502.29 Tm
+/F1 9.80 Tf
+(Session) Tj
+( data:) Tj
+( refresh) Tj
+( tokens,) Tj
+( stored) Tj
+( as) Tj
+( SHA-256) Tj
+( hashes) Tj
+( rather) Tj
+( than) Tj
+( in) Tj
+( the) Tj
+( clear,) Tj
+( with) Tj
+( their) Tj
+( expiry) Tj
+( and) Tj
+ET
+BT
+1 0 0 1 81.44 488.69 Tm
+/F1 9.80 Tf
+(whether) Tj
+( they) Tj
+( have) Tj
+( been) Tj
+( revoked.) Tj
+( Tokens) Tj
+( are) Tj
+( held) Tj
+( in) Tj
+( your) Tj
+( browser) Tj
+( or) Tj
+( app) Tj
+( as) Tj
+( HTTP-only,) Tj
+( Secure) Tj
+( cookies.) Tj
+ET
+BT
+1 0 0 1 70.00 471.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 471.09 Tm
+/F1 9.80 Tf
+(Server) Tj
+( logs) Tj
+( produced) Tj
+( by) Tj
+( handling) Tj
+( your) Tj
+( requests,) Tj
+( which) Tj
+( contain) Tj
+( IP) Tj
+( addresses,) Tj
+( the) Tj
+( requested) Tj
+( route,) Tj
+ET
+BT
+1 0 0 1 81.44 457.49 Tm
+/F1 9.80 Tf
+(timestamps,) Tj
+( response) Tj
+( status,) Tj
+( user) Tj
+( agent) Tj
+( and) Tj
+( a) Tj
+( trace) Tj
+( identifier.) Tj
+( These) Tj
+( are) Tj
+( operational) Tj
+( records) Tj
+( used) Tj
+( to) Tj
+( find) Tj
+ET
+BT
+1 0 0 1 81.44 443.89 Tm
+/F1 9.80 Tf
+(faults) Tj
+( and) Tj
+( detect) Tj
+( abuse.) Tj
+ET
+BT
+1 0 0 1 56.00 414.89 Tm
+/F2 10.50 Tf
+(3.8) Tj
+( What) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( collect) Tj
+ET
+BT
+1 0 0 1 56.00 398.29 Tm
+/F1 9.80 Tf
+(We) Tj
+( do) Tj
+( not) Tj
+( collect) Tj
+( location) Tj
+( data,) Tj
+( contacts,) Tj
+( advertising) Tj
+( identifiers) Tj
+( or) Tj
+( device) Tj
+( sensor) Tj
+( data,) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( run) Tj
+( third-party) Tj
+ET
+BT
+1 0 0 1 56.00 384.69 Tm
+/F1 9.80 Tf
+(analytics) Tj
+( or) Tj
+( advertising) Tj
+( SDKs) Tj
+( on) Tj
+( the) Tj
+( backend,) Tj
+( and) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( profile) Tj
+( you) Tj
+( for) Tj
+( marketing.) Tj
+ET
+BT
+1 0 0 1 56.00 344.69 Tm
+/F2 12.50 Tf
+(4.) Tj
+( A) Tj
+( note) Tj
+( on) Tj
+( pet) Tj
+( data,) Tj
+( and) Tj
+( on) Tj
+( free) Tj
+( text) Tj
+ET
+BT
+1 0 0 1 56.00 326.09 Tm
+/F1 9.80 Tf
+(Information) Tj
+( about) Tj
+( an) Tj
+( animal) Tj
+( is) Tj
+( not) Tj
+( personal) Tj
+( data) Tj
+( about) Tj
+( a) Tj
+( person,) Tj
+( so) Tj
+( a) Tj
+( pet's) Tj
+( health) Tj
+( record) Tj
+( is) Tj
+( not) Tj
+( "data) Tj
+ET
+BT
+1 0 0 1 56.00 312.49 Tm
+/F1 9.80 Tf
+(concerning) Tj
+( health") Tj
+( in) Tj
+( the) Tj
+( GDPR) Tj
+( sense) Tj
+( and) Tj
+( the) Tj
+( special) Tj
+( rules) Tj
+( for) Tj
+( that) Tj
+( category) Tj
+( do) Tj
+( not) Tj
+( apply) Tj
+( to) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 56.00 291.89 Tm
+/F1 9.80 Tf
+(But) Tj
+( the) Tj
+( same) Tj
+( records) Tj
+( are) Tj
+( linked) Tj
+( to) Tj
+( you,) Tj
+( and) Tj
+( free-text) Tj
+( fields) Tj
+( do) Tj
+( not) Tj
+( police) Tj
+( what) Tj
+( goes) Tj
+( into) Tj
+( them.) Tj
+( A) Tj
+( journal) Tj
+( entry,) Tj
+( a) Tj
+ET
+BT
+1 0 0 1 56.00 278.29 Tm
+/F1 9.80 Tf
+(note) Tj
+( or) Tj
+( a) Tj
+( chat) Tj
+( message) Tj
+( can) Tj
+( easily) Tj
+( end) Tj
+( up) Tj
+( containing) Tj
+( information) Tj
+( about) Tj
+/F2 9.80 Tf
+( you) Tj
+/F1 9.80 Tf
+( or) Tj
+( about) Tj
+( another) Tj
+( person) Tj
+( -) Tj
+( a) Tj
+ET
+BT
+1 0 0 1 56.00 264.69 Tm
+/F1 9.80 Tf
+(household) Tj
+( detail,) Tj
+( a) Tj
+( sitter's) Tj
+( phone) Tj
+( number,) Tj
+( your) Tj
+( own) Tj
+( health.) Tj
+( Please) Tj
+( do) Tj
+( not) Tj
+( put) Tj
+( sensitive) Tj
+( personal) Tj
+( information) Tj
+ET
+BT
+1 0 0 1 56.00 251.09 Tm
+/F1 9.80 Tf
+(about) Tj
+( anyone) Tj
+( into) Tj
+( those) Tj
+( fields.) Tj
+( We) Tj
+( treat) Tj
+( whatever) Tj
+( is) Tj
+( there) Tj
+( as) Tj
+( ordinary) Tj
+( personal) Tj
+( data) Tj
+( under) Tj
+( this) Tj
+( policy,) Tj
+( and) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 56.00 237.49 Tm
+/F1 9.80 Tf
+(AI) Tj
+( features) Tj
+( send) Tj
+( those) Tj
+( fields) Tj
+( on) Tj
+( as) Tj
+( described) Tj
+( in) Tj
+( section) Tj
+( 7.) Tj
+ET
+BT
+1 0 0 1 56.00 197.49 Tm
+/F2 12.50 Tf
+(5.) Tj
+( Why) Tj
+( we) Tj
+( process) Tj
+( it,) Tj
+( and) Tj
+( on) Tj
+( what) Tj
+( legal) Tj
+( basis) Tj
+ET
+BT
+1 0 0 1 70.00 178.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 178.89 Tm
+/F2 9.80 Tf
+(To) Tj
+( provide) Tj
+( the) Tj
+( Service) Tj
+/F1 9.80 Tf
+( -) Tj
+( keeping) Tj
+( your) Tj
+( account,) Tj
+( storing) Tj
+( and) Tj
+( showing) Tj
+( your) Tj
+( pet) Tj
+( records,) Tj
+( calculating) Tj
+ET
+BT
+1 0 0 1 81.44 165.29 Tm
+/F1 9.80 Tf
+(reminder) Tj
+( schedules,) Tj
+( delivering) Tj
+( notifications,) Tj
+( answering) Tj
+( assistant) Tj
+( questions.) Tj
+( Legal) Tj
+( basis:) Tj
+( performance) Tj
+( of) Tj
+ET
+BT
+1 0 0 1 81.44 151.69 Tm
+/F1 9.80 Tf
+(a) Tj
+( contract) Tj
+( with) Tj
+( you) Tj
+( \(Art.) Tj
+( 6\(1\)\(b\)) Tj
+( GDPR\).) Tj
+ET
+BT
+1 0 0 1 70.00 134.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 134.09 Tm
+/F2 9.80 Tf
+(To) Tj
+( verify) Tj
+( your) Tj
+( email) Tj
+( address) Tj
+/F1 9.80 Tf
+( and) Tj
+( to) Tj
+( let) Tj
+( you) Tj
+( sign) Tj
+( in) Tj
+( with) Tj
+( Google.) Tj
+( Legal) Tj
+( basis:) Tj
+( performance) Tj
+( of) Tj
+( a) Tj
+( contract) Tj
+ET
+BT
+1 0 0 1 81.44 120.49 Tm
+/F1 9.80 Tf
+(\(Art.) Tj
+( 6\(1\)\(b\)\).) Tj
+ET
+BT
+1 0 0 1 70.00 102.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 102.89 Tm
+/F2 9.80 Tf
+(To) Tj
+( send) Tj
+( account) Tj
+( and) Tj
+( security) Tj
+( email) Tj
+/F1 9.80 Tf
+( -) Tj
+( confirmation) Tj
+( codes,) Tj
+( security) Tj
+( notices,) Tj
+( notice) Tj
+( of) Tj
+( changes) Tj
+( to) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 81.44 89.29 Tm
+/F1 9.80 Tf
+(Terms.) Tj
+( Legal) Tj
+( basis:) Tj
+( performance) Tj
+( of) Tj
+( a) Tj
+( contract) Tj
+( \(Art.) Tj
+( 6\(1\)\(b\)\).) Tj
+ET
+BT
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 2 of 5) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 8750 >>
+stream
+BT
+1 0 0 1 70.00 764.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 764.29 Tm
+/F2 9.80 Tf
+(To) Tj
+( keep) Tj
+( the) Tj
+( Service) Tj
+( secure) Tj
+( and) Tj
+( working) Tj
+/F1 9.80 Tf
+( -) Tj
+( authentication,) Tj
+( authorisation) Tj
+( checks) Tj
+( that) Tj
+( keep) Tj
+( your) Tj
+( pets) Tj
+ET
+BT
+1 0 0 1 81.44 750.69 Tm
+/F1 9.80 Tf
+(visible) Tj
+( only) Tj
+( to) Tj
+( you,) Tj
+( rate) Tj
+( limiting,) Tj
+( abuse) Tj
+( detection,) Tj
+( fault) Tj
+( diagnosis) Tj
+( from) Tj
+( logs,) Tj
+( and) Tj
+( backups) Tj
+( so) Tj
+( a) Tj
+( failure) Tj
+( does) Tj
+ET
+BT
+1 0 0 1 81.44 737.09 Tm
+/F1 9.80 Tf
+(not) Tj
+( lose) Tj
+( your) Tj
+( records.) Tj
+( Legal) Tj
+( basis:) Tj
+( our) Tj
+( legitimate) Tj
+( interest) Tj
+( in) Tj
+( a) Tj
+( secure) Tj
+( and) Tj
+( reliable) Tj
+( service) Tj
+( \(Art.) Tj
+( 6\(1\)\(f\)\).) Tj
+ET
+BT
+1 0 0 1 70.00 719.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 719.49 Tm
+/F2 9.80 Tf
+(To) Tj
+( send) Tj
+( push) Tj
+( notifications) Tj
+/F1 9.80 Tf
+( to) Tj
+( a) Tj
+( device.) Tj
+( Legal) Tj
+( basis:) Tj
+( your) Tj
+( consent,) Tj
+( given) Tj
+( through) Tj
+( your) Tj
+( device's) Tj
+ET
+BT
+1 0 0 1 81.44 705.89 Tm
+/F1 9.80 Tf
+(notification) Tj
+( permission) Tj
+( \(Art.) Tj
+( 6\(1\)\(a\)\);) Tj
+( withdraw) Tj
+( it) Tj
+( by) Tj
+( turning) Tj
+( notifications) Tj
+( off,) Tj
+( which) Tj
+( also) Tj
+( unregisters) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 81.44 692.29 Tm
+/F1 9.80 Tf
+(device.) Tj
+ET
+BT
+1 0 0 1 70.00 674.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 674.69 Tm
+/F2 9.80 Tf
+(To) Tj
+( comply) Tj
+( with) Tj
+( the) Tj
+( law) Tj
+/F1 9.80 Tf
+(,) Tj
+( where) Tj
+( we) Tj
+( are) Tj
+( obliged) Tj
+( to.) Tj
+( Legal) Tj
+( basis:) Tj
+( legal) Tj
+( obligation) Tj
+( \(Art.) Tj
+( 6\(1\)\(c\)\).) Tj
+ET
+BT
+1 0 0 1 56.00 637.69 Tm
+/F2 12.50 Tf
+(6.) Tj
+( Automated) Tj
+( processing) Tj
+( and) Tj
+( no) Tj
+( automated) Tj
+( decisions) Tj
+ET
+BT
+1 0 0 1 56.00 619.09 Tm
+/F1 9.80 Tf
+(Wellness) Tj
+( scores,) Tj
+( feeding) Tj
+( summaries) Tj
+( and) Tj
+( assistant) Tj
+( replies) Tj
+( are) Tj
+( produced) Tj
+( automatically) Tj
+( from) Tj
+( your) Tj
+( records.) Tj
+( They) Tj
+ET
+BT
+1 0 0 1 56.00 605.49 Tm
+/F1 9.80 Tf
+(are) Tj
+( informational) Tj
+( suggestions) Tj
+( about) Tj
+( an) Tj
+( animal's) Tj
+( care.) Tj
+( They) Tj
+( produce) Tj
+( no) Tj
+( legal) Tj
+( effects) Tj
+( for) Tj
+( you,) Tj
+( nothing) Tj
+( is) Tj
+( decided) Tj
+ET
+BT
+1 0 0 1 56.00 591.89 Tm
+/F1 9.80 Tf
+(about) Tj
+( you) Tj
+( on) Tj
+( their) Tj
+( basis,) Tj
+( and) Tj
+( they) Tj
+( are) Tj
+( not) Tj
+( automated) Tj
+( decision-making) Tj
+( or) Tj
+( profiling) Tj
+( within) Tj
+( the) Tj
+( meaning) Tj
+( of) Tj
+( Art.) Tj
+( 22) Tj
+ET
+BT
+1 0 0 1 56.00 578.29 Tm
+/F1 9.80 Tf
+(GDPR.) Tj
+( They) Tj
+( are) Tj
+( also) Tj
+( not) Tj
+( veterinary) Tj
+( advice) Tj
+( -) Tj
+( see) Tj
+( section) Tj
+( 3) Tj
+( of) Tj
+( the) Tj
+( Terms.) Tj
+ET
+BT
+1 0 0 1 56.00 538.29 Tm
+/F2 12.50 Tf
+(7.) Tj
+( Who) Tj
+( else) Tj
+( receives) Tj
+( it) Tj
+ET
+BT
+1 0 0 1 56.00 519.69 Tm
+/F1 9.80 Tf
+(We) Tj
+( use) Tj
+( the) Tj
+( following) Tj
+( processors) Tj
+( and) Tj
+( third) Tj
+( parties.) Tj
+( Each) Tj
+( receives) Tj
+( only) Tj
+( what) Tj
+( its) Tj
+( function) Tj
+( requires.) Tj
+ET
+BT
+1 0 0 1 70.00 499.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 499.09 Tm
+/F2 9.80 Tf
+(The) Tj
+( project's) Tj
+( AI) Tj
+( service) Tj
+/F1 9.80 Tf
+( -) Tj
+( receives) Tj
+( your) Tj
+( assistant) Tj
+( messages) Tj
+( and) Tj
+( recent) Tj
+( conversation) Tj
+( context,) Tj
+( and,) Tj
+( for) Tj
+ET
+BT
+1 0 0 1 81.44 485.49 Tm
+/F1 9.80 Tf
+(the) Tj
+( wellness) Tj
+( and) Tj
+( feeding) Tj
+( features,) Tj
+( the) Tj
+( pet) Tj
+( profile) Tj
+( and) Tj
+( aggregated) Tj
+( care) Tj
+( records) Tj
+( the) Tj
+( analysis) Tj
+( is) Tj
+( computed) Tj
+ET
+BT
+1 0 0 1 81.44 471.89 Tm
+/F1 9.80 Tf
+(from.) Tj
+( It) Tj
+( is) Tj
+( operated) Tj
+( as) Tj
+( part) Tj
+( of) Tj
+( this) Tj
+( project.) Tj
+ET
+BT
+1 0 0 1 70.00 454.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 454.29 Tm
+/F2 9.80 Tf
+(Cloudinary) Tj
+/F1 9.80 Tf
+( \(image) Tj
+( hosting\)) Tj
+( -) Tj
+( receives) Tj
+( pet) Tj
+( photos) Tj
+( you) Tj
+( upload,) Tj
+( and) Tj
+( serves) Tj
+( them) Tj
+( back) Tj
+( to) Tj
+( the) Tj
+( App.) Tj
+ET
+BT
+1 0 0 1 70.00 436.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 436.69 Tm
+/F2 9.80 Tf
+(Google) Tj
+/F1 9.80 Tf
+( -) Tj
+( as) Tj
+( the) Tj
+( sign-in) Tj
+( provider) Tj
+( when) Tj
+( you) Tj
+( use) Tj
+( Google) Tj
+( sign-in,) Tj
+( and) Tj
+( as) Tj
+( the) Tj
+( operator) Tj
+( of) Tj
+( Firebase) Tj
+( Cloud) Tj
+ET
+BT
+1 0 0 1 81.44 423.09 Tm
+/F1 9.80 Tf
+(Messaging,) Tj
+( which) Tj
+( delivers) Tj
+( push) Tj
+( notifications.) Tj
+( Firebase) Tj
+( receives) Tj
+( your) Tj
+( device) Tj
+( token) Tj
+( and) Tj
+( the) Tj
+( content) Tj
+( of) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 81.44 409.49 Tm
+/F1 9.80 Tf
+(notification,) Tj
+( which) Tj
+( includes) Tj
+( the) Tj
+( pet's) Tj
+( name) Tj
+( and) Tj
+( the) Tj
+( reminder's) Tj
+( description.) Tj
+ET
+BT
+1 0 0 1 70.00 391.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 391.89 Tm
+/F2 9.80 Tf
+(Our) Tj
+( email) Tj
+( provider) Tj
+/F1 9.80 Tf
+( -) Tj
+( receives) Tj
+( your) Tj
+( email) Tj
+( address) Tj
+( and) Tj
+( the) Tj
+( content) Tj
+( of) Tj
+( the) Tj
+( message) Tj
+( in) Tj
+( order) Tj
+( to) Tj
+( deliver) Tj
+ET
+BT
+1 0 0 1 81.44 378.29 Tm
+/F1 9.80 Tf
+(confirmation) Tj
+( codes) Tj
+( and) Tj
+( account) Tj
+( email.) Tj
+ET
+BT
+1 0 0 1 70.00 360.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 360.69 Tm
+/F2 9.80 Tf
+(Amazon) Tj
+( Web) Tj
+( Services) Tj
+/F1 9.80 Tf
+( -) Tj
+( stores) Tj
+( encrypted) Tj
+( database) Tj
+( backups) Tj
+( in) Tj
+( a) Tj
+( restricted) Tj
+( bucket) Tj
+( in) Tj
+( the) Tj
+( us-east-1) Tj
+ET
+BT
+1 0 0 1 81.44 347.09 Tm
+/F1 9.80 Tf
+(region.) Tj
+( These) Tj
+( contain) Tj
+( the) Tj
+( production) Tj
+( database) Tj
+( and) Tj
+( therefore) Tj
+( your) Tj
+( records.) Tj
+ET
+BT
+1 0 0 1 70.00 329.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 329.49 Tm
+/F2 9.80 Tf
+(Our) Tj
+( hosting) Tj
+( provider) Tj
+/F1 9.80 Tf
+( -) Tj
+( operates) Tj
+( the) Tj
+( virtual) Tj
+( server) Tj
+( the) Tj
+( API) Tj
+( and) Tj
+( database) Tj
+( run) Tj
+( on.) Tj
+ET
+BT
+1 0 0 1 56.00 311.89 Tm
+/F1 9.80 Tf
+(We) Tj
+( do) Tj
+( not) Tj
+( sell) Tj
+( personal) Tj
+( data,) Tj
+( and) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( disclose) Tj
+( it) Tj
+( to) Tj
+( anyone) Tj
+( else) Tj
+( except) Tj
+( where) Tj
+( we) Tj
+( are) Tj
+( legally) Tj
+( required) Tj
+( to,) Tj
+ET
+BT
+1 0 0 1 56.00 298.29 Tm
+/F1 9.80 Tf
+(or) Tj
+( where) Tj
+( it) Tj
+( is) Tj
+( necessary) Tj
+( to) Tj
+( establish) Tj
+( or) Tj
+( defend) Tj
+( a) Tj
+( legal) Tj
+( claim.) Tj
+ET
+BT
+1 0 0 1 56.00 258.29 Tm
+/F2 12.50 Tf
+(8.) Tj
+( International) Tj
+( transfers) Tj
+ET
+BT
+1 0 0 1 56.00 239.69 Tm
+/F1 9.80 Tf
+(Cloudinary,) Tj
+( Google) Tj
+( and) Tj
+( Amazon) Tj
+( Web) Tj
+( Services) Tj
+( may) Tj
+( process) Tj
+( data) Tj
+( outside) Tj
+( the) Tj
+( European) Tj
+( Economic) Tj
+( Area,) Tj
+ET
+BT
+1 0 0 1 56.00 226.09 Tm
+/F1 9.80 Tf
+(including) Tj
+( in) Tj
+( the) Tj
+( United) Tj
+( States.) Tj
+( Where) Tj
+( that) Tj
+( happens,) Tj
+( the) Tj
+( transfer) Tj
+( relies) Tj
+( on) Tj
+( the) Tj
+( mechanisms) Tj
+( those) Tj
+( providers) Tj
+ET
+BT
+1 0 0 1 56.00 212.49 Tm
+/F1 9.80 Tf
+(make) Tj
+( available) Tj
+( for) Tj
+( it) Tj
+( -) Tj
+( the) Tj
+( EU) Tj
+( Standard) Tj
+( Contractual) Tj
+( Clauses) Tj
+( and,) Tj
+( where) Tj
+( applicable,) Tj
+( the) Tj
+( EU-US) Tj
+( Data) Tj
+( Privacy) Tj
+ET
+BT
+1 0 0 1 56.00 198.89 Tm
+/F1 9.80 Tf
+(Framework.) Tj
+( You) Tj
+( can) Tj
+( ask) Tj
+( us) Tj
+( for) Tj
+( details) Tj
+( of) Tj
+( the) Tj
+( safeguards) Tj
+( that) Tj
+( apply) Tj
+( to) Tj
+( a) Tj
+( specific) Tj
+( provider.) Tj
+ET
+BT
+1 0 0 1 56.00 158.89 Tm
+/F2 12.50 Tf
+(9.) Tj
+( How) Tj
+( long) Tj
+( we) Tj
+( keep) Tj
+( it) Tj
+ET
+BT
+1 0 0 1 70.00 140.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 140.29 Tm
+/F2 9.80 Tf
+(Account) Tj
+( and) Tj
+( pet) Tj
+( data) Tj
+/F1 9.80 Tf
+( -) Tj
+( until) Tj
+( you) Tj
+( delete) Tj
+( your) Tj
+( account,) Tj
+( or) Tj
+( you) Tj
+( delete) Tj
+( the) Tj
+( individual) Tj
+( pet) Tj
+( or) Tj
+( record.) Tj
+( Deleting) Tj
+ET
+BT
+1 0 0 1 81.44 126.69 Tm
+/F1 9.80 Tf
+(an) Tj
+( account) Tj
+( deletes) Tj
+( the) Tj
+( account) Tj
+( and) Tj
+( the) Tj
+( pets) Tj
+( and) Tj
+( records) Tj
+( belonging) Tj
+( to) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 70.00 109.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 109.09 Tm
+/F2 9.80 Tf
+(Email) Tj
+( confirmation) Tj
+( codes) Tj
+/F1 9.80 Tf
+( -) Tj
+( 15) Tj
+( minutes,) Tj
+( then) Tj
+( they) Tj
+( are) Tj
+( expired) Tj
+( and) Tj
+( unusable.) Tj
+ET
+BT
+1 0 0 1 70.00 91.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 91.49 Tm
+/F2 9.80 Tf
+(Refresh) Tj
+( tokens) Tj
+/F1 9.80 Tf
+( -) Tj
+( 7) Tj
+( days) Tj
+( from) Tj
+( issue;) Tj
+( revoked) Tj
+( immediately) Tj
+( when) Tj
+( you) Tj
+( sign) Tj
+( out) Tj
+( of) Tj
+( that) Tj
+( device) Tj
+( or) Tj
+( change) Tj
+ET
+BT
+1 0 0 1 81.44 77.89 Tm
+/F1 9.80 Tf
+(your) Tj
+( password.) Tj
+ET
+BT
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 3 of 5) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 8623 >>
+stream
+BT
+1 0 0 1 70.00 764.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 764.29 Tm
+/F2 9.80 Tf
+(Push) Tj
+( notification) Tj
+( tokens) Tj
+/F1 9.80 Tf
+( -) Tj
+( until) Tj
+( you) Tj
+( turn) Tj
+( notifications) Tj
+( off,) Tj
+( you) Tj
+( sign) Tj
+( out) Tj
+( of) Tj
+( that) Tj
+( device,) Tj
+( or) Tj
+( the) Tj
+( token) Tj
+( goes) Tj
+ET
+BT
+1 0 0 1 81.44 750.69 Tm
+/F1 9.80 Tf
+(unused) Tj
+( for) Tj
+( 60) Tj
+( days,) Tj
+( after) Tj
+( which) Tj
+( it) Tj
+( is) Tj
+( pruned.) Tj
+( Registering) Tj
+( a) Tj
+( device) Tj
+( under) Tj
+( a) Tj
+( different) Tj
+( account) Tj
+( moves) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 81.44 737.09 Tm
+/F1 9.80 Tf
+(token) Tj
+( to) Tj
+( that) Tj
+( account.) Tj
+ET
+BT
+1 0 0 1 70.00 719.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 719.49 Tm
+/F2 9.80 Tf
+(Feeding) Tj
+( analyses) Tj
+/F1 9.80 Tf
+( -) Tj
+( only) Tj
+( the) Tj
+( two) Tj
+( most) Tj
+( recent) Tj
+( per) Tj
+( pet) Tj
+( are) Tj
+( kept;) Tj
+( older) Tj
+( ones) Tj
+( are) Tj
+( discarded) Tj
+( as) Tj
+( new) Tj
+( ones) Tj
+( are) Tj
+ET
+BT
+1 0 0 1 81.44 705.89 Tm
+/F1 9.80 Tf
+(produced.) Tj
+ET
+BT
+1 0 0 1 70.00 688.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 688.29 Tm
+/F2 9.80 Tf
+(Server) Tj
+( logs) Tj
+/F1 9.80 Tf
+( -) Tj
+( kept) Tj
+( short-term) Tj
+( for) Tj
+( fault) Tj
+( diagnosis) Tj
+( and) Tj
+( security,) Tj
+( and) Tj
+( rotated) Tj
+( out.) Tj
+ET
+BT
+1 0 0 1 70.00 670.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 670.69 Tm
+/F2 9.80 Tf
+(Backups) Tj
+/F1 9.80 Tf
+( -) Tj
+( encrypted) Tj
+( database) Tj
+( dumps) Tj
+( are) Tj
+( retained) Tj
+( for) Tj
+( a) Tj
+( limited) Tj
+( period) Tj
+( \(on) Tj
+( the) Tj
+( order) Tj
+( of) Tj
+( two) Tj
+( weeks) Tj
+( for) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 81.44 657.09 Tm
+/F1 9.80 Tf
+(copies) Tj
+( held) Tj
+( on) Tj
+( the) Tj
+( server\)) Tj
+( and) Tj
+( then) Tj
+( deleted.) Tj
+( A) Tj
+( record) Tj
+( you) Tj
+( delete) Tj
+( can) Tj
+( survive) Tj
+( in) Tj
+( a) Tj
+( backup) Tj
+( until) Tj
+( its) Tj
+ET
+BT
+1 0 0 1 81.44 643.49 Tm
+/F1 9.80 Tf
+(retention) Tj
+( lapses.) Tj
+( Backups) Tj
+( are) Tj
+( restored) Tj
+( only) Tj
+( as) Tj
+( a) Tj
+( whole,) Tj
+( to) Tj
+( recover) Tj
+( from) Tj
+( failure) Tj
+( or) Tj
+( data) Tj
+( loss;) Tj
+( they) Tj
+( are) Tj
+( not) Tj
+ET
+BT
+1 0 0 1 81.44 629.89 Tm
+/F1 9.80 Tf
+(browsed,) Tj
+( and) Tj
+( nothing) Tj
+( is) Tj
+( selectively) Tj
+( restored) Tj
+( from) Tj
+( them.) Tj
+ET
+BT
+1 0 0 1 56.00 592.89 Tm
+/F2 12.50 Tf
+(10.) Tj
+( Security) Tj
+ET
+BT
+1 0 0 1 70.00 574.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 574.29 Tm
+/F1 9.80 Tf
+(All) Tj
+( traffic) Tj
+( is) Tj
+( served) Tj
+( over) Tj
+( HTTPS/TLS.) Tj
+ET
+BT
+1 0 0 1 70.00 556.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 556.69 Tm
+/F1 9.80 Tf
+(Passwords) Tj
+( are) Tj
+( stored) Tj
+( as) Tj
+( bcrypt) Tj
+( hashes;) Tj
+( refresh) Tj
+( tokens) Tj
+( as) Tj
+( SHA-256) Tj
+( hashes.) Tj
+( Neither) Tj
+( can) Tj
+( be) Tj
+( read) Tj
+( back.) Tj
+ET
+BT
+1 0 0 1 70.00 539.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 539.09 Tm
+/F1 9.80 Tf
+(Access) Tj
+( tokens) Tj
+( are) Tj
+( short-lived) Tj
+( \(15) Tj
+( minutes\)) Tj
+( and) Tj
+( held) Tj
+( in) Tj
+( HTTP-only,) Tj
+( Secure,) Tj
+( SameSite) Tj
+( cookies,) Tj
+( so) Tj
+( page) Tj
+ET
+BT
+1 0 0 1 81.44 525.49 Tm
+/F1 9.80 Tf
+(scripts) Tj
+( cannot) Tj
+( read) Tj
+( them.) Tj
+ET
+BT
+1 0 0 1 70.00 507.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 507.89 Tm
+/F1 9.80 Tf
+(Every) Tj
+( request) Tj
+( for) Tj
+( a) Tj
+( pet's) Tj
+( data) Tj
+( is) Tj
+( checked) Tj
+( against) Tj
+( the) Tj
+( signed-in) Tj
+( account,) Tj
+( so) Tj
+( one) Tj
+( user) Tj
+( cannot) Tj
+( read) Tj
+ET
+BT
+1 0 0 1 81.44 494.29 Tm
+/F1 9.80 Tf
+(another's) Tj
+( records.) Tj
+ET
+BT
+1 0 0 1 70.00 476.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 476.69 Tm
+/F1 9.80 Tf
+(The) Tj
+( database) Tj
+( is) Tj
+( not) Tj
+( reachable) Tj
+( from) Tj
+( the) Tj
+( public) Tj
+( internet;) Tj
+( the) Tj
+( API) Tj
+( reaches) Tj
+( it) Tj
+( on) Tj
+( a) Tj
+( private) Tj
+( network.) Tj
+ET
+BT
+1 0 0 1 70.00 459.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 459.09 Tm
+/F1 9.80 Tf
+(Backups) Tj
+( are) Tj
+( taken) Tj
+( regularly,) Tj
+( verified) Tj
+( after) Tj
+( each) Tj
+( dump,) Tj
+( and) Tj
+( monitored) Tj
+( by) Tj
+( the) Tj
+( absence) Tj
+( of) Tj
+( a) Tj
+( success) Tj
+( signal) Tj
+ET
+BT
+1 0 0 1 81.44 445.49 Tm
+/F1 9.80 Tf
+(rather) Tj
+( than) Tj
+( by) Tj
+( failure) Tj
+( reports.) Tj
+ET
+BT
+1 0 0 1 70.00 427.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 427.89 Tm
+/F1 9.80 Tf
+(Administrative) Tj
+( access) Tj
+( to) Tj
+( the) Tj
+( server) Tj
+( and) Tj
+( the) Tj
+( database) Tj
+( is) Tj
+( limited) Tj
+( to) Tj
+( the) Tj
+( project's) Tj
+( maintainers.) Tj
+ET
+BT
+1 0 0 1 56.00 410.29 Tm
+/F1 9.80 Tf
+(No) Tj
+( service) Tj
+( can) Tj
+( promise) Tj
+( perfect) Tj
+( security.) Tj
+( If) Tj
+( a) Tj
+( breach) Tj
+( occurs) Tj
+( that) Tj
+( is) Tj
+( likely) Tj
+( to) Tj
+( risk) Tj
+( your) Tj
+( rights) Tj
+( and) Tj
+( freedoms,) Tj
+( we) Tj
+( will) Tj
+ET
+BT
+1 0 0 1 56.00 396.69 Tm
+/F1 9.80 Tf
+(notify) Tj
+( the) Tj
+( competent) Tj
+( supervisory) Tj
+( authority) Tj
+( and,) Tj
+( where) Tj
+( required,) Tj
+( you.) Tj
+ET
+BT
+1 0 0 1 56.00 356.69 Tm
+/F2 12.50 Tf
+(11.) Tj
+( Your) Tj
+( rights) Tj
+ET
+BT
+1 0 0 1 56.00 338.09 Tm
+/F1 9.80 Tf
+(Under) Tj
+( the) Tj
+( GDPR) Tj
+( you) Tj
+( have) Tj
+( the) Tj
+( right) Tj
+( to:) Tj
+ET
+BT
+1 0 0 1 70.00 317.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 317.49 Tm
+/F2 9.80 Tf
+(access) Tj
+/F1 9.80 Tf
+( the) Tj
+( personal) Tj
+( data) Tj
+( we) Tj
+( hold) Tj
+( about) Tj
+( you,) Tj
+( and) Tj
+( get) Tj
+( a) Tj
+( copy) Tj
+( of) Tj
+( it;) Tj
+ET
+BT
+1 0 0 1 70.00 299.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 299.89 Tm
+/F2 9.80 Tf
+(rectification) Tj
+/F1 9.80 Tf
+( of) Tj
+( data) Tj
+( that) Tj
+( is) Tj
+( inaccurate) Tj
+( or) Tj
+( incomplete) Tj
+( -) Tj
+( most) Tj
+( of) Tj
+( it) Tj
+( you) Tj
+( can) Tj
+( correct) Tj
+( in) Tj
+( the) Tj
+( App) Tj
+( directly;) Tj
+ET
+BT
+1 0 0 1 70.00 282.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 282.29 Tm
+/F2 9.80 Tf
+(erasure) Tj
+/F1 9.80 Tf
+( of) Tj
+( your) Tj
+( data) Tj
+( \("right) Tj
+( to) Tj
+( be) Tj
+( forgotten"\),) Tj
+( which) Tj
+( you) Tj
+( can) Tj
+( exercise) Tj
+( yourself) Tj
+( by) Tj
+( deleting) Tj
+( your) Tj
+( account;) Tj
+ET
+BT
+1 0 0 1 70.00 264.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 264.69 Tm
+/F2 9.80 Tf
+(restriction) Tj
+/F1 9.80 Tf
+( of) Tj
+( processing) Tj
+( in) Tj
+( certain) Tj
+( circumstances;) Tj
+ET
+BT
+1 0 0 1 70.00 247.09 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 247.09 Tm
+/F2 9.80 Tf
+(data) Tj
+( portability) Tj
+/F1 9.80 Tf
+( -) Tj
+( a) Tj
+( copy) Tj
+( of) Tj
+( the) Tj
+( data) Tj
+( you) Tj
+( gave) Tj
+( us,) Tj
+( in) Tj
+( a) Tj
+( structured,) Tj
+( machine-readable) Tj
+( format;) Tj
+ET
+BT
+1 0 0 1 70.00 229.49 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 229.49 Tm
+/F2 9.80 Tf
+(object) Tj
+/F1 9.80 Tf
+( to) Tj
+( processing) Tj
+( based) Tj
+( on) Tj
+( our) Tj
+( legitimate) Tj
+( interests;) Tj
+ET
+BT
+1 0 0 1 70.00 211.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 211.89 Tm
+/F2 9.80 Tf
+(withdraw) Tj
+( consent) Tj
+/F1 9.80 Tf
+( at) Tj
+( any) Tj
+( time) Tj
+( where) Tj
+( we) Tj
+( rely) Tj
+( on) Tj
+( it,) Tj
+( such) Tj
+( as) Tj
+( push) Tj
+( notifications,) Tj
+( without) Tj
+( affecting) Tj
+ET
+BT
+1 0 0 1 81.44 198.29 Tm
+/F1 9.80 Tf
+(processing) Tj
+( that) Tj
+( already) Tj
+( happened;) Tj
+ET
+BT
+1 0 0 1 70.00 180.69 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 180.69 Tm
+/F2 9.80 Tf
+(not) Tj
+( be) Tj
+( subject) Tj
+/F1 9.80 Tf
+( to) Tj
+( decisions) Tj
+( based) Tj
+( solely) Tj
+( on) Tj
+( automated) Tj
+( processing) Tj
+( -) Tj
+( see) Tj
+( section) Tj
+( 6,) Tj
+( which) Tj
+( explains) Tj
+( why) Tj
+ET
+BT
+1 0 0 1 81.44 167.09 Tm
+/F1 9.80 Tf
+(none) Tj
+( are) Tj
+( made) Tj
+( here.) Tj
+ET
+BT
+1 0 0 1 56.00 149.49 Tm
+/F1 9.80 Tf
+(To) Tj
+( exercise) Tj
+( any) Tj
+( of) Tj
+( these,) Tj
+( contact) Tj
+( us) Tj
+( through) Tj
+( the) Tj
+( project) Tj
+( repository) Tj
+( at) Tj
+ET
+BT
+1 0 0 1 56.00 135.89 Tm
+/F1 9.80 Tf
+(https://github.com/Gmust/smart-pet-care-app.) Tj
+( We) Tj
+( will) Tj
+( respond) Tj
+( within) Tj
+( one) Tj
+( month.) Tj
+( We) Tj
+( may) Tj
+( ask) Tj
+( you) Tj
+( to) Tj
+( confirm) Tj
+ET
+BT
+1 0 0 1 56.00 122.29 Tm
+/F1 9.80 Tf
+(you) Tj
+( control) Tj
+( the) Tj
+( account's) Tj
+( email) Tj
+( address,) Tj
+( so) Tj
+( that) Tj
+( we) Tj
+( do) Tj
+( not) Tj
+( disclose) Tj
+( someone's) Tj
+( records) Tj
+( to) Tj
+( the) Tj
+( wrong) Tj
+( person.) Tj
+ET
+BT
+1 0 0 1 56.00 101.69 Tm
+/F1 9.80 Tf
+(You) Tj
+( also) Tj
+( have) Tj
+( the) Tj
+( right) Tj
+( to) Tj
+/F2 9.80 Tf
+( lodge) Tj
+( a) Tj
+( complaint) Tj
+/F1 9.80 Tf
+( with) Tj
+( a) Tj
+( data) Tj
+( protection) Tj
+( supervisory) Tj
+( authority,) Tj
+( normally) Tj
+( the) Tj
+( one) Tj
+( for) Tj
+ET
+BT
+1 0 0 1 56.00 88.09 Tm
+/F1 9.80 Tf
+(your) Tj
+( country) Tj
+( of) Tj
+( residence.) Tj
+ET
+BT
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 4 of 5) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 2059 >>
+stream
+BT
+1 0 0 1 56.00 761.89 Tm
+/F2 12.50 Tf
+(12.) Tj
+( Children) Tj
+ET
+BT
+1 0 0 1 56.00 743.29 Tm
+/F1 9.80 Tf
+(The) Tj
+( Service) Tj
+( is) Tj
+( not) Tj
+( intended) Tj
+( for) Tj
+( children.) Tj
+( You) Tj
+( must) Tj
+( be) Tj
+( at) Tj
+( least) Tj
+( 16) Tj
+( to) Tj
+( use) Tj
+( it,) Tj
+( or) Tj
+( older) Tj
+( where) Tj
+( your) Tj
+( country) Tj
+( sets) Tj
+( a) Tj
+ET
+BT
+1 0 0 1 56.00 729.69 Tm
+/F1 9.80 Tf
+(higher) Tj
+( age) Tj
+( of) Tj
+( digital) Tj
+( consent.) Tj
+( We) Tj
+( do) Tj
+( not) Tj
+( knowingly) Tj
+( process) Tj
+( data) Tj
+( about) Tj
+( children) Tj
+( below) Tj
+( that) Tj
+( age;) Tj
+( if) Tj
+( you) Tj
+( believe) Tj
+ET
+BT
+1 0 0 1 56.00 716.09 Tm
+/F1 9.80 Tf
+(we) Tj
+( have,) Tj
+( contact) Tj
+( us) Tj
+( and) Tj
+( we) Tj
+( will) Tj
+( delete) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 56.00 676.09 Tm
+/F2 12.50 Tf
+(13.) Tj
+( Changes) Tj
+( to) Tj
+( this) Tj
+( policy) Tj
+ET
+BT
+1 0 0 1 56.00 657.49 Tm
+/F1 9.80 Tf
+(We) Tj
+( may) Tj
+( update) Tj
+( this) Tj
+( policy) Tj
+( as) Tj
+( the) Tj
+( project) Tj
+( develops.) Tj
+( The) Tj
+( current) Tj
+( version) Tj
+( is) Tj
+( always) Tj
+( at) Tj
+ET
+BT
+1 0 0 1 56.00 643.89 Tm
+/F1 9.80 Tf
+(https://smart-pet-care.duckdns.org/privacy,) Tj
+( with) Tj
+( its) Tj
+( version) Tj
+( number) Tj
+( and) Tj
+( effective) Tj
+( date) Tj
+( on) Tj
+( the) Tj
+( first) Tj
+( page.) Tj
+( For) Tj
+( a) Tj
+ET
+BT
+1 0 0 1 56.00 630.29 Tm
+/F1 9.80 Tf
+(change) Tj
+( that) Tj
+( materially) Tj
+( affects) Tj
+( how) Tj
+( we) Tj
+( use) Tj
+( your) Tj
+( data,) Tj
+( we) Tj
+( will) Tj
+( give) Tj
+( notice) Tj
+( in) Tj
+( the) Tj
+( App) Tj
+( or) Tj
+( by) Tj
+( email) Tj
+( before) Tj
+( it) Tj
+( takes) Tj
+ET
+BT
+1 0 0 1 56.00 616.69 Tm
+/F1 9.80 Tf
+(effect.) Tj
+ET
+BT
+1 0 0 1 56.00 576.69 Tm
+/F2 12.50 Tf
+(14.) Tj
+( Contact) Tj
+ET
+BT
+1 0 0 1 56.00 558.09 Tm
+/F1 9.80 Tf
+(Smart) Tj
+( Pet) Tj
+( Care) Tj
+( App) Tj
+( project) Tj
+( team,) Tj
+( through) Tj
+( the) Tj
+( project) Tj
+( repository) Tj
+( at) Tj
+ET
+BT
+1 0 0 1 56.00 544.49 Tm
+/F1 9.80 Tf
+(https://github.com/Gmust/smart-pet-care-app.) Tj
+ET
+BT
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 5 of 5) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 14 0 R >>
+endobj
+xref
+0 16
+0000000000 65535 f 
+0000000017 00000 n 
+0000000066 00000 n 
+0000000150 00000 n 
+0000000247 00000 n 
+0000000349 00000 n 
+0000000712 00000 n 
+0000007801 00000 n 
+0000007943 00000 n 
+0000016002 00000 n 
+0000016144 00000 n 
+0000024947 00000 n 
+0000025091 00000 n 
+0000033767 00000 n 
+0000033911 00000 n 
+0000036023 00000 n 
+trailer
+<< /Size 16 /Root 1 0 R /Info 5 0 R /ID [<7E459E56FDFDE8131B86C066A8CB627D> <7E459E56FDFDE8131B86C066A8CB627D>] >>
+startxref
+36167
+%%EOF
