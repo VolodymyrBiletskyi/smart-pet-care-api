@@ -29,6 +29,8 @@ namespace smart_pet_care_api.Modules.AuthModule
             services.AddHttpClient<IGoogleOAuth, GoogleOAuth>();
             services.Configure<EmailOptions>(configuration.GetSection("Email"));
             services.AddScoped<IEmailSender, SmtpEmailSender>();
+            // Singleton: the templates are read from disk once and held.
+            services.AddSingleton<IEmailTemplateProvider, EmailTemplateProvider>();
             services.AddMemoryCache();
 
             // jwt auth
