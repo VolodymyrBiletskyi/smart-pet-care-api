@@ -58,9 +58,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
                 try
                 {
                     var reminder = await reminderRepo.GetByIdAsync(reminderId);
-                    if (reminder is null || reminder.NextTriggerAt is null) continue;
+                    if (!IsStillDue(reminder, now)) continue;
 
-                    await FireReminderAsync(reminder, now, reminderRepo, notificationService);
+                    await FireReminderAsync(reminder!, now, reminderRepo, notificationService);
                 }
                 catch (Exception ex)
                 {
@@ -68,6 +68,21 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
                 }
             }
         }
+
+        /// <summary>
+        /// Re-checked against this tick's <paramref name="now"/> rather than merely for presence:
+        /// the loop does database writes and real FCM calls, so a completion can land between the
+        /// due query and this reminder's turn and move the trigger into the future. Firing that
+        /// slot would push a notification nobody is owed, re-set OverdueSince, overwrite the
+        /// recalculated trigger with a nag date, and write a run whose SentAt precedes its
+        /// ScheduledFor — which CK_ReminderRun_TimingOrder rejects, so the save throws, the
+        /// per-reminder catch swallows it and the run stays Pending for good.
+        /// </summary>
+        internal static bool IsStillDue(Reminder? reminder, DateTime now) =>
+            reminder is not null
+            && reminder.Status == ReminderStatus.Active
+            && reminder.NextTriggerAt is { } trigger
+            && trigger <= now;
 
         internal static async Task FireReminderAsync(
             Reminder reminder,

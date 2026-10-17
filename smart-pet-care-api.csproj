@@ -13,11 +13,10 @@
       own, the test projects copy that back via ProjectReference, and every
       build nests the tree one level deeper.
     -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Modules/ChatModule.Tests/**;Tests/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tests/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Modules/ChatModule.Tests/**/*.cs" />
     <Compile Remove="Tests\**\*.cs" />
   </ItemGroup>
 

@@ -398,8 +398,17 @@ record a weight, the other means correct the one that is there.
 | `auth_email_already_taken` | 409 | Registering an address that already has an account. |
 | `auth_account_not_found` | 404 | No account for the address. |
 | `auth_invalid_credentials` | 401 | Wrong email or password. |
-| `auth_google_failed` | 401 | Google rejected the token or the exchange failed. |
+| `auth_google_failed` | 401 | Google rejected the token or the exchange failed, or the account's email is not verified. |
 | `auth_oauth_code_required` | 400 | OAuth callback without a code. |
+| `auth_too_many_requests` | 429 | Too many attempts from this address against `login`, `register`, `confirm-email` or `resend-confirmation`. `Retry-After` carries the seconds left in the window. |
+
+`auth_too_many_requests` comes from the rate limiter rather than from a
+service, so it says nothing about whether the address or the credentials were
+valid — and it arrives before the request reaches any of them. A client should
+show the wait rather than retry immediately, since a retry inside the window
+only loses another permit. A caller that is throttled at the proxy instead,
+having blown well past these limits, gets the same 429 with nginx's own HTML
+body and no code at all.
 
 ### User
 
@@ -610,6 +619,7 @@ for your own translations.
   "auth_authentication_required": "",
   "auth_account_no_longer_exists": "",
   "auth_forbidden": "",
+  "auth_too_many_requests": "",
 
   "user_not_found": "",
   "user_photo_required": "",

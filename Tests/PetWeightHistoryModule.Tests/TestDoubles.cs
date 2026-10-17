@@ -102,16 +102,24 @@ internal sealed class FakeReminderRecalculationService : IReminderRecalculationS
     public Guid? RegisteredPetId { get; private set; }
     public int Calls { get; private set; }
 
+    /// <summary>
+    /// What the service asked for. The log path has to leave the commit to its own
+    /// SaveChanges, or the occurrence is closed by a request that can still fail.
+    /// </summary>
+    public bool? RegisteredAutoSave { get; private set; }
+
     /// <summary>Set to false to simulate a reminder that does not exist or belongs elsewhere.</summary>
     public bool ReminderResolves { get; set; } = true;
 
     public Task<ReminderCompletionOutcome?> RegisterCompletionAsync(
-        Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null)
+        Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null,
+        bool autoSave = true)
     {
         Calls++;
         RegisteredReminderId = reminderId;
         RegisteredPerformedAt = performedAtUtc;
         RegisteredPetId = expectedPetId;
+        RegisteredAutoSave = autoSave;
 
         if (!ReminderResolves) return Task.FromResult<ReminderCompletionOutcome?>(null);
 

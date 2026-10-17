@@ -1,5 +1,6 @@
 using smart_pet_care_api.Common.Api;
 using smart_pet_care_api.Models;
+using smart_pet_care_api.Modules.HealthModule.Domain;
 using smart_pet_care_api.Modules.HealthModule.Repository;
 using smart_pet_care_api.Modules.PetModule.Repository;
 using smart_pet_care_api.Modules.ReminderModule.DTOs.Requests;
@@ -55,7 +56,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                     ErrorCodes.Reminder.ScheduleInvalid,
                     $"Dosage and provider do not apply to {reminder.Type} reminders.");
 
-            var outcome = await _recalculation.RegisterCompletionAsync(reminderId, performedAt, dto.Note)
+            // Both land in varchar(200) columns, and every check has to happen before
+            // RegisterCompletionAsync: that call commits the closed run and the advanced
+            // schedule on its own, so a length the database rejects afterwards left the
+            // occurrence closed with no record, and the retry then matched the same-day
+            // guard and returned AlreadyRecorded with no record id — the HealthRecord could
+            // never be filed through this endpoint again.
+            HealthRecordService.ValidateDosage(dto.Dosage);
+            HealthRecordService.ValidateProvider(dto.Provider);
+
+            var outcome = await _recalculation.RegisterCompletionAsync(
+                reminderId, performedAt, dto.Note, autoSave: false)
                 ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
             // Looked up by the stored run's date: a repeat completion only has to share the day,
@@ -63,6 +74,11 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
             var healthRecordId = outcome.AlreadyRecorded
                 ? await FindExistingRecordIdAsync(reminder, outcome.Run.PerformedAt ?? performedAt)
                 : await FileHealthRecordAsync(outcome.Reminder, performedAt, dto);
+
+            // The one commit for the whole completion: the closed run, the advanced schedule and
+            // the health record if there is one. Both repositories share the request's
+            // AppDbContext, so this is a single transaction without asking for one.
+            await _healthRepo.SaveChangesAsync();
 
             return new ReminderCompletionResponseDto
             {
@@ -98,8 +114,9 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Added, not saved: CompleteAsync commits the record together with the occurrence it
+            // closes. The Guid is assigned by the model, so the response has it either way.
             await _healthRepo.AddAsync(record);
-            await _healthRepo.SaveChangesAsync();
 
             return record.Id;
         }

@@ -41,11 +41,14 @@ namespace smart_pet_care_api.Modules.PetWeightHistoryModule.Domain
             await EnsureMeasuredAtIsUniqueAsync(petId, log.MeasuredAt);
 
             // Weighing has its own log, so the reminder is closed from here rather than by a
-            // generic complete call that would have nowhere to put the weight.
+            // generic complete call that would have nowhere to put the weight. autoSave is off
+            // so the closed occurrence rides the same SaveChanges as the log below: the
+            // uniqueness pre-check races the index, and a lost race used to leave the reminder
+            // completed with no weight behind it.
             if (dto.ReminderId is { } reminderId)
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(
-                    reminderId, log.MeasuredAt, expectedPetId: petId)
+                    reminderId, log.MeasuredAt, expectedPetId: petId, autoSave: false)
                     ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
             }
 

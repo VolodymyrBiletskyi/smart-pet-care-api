@@ -161,6 +161,36 @@ public class ReminderSchedulerServiceTests
     }
 
     [Fact]
+    public void A_reminder_completed_inside_the_tick_is_no_longer_due()
+    {
+        // The due query and this reminder's turn are separated by other reminders' DB writes and
+        // FCM calls. A completion landing in that gap moves the trigger forward, and firing it
+        // anyway would push a notification nobody is owed and write SentAt < ScheduledFor, which
+        // the timing check constraint rejects — leaving the run Pending for good.
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, now.AddMinutes(-1));
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+
+        Assert.True(ReminderSchedulerService.IsStillDue(reminder, now));
+
+        reminder.NextTriggerAt = now.AddDays(30);
+
+        Assert.False(ReminderSchedulerService.IsStillDue(reminder, now));
+    }
+
+    [Fact]
+    public void A_reminder_that_ended_inside_the_tick_is_no_longer_due()
+    {
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, now.AddMinutes(-1));
+        reminder.Status = ReminderStatus.Completed;
+
+        Assert.False(ReminderSchedulerService.IsStillDue(reminder, now));
+        Assert.False(ReminderSchedulerService.IsStillDue(null, now));
+    }
+
+    [Fact]
     public async Task A_failed_delivery_is_recorded_as_failed()
     {
         var reminder = BuildReminder(RecalcStrategy.Calendar, DateTime.UtcNow.AddMinutes(-1));

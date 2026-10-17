@@ -63,8 +63,12 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
             // PerformedAt rather than shifted from wherever it currently sits.
             if (dto.ReminderId is { } reminderId)
             {
+                // autoSave is off because ValidateFinalState below can still reject the record —
+                // a client clock a few minutes fast is enough — and the occurrence must not be
+                // closed by a request that ends in a 400. One SaveChanges at the end commits
+                // both or neither.
                 var outcome = await _reminderRecalculation.RegisterCompletionAsync(
-                    reminderId, record.PerformedAt, expectedPetId: petId)
+                    reminderId, record.PerformedAt, expectedPetId: petId, autoSave: false)
                     ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
 
                 // NextDueAt belongs to the server for linked records; letting the client set it
@@ -185,13 +189,16 @@ namespace smart_pet_care_api.Modules.HealthModule.Domain
                 throw new ValidationException(ErrorCodes.Health.DescriptionTooLong, "Description must be 2000 characters or less", new Dictionary<string, object?> { ["maxLength"] = 2000 });
         }
 
-        private static void ValidateDosage(string? dosage)
+        // Internal rather than private: the reminder completion path files a HealthRecord
+        // from fields it accepted itself, so it has to answer to the same ceilings as this
+        // one. Two copies of the rule would mean a column widened here and not there.
+        internal static void ValidateDosage(string? dosage)
         {
             if (dosage is { Length: > 200 })
                 throw new ValidationException(ErrorCodes.Health.DosageTooLong, "Dosage must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });
         }
 
-        private static void ValidateProvider(string? provider)
+        internal static void ValidateProvider(string? provider)
         {
             if (provider is { Length: > 200 })
                 throw new ValidationException(ErrorCodes.Health.ProviderTooLong, "Provider must be 200 characters or less", new Dictionary<string, object?> { ["maxLength"] = 200 });

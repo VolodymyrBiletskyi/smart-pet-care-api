@@ -26,8 +26,7 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            var user = await _userRepo.GetByIdAsync(id);
-            if (user == null) return false;
+            if (!await _userRepo.ExistsAsync(id)) return false;
 
             var photoPublicIds = await _petRepo.GetPhotoPublicIdsByUserIdAsync(id);
 
@@ -41,13 +40,13 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
 
         public async Task<UserResponseDto?> GetByIdAsync(Guid id)
         {
-            var user = await _userRepo.GetByIdAsync(id);
-            return user is null ? null : UserMapper.ToDto(user);
+            var profile = await _userRepo.GetProfileByIdAsync(id);
+            return profile?.ToDto();
         }
 
         public async Task<UserResponseDto> UpdateAsync(Guid id, PatchUserDto patchDto)
         {
-            var existingUser = await _userRepo.GetByIdAsync(id);
+            var existingUser = await _userRepo.GetTrackedByIdAsync(id);
             if (existingUser is null)
                 throw new NotFoundException(ErrorCodes.User.NotFound, "User not found");
 
@@ -61,7 +60,7 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
         {
             ValidateAvatar(file);
 
-            var user = await _userRepo.GetByIdAsync(id);
+            var user = await _userRepo.GetTrackedByIdAsync(id);
             if (user is null)
                 throw new NotFoundException(ErrorCodes.User.NotFound, "User not found");
 
@@ -110,9 +109,9 @@ namespace smart_pet_care_api.Modules.UserModule.Domain
 
         public async Task<(byte[] Data, string ContentType)?> GetAvatarAsync(Guid id)
         {
-            var user = await _userRepo.GetByIdAsync(id);
-            if (user?.AvatarData == null) return null;
-            return (user.AvatarData, user.AvatarContentType!);
+            var avatar = await _userRepo.GetAvatarByIdAsync(id);
+            if (avatar?.Data is null) return null;
+            return (avatar.Data, avatar.ContentType!);
         }
     }
 }

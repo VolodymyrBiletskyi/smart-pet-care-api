@@ -40,10 +40,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
+        private static string HashPassword(string password) =>
+            BCrypt.Net.BCrypt.EnhancedHashPassword(password);
+
         public async Task RegisterAsync(RegisterRequest request)
         {
             var email = NormalizeEmail(request.Email);
-            var passwordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(request.Password);
 
             var existing = await _userRepo.GetTrackedByEmailAsync(email);
             if (existing is not null)
@@ -54,7 +56,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
                 // Unconfirmed account: the previous registrant never proved
                 // ownership of this mailbox, so let the new attempt take over
                 // instead of locking the address forever.
-                existing.PasswordHash = passwordHash;
+                //
+                // Hashed here rather than at the top of the method: an enhanced BCrypt hash is
+                // deliberately expensive, and computing it before the lookup meant every
+                // request that was about to be rejected still cost a full hash. That is the
+                // work an attacker gets for free by posting addresses nobody owns.
+                existing.PasswordHash = HashPassword(request.Password);
                 existing.UpdatedAt = DateTime.UtcNow;
                 await SendConfirmationCodeAsync(existing);
                 return;
@@ -63,7 +70,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             var user = await _userRepo.AddAsync(new User
             {
                 Email = email,
-                PasswordHash = passwordHash,
+                PasswordHash = HashPassword(request.Password),
                 TermsAccepted = true,
                 TermsAcceptedAt = DateTime.UtcNow,
                 EmailConfirmed = false,
@@ -147,7 +154,9 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)
         {
-            var user = await _userRepo.GetByEmailAsync(NormalizeEmail(request.Email))
+            // The four columns sign-in reads, rather than the row: a user carries their
+            // avatar bytes, and a login has no use for a megabyte of them.
+            var user = await _userRepo.GetCredentialsByEmailAsync(NormalizeEmail(request.Email))
                 ?? throw new UnauthorizedException(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password");
 
             // OAuth-only accounts have no password hash.
@@ -161,7 +170,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             if (!user.EmailConfirmed)
                 throw new EmailConfirmationException(EmailConfirmationError.EmailNotConfirmed);
 
-            return await IssueTokensAsync(user);
+            return await IssueTokensAsync(user.Id, user.Email);
         }
 
         public async Task LogoutAsync(Guid userId, string? deviceToken = null)
@@ -196,17 +205,25 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             if (token is null || !token.IsActive)
                 return null;
 
-            var user = await _userRepo.GetByIdAsync(token.UserId);
+            var user = await _userRepo.GetCredentialsByIdAsync(token.UserId);
             if (user is null) return null;
 
             token.RevokedAt = DateTime.UtcNow;
 
-            return await IssueTokensAsync(user);
+            return await IssueTokensAsync(user.Id, user.Email);
         }
 
-        private async Task<AuthTokenPair> IssueTokensAsync(User user)
+        private Task<AuthTokenPair> IssueTokensAsync(User user) =>
+            IssueTokensAsync(user.Id, user.Email);
+
+        /// <summary>
+        /// The id and the address are the whole of it — they are the access token's two
+        /// claims and the two fields of the response — so the callers that have only those
+        /// need not load a user row to issue a session.
+        /// </summary>
+        private async Task<AuthTokenPair> IssueTokensAsync(Guid userId, string email)
         {
-            var accessToken = _jwt.GenerateAccessToken(user);
+            var accessToken = _jwt.GenerateAccessToken(userId, email);
             var expiresAt = DateTime.UtcNow.AddMinutes(_jwt.AccessTokenMinutes);
 
             var rawRefresh = _jwt.GenerateRefreshToken();
@@ -214,7 +231,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
             await _authRepo.AddAsync(new RefreshToken
             {
-                UserId = user.Id,
+                UserId = userId,
                 TokenHash = hash,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddDays(7)
@@ -226,8 +243,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             {
                 Auth = new AuthResponse
                 {
-                    Id = user.Id,
-                    Email = user.Email,
+                    Id = userId,
+                    Email = email,
                     AccessToken = accessToken,
                     ExpiresAtUtc = expiresAt
                 },
@@ -257,7 +274,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             var existingLogin = await _userRepo.GetExternalLoginAsync(AuthProvider.Google, userInfo.GoogleId);
             if (existingLogin is not null)
             {
-                var existingUser = await _userRepo.GetByIdAsync(existingLogin.UserId);
+                var existingUser = await _userRepo.GetTrackedByIdAsync(existingLogin.UserId);
                 SyncGoogleProfile(existingUser!, userInfo);
                 await _userRepo.SaveChangesAsync();
                 return await IssueTokensAsync(existingUser!);

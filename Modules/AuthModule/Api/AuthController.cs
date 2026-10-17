@@ -2,6 +2,7 @@ using smart_pet_care_api.Common.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Requests;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Responses;
@@ -24,6 +25,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Email)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -35,6 +37,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("confirm-email")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Credentials)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -47,6 +50,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("resend-confirmation")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Email)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -58,9 +62,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Credentials)]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var result = await _authService.LoginAsync(request);

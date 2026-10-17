@@ -1,6 +1,8 @@
 using smart_pet_care_api.Common.Api;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Modules.AuthModule.Domain;
@@ -11,6 +13,18 @@ using smart_pet_care_api.Modules.AuthModule.Repository;
 
 namespace smart_pet_care_api.Modules.AuthModule
 {
+    /// <summary>
+    /// Policy names for the anonymous auth endpoints. Two of them, because the cost of a
+    /// request differs: a credential attempt burns BCrypt on this server, while a
+    /// registration or a resend spends someone else's inbox and this domain's sending
+    /// reputation.
+    /// </summary>
+    public static class AuthRateLimitPolicies
+    {
+        public const string Credentials = "auth-credentials";
+        public const string Email = "auth-email";
+    }
+
     public static class AuthModuleExtensions
     {
         public static IServiceCollection AddAuthModule(
@@ -84,8 +98,69 @@ namespace smart_pet_care_api.Modules.AuthModule
             return services;
         }
 
+        /// <summary>
+        /// Caps the anonymous auth endpoints per client address. Without it,
+        /// <c>login</c> is a free guessing oracle that also burns an enhanced BCrypt
+        /// verification per attempt, and <c>register</c> has no cap at all: the 60-second
+        /// resend cooldown is per account, so a caller posting fresh addresses never meets
+        /// it and the SMTP sender becomes a way to mail strangers.
+        /// </summary>
+        public static IServiceCollection AddAuthRateLimiting(this IServiceCollection services)
+        {
+            services.AddRateLimiter(options =>
+            {
+                // Fixed window rather than token bucket: the limit a client has to reason
+                // about is "n tries a minute", and Retry-After below can then name the
+                // moment the window turns over.
+                options.AddPolicy(AuthRateLimitPolicies.Credentials, context =>
+                    RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new()
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+                options.AddPolicy(AuthRateLimitPolicies.Email, context =>
+                    RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => new()
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(10)
+                    }));
+
+                // The limiter writes the response itself, so without this a 429 would be
+                // the one failure with an empty body -- the same hole the bearer scheme's
+                // events above close.
+                options.OnRejected = async (rejected, cancellationToken) =>
+                {
+                    rejected.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+                    if (rejected.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                        rejected.HttpContext.Response.Headers.RetryAfter =
+                            ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+
+                    await WriteErrorAsync(
+                        rejected.HttpContext.Response,
+                        StatusCodes.Status429TooManyRequests,
+                        ErrorCodes.Auth.TooManyRequests,
+                        "Too many attempts. Try again shortly.",
+                        cancellationToken);
+                };
+            });
+
+            return services;
+        }
+
+        /// <summary>
+        /// The client address, which is the real one only because UseForwardedHeaders runs
+        /// before the limiter and rewrites RemoteIpAddress from the entry nginx appended.
+        /// A caller with no address at all shares one partition rather than escaping the
+        /// limit.
+        /// </summary>
+        private static string ClientKey(HttpContext context) =>
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
         private static Task WriteErrorAsync(
-            HttpResponse response, int statusCode, string code, string message)
+            HttpResponse response, int statusCode, string code, string message,
+            CancellationToken cancellationToken = default)
         {
             if (response.HasStarted)
                 return Task.CompletedTask;
@@ -96,7 +171,7 @@ namespace smart_pet_care_api.Modules.AuthModule
                 Code = code,
                 Message = message,
                 TraceId = response.HttpContext.TraceIdentifier
-            });
+            }, cancellationToken);
         }
     }
 }

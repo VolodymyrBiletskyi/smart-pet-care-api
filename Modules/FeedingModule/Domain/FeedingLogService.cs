@@ -48,11 +48,14 @@ namespace smart_pet_care_api.Modules.FeedingModule.Domain
             var log = FeedingLogMapper.ToEntity(dto, petId);
 
             // Feeding has its own log, so the reminder is closed from here rather than by a
-            // generic complete call that would have nowhere to put the portion.
+            // generic complete call that would have nowhere to put the portion. autoSave is off
+            // so the closed occurrence and the log land in one SaveChanges — a reminder marked
+            // fed with no feeding log behind it is exactly what the nutrition summary cannot
+            // see and the user cannot correct.
             if (dto.ReminderId is { } reminderId)
             {
                 _ = await _reminderRecalculation.RegisterCompletionAsync(
-                    reminderId, log.FedAt, expectedPetId: petId)
+                    reminderId, log.FedAt, expectedPetId: petId, autoSave: false)
                     ?? throw new NotFoundException(ErrorCodes.ReminderNotFound, "Reminder not found");
             }
 

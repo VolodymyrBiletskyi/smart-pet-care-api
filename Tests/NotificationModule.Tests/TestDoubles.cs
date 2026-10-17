@@ -132,8 +132,11 @@ internal sealed class FakeAuthRepository : IAuthRepository
 /// </summary>
 internal sealed class UnusedUserRepository : IUserRepository
 {
-    public Task<User?> GetByIdAsync(Guid id) => throw new NotSupportedException();
-    public Task<User?> GetByEmailAsync(string email) => throw new NotSupportedException();
+    public Task<UserCredentials?> GetCredentialsByEmailAsync(string email) => throw new NotSupportedException();
+    public Task<UserCredentials?> GetCredentialsByIdAsync(Guid id) => throw new NotSupportedException();
+    public Task<UserProfileRow?> GetProfileByIdAsync(Guid id) => throw new NotSupportedException();
+    public Task<UserAvatar?> GetAvatarByIdAsync(Guid id) => throw new NotSupportedException();
+    public Task<User?> GetTrackedByIdAsync(Guid id) => throw new NotSupportedException();
     public Task<User?> GetTrackedByEmailAsync(string email) => throw new NotSupportedException();
     public Task<User> AddAsync(User entity) => throw new NotSupportedException();
     public Task<int> SaveChangesAsync() => throw new NotSupportedException();
@@ -146,7 +149,7 @@ internal sealed class UnusedUserRepository : IUserRepository
 internal sealed class UnusedJwtProvider : IJwtProvider
 {
     public int AccessTokenMinutes => throw new NotSupportedException();
-    public string GenerateAccessToken(User user) => throw new NotSupportedException();
+    public string GenerateAccessToken(Guid userId, string email) => throw new NotSupportedException();
     public string GenerateRefreshToken() => throw new NotSupportedException();
     public string HashToken(string token) => throw new NotSupportedException();
 }

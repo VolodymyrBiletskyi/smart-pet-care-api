@@ -192,4 +192,26 @@ public class ReminderCompletionServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => harness.Service.CompleteAsync(
             harness.Reminder.Id, UserId, new CompleteReminderDto { Dosage = "10 mg" }));
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task An_oversized_dosage_or_provider_is_rejected_before_the_occurrence_closes(bool dosage)
+    {
+        // Both columns are varchar(200). Checked after the completion was registered, the
+        // database rejected the record, the occurrence was already closed and the retry then
+        // matched the same-day guard — so the record could never be filed through this endpoint.
+        var harness = Build(ReminderType.Vaccination);
+        var tooLong = new string('x', 201);
+        var dto = dosage
+            ? new CompleteReminderDto { Dosage = tooLong }
+            : new CompleteReminderDto { Provider = tooLong };
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            harness.Service.CompleteAsync(harness.Reminder.Id, UserId, dto));
+
+        Assert.Empty(harness.Reminders.Runs);
+        Assert.Empty(harness.HealthRecords.Records);
+        Assert.Null(harness.Reminder.LastCompletedAt);
+    }
 }

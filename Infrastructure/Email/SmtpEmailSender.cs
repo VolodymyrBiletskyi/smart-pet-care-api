@@ -1,5 +1,4 @@
 using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
@@ -45,7 +44,21 @@ namespace smart_pet_care_api.Infrastructure.Email
             message.Body = builder.ToMessageBody();
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_options.Host, _options.Port, SecureSocketOptions.StartTlsWhenAvailable);
+            await client.ConnectAsync(_options.Host, _options.Port, _options.SocketOptions);
+
+            // StartTlsWhenAvailable -- what this used to ask for -- carries on in cleartext
+            // whenever the server does not advertise STARTTLS, and AuthenticateAsync would then
+            // hand over the SMTP password, with the confirmation code following it in the clear.
+            // A stripped capability line is indistinguishable from a plain server, so the only
+            // way to know is to ask afterwards.
+            if (!client.IsSecure && !_options.AllowInsecureConnection)
+            {
+                await client.DisconnectAsync(true);
+                throw new InvalidOperationException(
+                    $"SMTP connection to {_options.Host}:{_options.Port} is not encrypted. "
+                    + "Set Email:AllowInsecureConnection only for a relay on loopback or a private network.");
+            }
+
             await client.AuthenticateAsync(_options.Username, _options.Password);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

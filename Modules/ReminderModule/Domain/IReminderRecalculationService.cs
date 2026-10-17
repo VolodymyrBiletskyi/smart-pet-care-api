@@ -25,7 +25,16 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         /// same date: the next trigger is a function of the completion date, not an offset
         /// from the current one.
         /// </summary>
+        /// <param name="autoSave">
+        /// Commits the closed occurrence on its own, which is what a caller with nothing else to
+        /// write wants. Callers that also store a log — a weight, a portion, a health record —
+        /// pass false and save once: every repository here shares the request's single
+        /// AppDbContext, so one SaveChanges puts the log and the occurrence in one transaction.
+        /// Committing separately meant a log that failed validation or lost an index race left
+        /// the occurrence closed and the schedule advanced with nothing recorded against it.
+        /// </param>
         Task<ReminderCompletionOutcome?> RegisterCompletionAsync(
-            Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null);
+            Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null,
+            bool autoSave = true);
     }
 }

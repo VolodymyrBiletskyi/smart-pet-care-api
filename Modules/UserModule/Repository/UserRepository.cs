@@ -1,4 +1,4 @@
-﻿using smart_pet_care_api.Common.Api;
+using smart_pet_care_api.Common.Api;
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Data;
 using smart_pet_care_api.Models;
@@ -15,11 +15,49 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
             _dbContext = dbContext;
         }
 
-        public async Task<User?> GetByEmailAsync(string email)
+        public async Task<UserCredentials?> GetCredentialsByEmailAsync(string email)
         {
             return await _dbContext.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == email);
+                .AsNoTracking()
+                .Where(u => u.Email == email)
+                .Select(u => new UserCredentials(u.Id, u.Email, u.PasswordHash, u.EmailConfirmed))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<UserCredentials?> GetCredentialsByIdAsync(Guid id)
+        {
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new UserCredentials(u.Id, u.Email, u.PasswordHash, u.EmailConfirmed))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<UserProfileRow?> GetProfileByIdAsync(Guid id)
+        {
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new UserProfileRow(
+                    u.Id,
+                    u.Email,
+                    u.DisplayName,
+                    u.PhoneNumber,
+                    u.AvatarUrl,
+                    u.AvatarData != null,
+                    u.TermsAccepted,
+                    u.CreatedAt,
+                    u.UpdatedAt))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<UserAvatar?> GetAvatarByIdAsync(Guid id)
+        {
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new UserAvatar(u.AvatarData, u.AvatarContentType))
+                .FirstOrDefaultAsync();
         }
 
         public async Task<User?> GetTrackedByEmailAsync(string email)
@@ -28,7 +66,11 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public Task<User?> GetByIdAsync(Guid id)
+        /// <summary>
+        /// The whole row, tracked, for the paths that then write to it. Reads should take a
+        /// projection above instead — this one carries <c>AvatarData</c> with it.
+        /// </summary>
+        public Task<User?> GetTrackedByIdAsync(Guid id)
         {
             return _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
         }
