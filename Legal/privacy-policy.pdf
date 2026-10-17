@@ -13,7 +13,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
 endobj
 5 0 obj
-<< /Title (Smart Pet Care App - Privacy Policy) /Author (Smart Pet Care App project team) /Subject (Version 1.0. Effective 15 October 2026. Published at https://smart-pet-care.duckdns.org/privacy) /Producer (scripts/generate-legal-pdfs.py) /Creator (scripts/generate-legal-pdfs.py) /CreationDate (D:20261015000000Z) /ModDate (D:20261015000000Z) >>
+<< /Title (Smart Pet Care App - Privacy Policy) /Author (Smart Pet Care App project team) /Subject (Version 1.1. Effective 16 October 2026. Published at https://smart-pet-care.duckdns.org/privacy) /Producer (scripts/generate-legal-pdfs.py) /Creator (scripts/generate-legal-pdfs.py) /CreationDate (D:20261016000000Z) /ModDate (D:20261016000000Z) >>
 endobj
 6 0 obj
 << /Length 7037 >>
@@ -33,9 +33,9 @@ BT
 1 0 0 1 56.00 731.89 Tm
 /F1 9.00 Tf
 (Version) Tj
-( 1.0.) Tj
+( 1.1.) Tj
 ( Effective) Tj
-( 15) Tj
+( 16) Tj
 ( October) Tj
 ( 2026.) Tj
 ( Published) Tj
@@ -633,7 +633,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
 endobj
 8 0 obj
-<< /Length 8007 >>
+<< /Length 8333 >>
 stream
 BT
 1 0 0 1 56.00 763.89 Tm
@@ -897,26 +897,56 @@ BT
 ( have) Tj
 ( been) Tj
 ( revoked.) Tj
-( Tokens) Tj
-( are) Tj
-( held) Tj
-( in) Tj
-( your) Tj
-( browser) Tj
-( or) Tj
+( The) Tj
+( API) Tj
+( returns) Tj
+( both) Tj
+( tokens) Tj
+( to) Tj
+( the) Tj
 ( app) Tj
-( as) Tj
-( HTTP-only,) Tj
-( Secure) Tj
-( cookies.) Tj
+( in) Tj
+( the) Tj
+( response) Tj
+( body;) Tj
+( where) Tj
 ET
 BT
-1 0 0 1 70.00 471.09 Tm
+1 0 0 1 81.44 475.09 Tm
+/F1 9.80 Tf
+(they) Tj
+( are) Tj
+( then) Tj
+( kept) Tj
+( is) Tj
+( the) Tj
+( app's) Tj
+( responsibility,) Tj
+( and) Tj
+( on) Tj
+( a) Tj
+( phone) Tj
+( that) Tj
+( is) Tj
+( the) Tj
+( platform's) Tj
+( protected) Tj
+( storage) Tj
+( for) Tj
+ET
+BT
+1 0 0 1 81.44 461.49 Tm
+/F1 9.80 Tf
+(the) Tj
+( app.) Tj
+ET
+BT
+1 0 0 1 70.00 443.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 471.09 Tm
+1 0 0 1 81.44 443.89 Tm
 /F1 9.80 Tf
 (Server) Tj
 ( logs) Tj
@@ -934,7 +964,7 @@ BT
 ( route,) Tj
 ET
 BT
-1 0 0 1 81.44 457.49 Tm
+1 0 0 1 81.44 430.29 Tm
 /F1 9.80 Tf
 (timestamps,) Tj
 ( response) Tj
@@ -954,7 +984,7 @@ BT
 ( find) Tj
 ET
 BT
-1 0 0 1 81.44 443.89 Tm
+1 0 0 1 81.44 416.69 Tm
 /F1 9.80 Tf
 (faults) Tj
 ( and) Tj
@@ -962,7 +992,7 @@ BT
 ( abuse.) Tj
 ET
 BT
-1 0 0 1 56.00 414.89 Tm
+1 0 0 1 56.00 387.69 Tm
 /F2 10.50 Tf
 (3.8) Tj
 ( What) Tj
@@ -972,7 +1002,7 @@ BT
 ( collect) Tj
 ET
 BT
-1 0 0 1 56.00 398.29 Tm
+1 0 0 1 56.00 371.09 Tm
 /F1 9.80 Tf
 (We) Tj
 ( do) Tj
@@ -994,7 +1024,7 @@ BT
 ( third-party) Tj
 ET
 BT
-1 0 0 1 56.00 384.69 Tm
+1 0 0 1 56.00 357.49 Tm
 /F1 9.80 Tf
 (analytics) Tj
 ( or) Tj
@@ -1013,7 +1043,7 @@ BT
 ( marketing.) Tj
 ET
 BT
-1 0 0 1 56.00 344.69 Tm
+1 0 0 1 56.00 317.49 Tm
 /F2 12.50 Tf
 (4.) Tj
 ( A) Tj
@@ -1027,7 +1057,7 @@ BT
 ( text) Tj
 ET
 BT
-1 0 0 1 56.00 326.09 Tm
+1 0 0 1 56.00 298.89 Tm
 /F1 9.80 Tf
 (Information) Tj
 ( about) Tj
@@ -1050,7 +1080,7 @@ BT
 ( "data) Tj
 ET
 BT
-1 0 0 1 56.00 312.49 Tm
+1 0 0 1 56.00 285.29 Tm
 /F1 9.80 Tf
 (concerning) Tj
 ( health") Tj
@@ -1072,7 +1102,7 @@ BT
 ( it.) Tj
 ET
 BT
-1 0 0 1 56.00 291.89 Tm
+1 0 0 1 56.00 264.69 Tm
 /F1 9.80 Tf
 (But) Tj
 ( the) Tj
@@ -1098,7 +1128,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 278.29 Tm
+1 0 0 1 56.00 251.09 Tm
 /F1 9.80 Tf
 (note) Tj
 ( or) Tj
@@ -1123,7 +1153,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 264.69 Tm
+1 0 0 1 56.00 237.49 Tm
 /F1 9.80 Tf
 (household) Tj
 ( detail,) Tj
@@ -1143,7 +1173,7 @@ BT
 ( information) Tj
 ET
 BT
-1 0 0 1 56.00 251.09 Tm
+1 0 0 1 56.00 223.89 Tm
 /F1 9.80 Tf
 (about) Tj
 ( anyone) Tj
@@ -1166,7 +1196,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 56.00 237.49 Tm
+1 0 0 1 56.00 210.29 Tm
 /F1 9.80 Tf
 (AI) Tj
 ( features) Tj
@@ -1181,7 +1211,7 @@ BT
 ( 7.) Tj
 ET
 BT
-1 0 0 1 56.00 197.49 Tm
+1 0 0 1 56.00 170.29 Tm
 /F2 12.50 Tf
 (5.) Tj
 ( Why) Tj
@@ -1195,12 +1225,12 @@ BT
 ( basis) Tj
 ET
 BT
-1 0 0 1 70.00 178.89 Tm
+1 0 0 1 70.00 151.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 178.89 Tm
+1 0 0 1 81.44 151.69 Tm
 /F2 9.80 Tf
 (To) Tj
 ( provide) Tj
@@ -1220,7 +1250,7 @@ BT
 ( calculating) Tj
 ET
 BT
-1 0 0 1 81.44 165.29 Tm
+1 0 0 1 81.44 138.09 Tm
 /F1 9.80 Tf
 (reminder) Tj
 ( schedules,) Tj
@@ -1235,7 +1265,7 @@ BT
 ( of) Tj
 ET
 BT
-1 0 0 1 81.44 151.69 Tm
+1 0 0 1 81.44 124.49 Tm
 /F1 9.80 Tf
 (a) Tj
 ( contract) Tj
@@ -1246,12 +1276,12 @@ BT
 ( GDPR\).) Tj
 ET
 BT
-1 0 0 1 70.00 134.09 Tm
+1 0 0 1 70.00 106.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 134.09 Tm
+1 0 0 1 81.44 106.89 Tm
 /F2 9.80 Tf
 (To) Tj
 ( verify) Tj
@@ -1275,18 +1305,18 @@ BT
 ( contract) Tj
 ET
 BT
-1 0 0 1 81.44 120.49 Tm
+1 0 0 1 81.44 93.29 Tm
 /F1 9.80 Tf
 (\(Art.) Tj
 ( 6\(1\)\(b\)\).) Tj
 ET
 BT
-1 0 0 1 70.00 102.89 Tm
+1 0 0 1 70.00 75.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 102.89 Tm
+1 0 0 1 81.44 75.69 Tm
 /F2 9.80 Tf
 (To) Tj
 ( send) Tj
@@ -1307,7 +1337,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 89.29 Tm
+1 0 0 1 81.44 62.09 Tm
 /F1 9.80 Tf
 (Terms.) Tj
 ( Legal) Tj
@@ -2092,7 +2122,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
 endobj
 12 0 obj
-<< /Length 8623 >>
+<< /Length 8744 >>
 stream
 BT
 1 0 0 1 70.00 764.29 Tm
@@ -2357,24 +2387,37 @@ BT
 ( are) Tj
 ( short-lived) Tj
 ( \(15) Tj
-( minutes\)) Tj
-( and) Tj
-( held) Tj
-( in) Tj
-( HTTP-only,) Tj
-( Secure,) Tj
-( SameSite) Tj
-( cookies,) Tj
+( minutes\),) Tj
 ( so) Tj
-( page) Tj
+( a) Tj
+( token) Tj
+( that) Tj
+( does) Tj
+( leak) Tj
+( is) Tj
+( of) Tj
+( little) Tj
+( use.) Tj
+( They) Tj
+( are) Tj
+( sent) Tj
+( with) Tj
 ET
 BT
 1 0 0 1 81.44 525.49 Tm
 /F1 9.80 Tf
-(scripts) Tj
-( cannot) Tj
-( read) Tj
-( them.) Tj
+(each) Tj
+( request) Tj
+( as) Tj
+( a) Tj
+( bearer) Tj
+( token) Tj
+( rather) Tj
+( than) Tj
+( stored) Tj
+( by) Tj
+( the) Tj
+( API.) Tj
 ET
 BT
 1 0 0 1 70.00 507.89 Tm
@@ -3054,15 +3097,15 @@ xref
 0000000712 00000 n 
 0000007801 00000 n 
 0000007943 00000 n 
-0000016002 00000 n 
-0000016144 00000 n 
-0000024947 00000 n 
-0000025091 00000 n 
-0000033767 00000 n 
-0000033911 00000 n 
-0000036023 00000 n 
+0000016328 00000 n 
+0000016470 00000 n 
+0000025273 00000 n 
+0000025417 00000 n 
+0000034214 00000 n 
+0000034358 00000 n 
+0000036470 00000 n 
 trailer
-<< /Size 16 /Root 1 0 R /Info 5 0 R /ID [<7E459E56FDFDE8131B86C066A8CB627D> <7E459E56FDFDE8131B86C066A8CB627D>] >>
+<< /Size 16 /Root 1 0 R /Info 5 0 R /ID [<B6641B4C361ED911A0C2B4EDFFCF8E94> <B6641B4C361ED911A0C2B4EDFFCF8E94>] >>
 startxref
-36167
+36614
 %%EOF

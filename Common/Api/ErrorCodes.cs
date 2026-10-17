@@ -199,6 +199,13 @@ public static class ErrorCodes
         public const string AccountNoLongerExists = "auth_account_no_longer_exists";
 
         public const string Forbidden = "auth_forbidden";
+
+        /// <summary>
+        /// Too many attempts from one address against the anonymous endpoints. Returned by
+        /// the rate limiter rather than by the service, so it carries no information about
+        /// whether the credentials or the address were any good.
+        /// </summary>
+        public const string TooManyRequests = "auth_too_many_requests";
     }
 
     public static class User

@@ -88,7 +88,8 @@ internal sealed class FakeReminderRecalculationService : IReminderRecalculationS
         Guid reminderId,
         DateTime performedAtUtc,
         string? note = null,
-        Guid? expectedPetId = null) =>
+        Guid? expectedPetId = null,
+        bool autoSave = true) =>
         Task.FromResult<ReminderCompletionOutcome?>(null);
 }
 

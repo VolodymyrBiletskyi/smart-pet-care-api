@@ -15,7 +15,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
         }
 
         public async Task<ReminderCompletionOutcome?> RegisterCompletionAsync(
-            Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null)
+            Guid reminderId, DateTime performedAtUtc, string? note = null, Guid? expectedPetId = null,
+            bool autoSave = true)
         {
             var reminder = await _reminderRepo.GetByIdAsync(reminderId);
             if (reminder is null) return null;
@@ -42,7 +43,7 @@ namespace smart_pet_care_api.Modules.ReminderModule.Domain
 
             ApplyCompletionToSchedule(reminder, performedAt, now, nextTrigger);
 
-            await _reminderRepo.SaveChangesAsync();
+            if (autoSave) await _reminderRepo.SaveChangesAsync();
 
             return new ReminderCompletionOutcome(reminder, run, AlreadyRecorded: false);
         }

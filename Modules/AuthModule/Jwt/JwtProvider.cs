@@ -22,11 +22,11 @@ namespace smart_pet_care_api.Modules.AuthModule.Jwt
 
         public int AccessTokenMinutes => _options.AccessTokenMinutes;
 
-        public string GenerateAccessToken(User user)
+        public string GenerateAccessToken(Guid userId, string email)
         {
             Claim[] claims = [
-                new("userId", user.Id.ToString()),
-                new("email", user.Email ?? string.Empty)];
+                new("userId", userId.ToString()),
+                new("email", email ?? string.Empty)];
 
             var signingCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(_key),

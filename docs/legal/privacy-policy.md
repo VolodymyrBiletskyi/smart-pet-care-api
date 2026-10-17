@@ -1,6 +1,6 @@
 # Smart Pet Care App - Privacy Policy
 
-Version 1.0. Effective 15 October 2026. Published at https://smart-pet-care.duckdns.org/privacy
+Version 1.1. Effective 16 October 2026. Published at https://smart-pet-care.duckdns.org/privacy
 
 ## 1. Who is responsible, and what this covers
 
@@ -83,8 +83,10 @@ Recent messages in a session are replayed as context for the next question.
   identifies a device to Google's messaging service; it is not an advertising
   identifier.
 - Session data: refresh tokens, stored as SHA-256 hashes rather than in the
-  clear, with their expiry and whether they have been revoked. Tokens are held
-  in your browser or app as HTTP-only, Secure cookies.
+  clear, with their expiry and whether they have been revoked. The API returns
+  both tokens to the app in the response body; where they are then kept is the
+  app's responsibility, and on a phone that is the platform's protected storage
+  for the app.
 - Server logs produced by handling your requests, which contain IP addresses,
   the requested route, timestamps, response status, user agent and a trace
   identifier. These are operational records used to find faults and detect
@@ -203,8 +205,9 @@ can ask us for details of the safeguards that apply to a specific provider.
 - All traffic is served over HTTPS/TLS.
 - Passwords are stored as bcrypt hashes; refresh tokens as SHA-256 hashes.
   Neither can be read back.
-- Access tokens are short-lived (15 minutes) and held in HTTP-only, Secure,
-  SameSite cookies, so page scripts cannot read them.
+- Access tokens are short-lived (15 minutes), so a token that does leak is of
+  little use. They are sent with each request as a bearer token rather than
+  stored by the API.
 - Every request for a pet's data is checked against the signed-in account, so
   one user cannot read another's records.
 - The database is not reachable from the public internet; the API reaches it on

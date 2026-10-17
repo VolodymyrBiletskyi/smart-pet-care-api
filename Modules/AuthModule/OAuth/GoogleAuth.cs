@@ -72,7 +72,12 @@ namespace smart_pet_care_api.Modules.AuthModule.OAuth
             }
 
             // Tokens requested without the email scope can't be linked to an account.
-            if (string.IsNullOrWhiteSpace(payload.Email))
+            // EmailVerified matters just as much: the email a Google account carries is
+            // only proof of ownership once Google has verified it, and an account on an
+            // attacker-controlled domain can otherwise name a victim's address and have
+            // LoginOrRegisterOAuthUserAsync match their row by email. The claim is bool?,
+            // so an absent one is unverified.
+            if (string.IsNullOrWhiteSpace(payload.Email) || payload.EmailVerified != true)
                 throw new UnauthorizedException(ErrorCodes.Auth.GoogleAuthFailed, "Google authentication failed");
 
             return new GoogleUserInfo

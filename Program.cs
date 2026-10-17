@@ -41,6 +41,7 @@ builder.Services.AddHealthChecks()
 builder.Services.AddUserModule();
 builder.Services.AddPetModule();
 builder.Services.AddAuthModule(builder.Configuration);
+builder.Services.AddAuthRateLimiting();
 builder.Services.AddReminderModule();
 builder.Services.AddFeedingModule();
 builder.Services.AddHealthModule();
@@ -94,10 +95,25 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
 var app = builder.Build();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+// XForwardedFor as well as the scheme, because the rate limiter partitions on
+// Connection.RemoteIpAddress and nginx is the only thing that ever connects to this
+// server: left unrewritten, every client in the world would share the proxy's address
+// and one partition. ForwardLimit stays at 1 and the header is read from the right, so
+// the entry taken is the one nginx appended -- a client that sends its own
+// X-Forwarded-For only pushes a value nobody reads.
+//
+// The known-proxy lists are cleared rather than filled in: the defaults are loopback
+// only, which silently discarded both headers from a proxy on the compose network, and
+// the container's address there is assigned by Docker rather than known in advance.
+// Nothing but nginx can reach this port -- compose publishes it on 127.0.0.1 -- so there
+// is no untrusted peer whose headers would be honoured.
+var forwardedHeaders = new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto
-});
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeaders.KnownNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeaders);
 
 // Empty branch on purpose: GlobalExceptionHandler always handles, so the
 // built-in ProblemDetails fallback would only ever shadow our shape.
@@ -134,6 +150,9 @@ app.Lifetime.ApplicationStarted.Register(() =>
 if (!app.Environment.IsProduction())
     app.UseHttpsRedirection();
 app.UseRouting();
+// After routing, so the per-endpoint policies resolve; before authentication, so an
+// unauthenticated flood is rejected before it costs anything.
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();

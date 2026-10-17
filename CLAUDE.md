@@ -8,8 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Restore dependencies
 dotnet restore
 
-# Run chat module tests
-dotnet test Modules/ChatModule.Tests/ChatModule.Tests.csproj --configuration Debug
+# Run every test project
+dotnet test smart-pet-care-api.sln
+
+# Run one module's tests
+dotnet test Tests/ChatModule.Tests/ChatModule.Tests.csproj --configuration Debug
 
 # Run the application (dev)
 dotnet run
@@ -26,11 +29,13 @@ docker-compose up --build
 
 API docs (Scalar UI): `http://localhost:8080/scalar/v1`
 
-Chat module tests are in
-`Modules/ChatModule.Tests/ChatModule.Tests.csproj`. They cover the
-classifier client and configuration, session replacement, eight-message
-history replay and pagination, ownership checks, response mapping, and
-relational persistence.
+All test projects live under `Tests/`, and `dotnet test smart-pet-care-api.sln`
+runs every one of them.
+
+Chat module tests are in `Tests/ChatModule.Tests/ChatModule.Tests.csproj`. They
+cover the classifier client and configuration, session replacement,
+eight-message history replay and pagination, ownership checks, response
+mapping, and relational persistence.
 
 Nutrition module tests are in `Tests/NutritionModule.Tests/`. They cover the
 daily summary (day-window math, goal comparison) and the AI feeding analysis
@@ -351,10 +356,18 @@ file is therefore a 500 `internal_error`, which is what it is -- the
 and the Web SDK's default globs cover neither a `.pdf` nor an `.html` outside
 `wwwroot`.
 
-Both documents are version 1.0 and describe the system as it actually is -- the
-data inventory in the Privacy Policy was written off the models and the
-infrastructure, so a feature that starts collecting something new, or a change
-of processor, needs section 3, 7 or 9 updated with it.
+The Terms are version 1.0 and the Privacy Policy 1.1; both describe the system
+as it actually is -- the data inventory in the Privacy Policy was written off the
+models and the infrastructure, so a feature that starts collecting something
+new, or a change of processor, needs section 3, 7 or 9 updated with it.
+
+1.1 corrected sections 3.7 and 10, which described tokens as held in HTTP-only,
+Secure, SameSite cookies "so page scripts cannot read them". The API has never
+set a cookie: both tokens are returned in the response body and the refresh
+token comes back in a request body. A published policy claiming a control that
+does not exist is worse than one that claims less, so it now says what the API
+does and leaves storage to the client. A version bump and a regeneration go
+together -- the effective date is what the PDF's creation date is taken from.
 
 ### Transactional email
 
@@ -389,6 +402,16 @@ The HTML is **email** HTML, which is a different craft from the legal pages:
 The sender name in the inbox is `EmailOptions.FromName`, defaulting to `Miso`
 and overridden by `Email__FromName` / `EMAIL_FROM_NAME` in a deployed
 environment, so changing the brand means changing `.env` on the host too.
+
+The connection is encrypted or it does not happen: `EmailOptions.SocketOptions`
+picks `SslOnConnect` for port 465 and `StartTls` for everything else, and
+`SmtpEmailSender` asserts `client.IsSecure` before it authenticates. The old
+`StartTlsWhenAvailable` carried on in cleartext whenever the server did not
+advertise STARTTLS -- and a stripped capability line looks exactly like a server
+that is simply plain -- so the SMTP password and the confirmation code could
+both go out in the open. `Email:AllowInsecureConnection` restores the lenient
+behaviour for a relay on loopback or a private network, where there is no
+segment to intercept.
 
 ### Errors
 
@@ -580,12 +603,14 @@ rather than a percentage.
 
 ### Authentication
 
-Dual auth strategy — JWT cookies + Google OAuth:
+Dual auth strategy — JWT bearer tokens + Google OAuth:
 
-- **JWT:** Access tokens (15 min) and refresh tokens (7 days) stored as HTTP-only, Secure, SameSite=Strict cookies. Refresh tokens are persisted as SHA256 hashes in the `RefreshTokens` table.
-- **Google OAuth:** Web (authorization code flow) and mobile (ID token validation) flows both supported via `Google.Apis.Auth`.
+- **JWT:** Access tokens (15 min) and refresh tokens (7 days) are returned in the response body and sent back as `Authorization: Bearer`. The API sets no cookie anywhere, so where a token is kept is the client's decision. Refresh tokens are persisted as SHA256 hashes in the `RefreshTokens` table, and `POST /api/auth/refresh` takes the raw token in the body.
+- **Google OAuth:** Web (authorization code flow) and mobile (ID token validation) flows both supported via `Google.Apis.Auth`. A token is accepted only when Google reports the account's email as verified — the email is what `LoginOrRegisterOAuthUserAsync` matches an existing row on, so an unverified one naming somebody else's address would be a way into their account.
 - `AuthMiddleware` validates that the JWT user still exists in the database; results are cached for 3 minutes to reduce DB hits.
 - Protected endpoints use `[Authorize]`. Retrieve the current user ID via `ClaimsPrincipalExtensions.GetUserId()`.
+- The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same four routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. A rejection is `auth_too_many_requests` with `Retry-After`.
+- `UseForwardedHeaders` is configured with `XForwardedFor` and an empty known-proxy list, because the limiter partitions on `Connection.RemoteIpAddress`: with the defaults (loopback only) nginx's headers were discarded and every client on earth shared the proxy's address and one partition.
 
 JWT and OAuth settings are loaded from `appsettings.json` (`JwtOptions`, `GoogleOAuthOptions`) and can be overridden with env vars (see `.env`).
 
