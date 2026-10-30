@@ -61,6 +61,46 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             return NoContent();
         }
 
+        /// <summary>
+        /// Starts a password reset: mails a link to the address, if it has an account.
+        /// </summary>
+        /// <remarks>
+        /// Always 202, and always the same body. An address without an account, one
+        /// inside the resend cooldown and one that has just been mailed are
+        /// indistinguishable from here — the alternative is a lookup telling anyone with
+        /// a list of addresses which of them are registered.
+        /// </remarks>
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Email)]
+        [ProducesResponseType(StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            await _authService.ForgotPasswordAsync(request.Email);
+            return Accepted(new { message = "If that address has an account, a reset link is on its way" });
+        }
+
+        /// <summary>
+        /// Finishes it: the token from the link plus the new password.
+        /// </summary>
+        /// <remarks>
+        /// No session comes back. The link is a bearer credential that sat in a mailbox,
+        /// so it buys one password change and not a signed-in client — the app logs in
+        /// with the new password afterwards.
+        /// </remarks>
+        [HttpPost("reset-password")]
+        [EnableRateLimiting(AuthRateLimitPolicies.Credentials)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status410Gone)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            await _authService.ResetPasswordAsync(request);
+            return NoContent();
+        }
+
         [HttpPost("login")]
         [EnableRateLimiting(AuthRateLimitPolicies.Credentials)]
         [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]

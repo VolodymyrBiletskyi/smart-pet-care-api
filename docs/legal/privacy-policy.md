@@ -1,6 +1,6 @@
 # Smart Pet Care App - Privacy Policy
 
-Version 1.1. Effective 16 October 2026. Published at https://smart-pet-care.duckdns.org/privacy
+Version 1.2. Effective 30 October 2026. Published at https://smart-pet-care.duckdns.org/privacy
 
 ## 1. Who is responsible, and what this covers
 
@@ -42,6 +42,12 @@ created and last changed.
 
 If you sign up with a password we send a confirmation code to your email and
 store it, hashed, until it is used or expires 15 minutes later.
+
+If you ask to reset a forgotten password we email you a link and store the token
+it carries, hashed, until the link is used or expires 30 minutes later. We do not
+record the addresses that were entered, and the reply we send back is the same
+whether or not an address has an account - though we do not claim that someone
+watching closely could not tell the difference.
 
 ### 3.2 Signing in with Google
 
@@ -120,9 +126,9 @@ fields on as described in section 7.
   you (Art. 6(1)(b) GDPR).
 - **To verify your email address** and to let you sign in with Google. Legal
   basis: performance of a contract (Art. 6(1)(b)).
-- **To send account and security email** - confirmation codes, security
-  notices, notice of changes to the Terms. Legal basis: performance of a
-  contract (Art. 6(1)(b)).
+- **To send account and security email** - confirmation codes, password reset
+  links, security notices, notice of changes to the Terms. Legal basis:
+  performance of a contract (Art. 6(1)(b)).
 - **To keep the Service secure and working** - authentication, authorisation
   checks that keep your pets visible only to you, rate limiting, abuse
   detection, fault diagnosis from logs, and backups so a failure does not lose
@@ -184,12 +190,17 @@ can ask us for details of the safeguards that apply to a specific provider.
   individual pet or record. Deleting an account deletes the account and the
   pets and records belonging to it.
 - **Email confirmation codes** - 15 minutes, then they are expired and unusable.
+- **Password reset tokens** - usable for 30 minutes and for one reset, then they
+  are expired and unusable; asking for a new link also cancels the previous one.
+  The hashed record of a spent link is kept with the account.
 - **Refresh tokens** - 7 days from issue; revoked immediately when you sign out
-  of that device or change your password.
+  of that device or change your password. Resetting a forgotten password revokes
+  them on every device, so each one has to sign in again.
 - **Push notification tokens** - until you turn notifications off, you sign out
   of that device, or the token goes unused for 60 days, after which it is
   pruned. Registering a device under a different account moves the token to that
-  account.
+  account. Resetting a forgotten password deletes them for every device, so a
+  device somebody else had signed in on stops receiving your notifications.
 - **Feeding analyses** - only the two most recent per pet are kept; older ones
   are discarded as new ones are produced.
 - **Server logs** - kept short-term for fault diagnosis and security, and
@@ -203,8 +214,8 @@ can ask us for details of the safeguards that apply to a specific provider.
 ## 10. Security
 
 - All traffic is served over HTTPS/TLS.
-- Passwords are stored as bcrypt hashes; refresh tokens as SHA-256 hashes.
-  Neither can be read back.
+- Passwords are stored as bcrypt hashes; refresh tokens, confirmation codes and
+  password reset tokens as SHA-256 hashes. None of them can be read back.
 - Access tokens are short-lived (15 minutes), so a token that does leak is of
   little use. They are sent with each request as a bearer token rather than
   stored by the API.

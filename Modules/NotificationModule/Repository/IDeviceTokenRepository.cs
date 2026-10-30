@@ -7,6 +7,7 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
         Task<IReadOnlyList<DeviceToken>> GetByUserIdAsync(Guid userId);
         Task UpsertAsync(DeviceToken token);
         Task<bool> RemoveByUserAndTokenAsync(Guid userId, string token);
+        Task<int> RemoveByUserAsync(Guid userId);
         Task RemoveByTokensAsync(IEnumerable<string> tokens);
         Task<int> RemoveStaleAsync(DateTime olderThan);
         Task<int> SaveChangesAsync();

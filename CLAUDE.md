@@ -65,10 +65,22 @@ whole row including the swap that clears one field while filling the other),
 the mapper, the repository (pet filter, `UpdatedAt` ordering, tracking
 behaviour) and the controller status mapping.
 
+Auth module tests are in `Tests/AuthModule.Tests/`. They cover the password
+reset end to end against fakes: that only the hash is stored and the raw
+url-safe token is mailed, that an unknown address and the cooldown both answer
+the same way as a sent link, that a new link supersedes the old one, that a
+reset sets the password, spends the token once, revokes every live session
+(including past the ten `GetActiveByUserAsync` returns), drops every push
+registration but only on success, confirms an unconfirmed address and leaves an
+already-set `EmailConfirmedAt` alone, the invalid/expired/superseded branches,
+that the landing page's check does not spend the token it checks, and the link
+builder's three sources of a base URL.
+
 Notification module tests are in `Tests/NotificationModule.Tests/`. They cover
 device token registration (blank rejected, trimming, the 60-day staleness
 window, a token moving between accounts), unregistration scoped to the caller,
-and logout dropping the signing-out device's registration. Three of them need
+the account-wide unregistration a password reset calls, and logout dropping the
+signing-out device's registration. Three of them need
 Docker: the upsert is raw SQL resolved by a unique index, so `ON CONFLICT` and
 the migration that creates its target can only be exercised against a real
 Postgres.
@@ -254,7 +266,8 @@ already gone no longer returns early. The field is
 optional so a client that sends no body logs out as it always did — such a
 client simply keeps relying on the reassignment above. Only the signing-out
 device is dropped; wiping every token for the user would silence the pushes on
-their other devices.
+their other devices. A password reset is the one case where wiping all of them
+is right, and it does — see the password reset section.
 
 ### Legal documents
 
@@ -356,10 +369,16 @@ file is therefore a 500 `internal_error`, which is what it is -- the
 and the Web SDK's default globs cover neither a `.pdf` nor an `.html` outside
 `wwwroot`.
 
-The Terms are version 1.0 and the Privacy Policy 1.1; both describe the system
+The Terms are version 1.0 and the Privacy Policy 1.2; both describe the system
 as it actually is -- the data inventory in the Privacy Policy was written off the
 models and the infrastructure, so a feature that starts collecting something
 new, or a change of processor, needs section 3, 7 or 9 updated with it.
+
+1.2 added the password reset to sections 3.1, 7, 9 and 10: a new table of hashed
+tokens with a 30-minute life, the reset link as something the service emails, and
+the fact that a reset revokes the sessions on every device. It also records that
+the endpoint does not reveal whether the address has an account, which is a
+promise the implementation has to keep.
 
 1.1 corrected sections 3.7 and 10, which described tokens as held in HTTP-only,
 Secure, SameSite cookies "so page scripts cannot read them". The API has never
@@ -371,20 +390,21 @@ together -- the effective date is what the PDF's creation date is taken from.
 
 ### Transactional email
 
-One email is sent today: the six-digit confirmation code, from
-`AuthService.SendConfirmationCodeAsync` on register and on resend. It goes out as
+Two emails are sent today: the six-digit confirmation code, from
+`AuthService.SendConfirmationCodeAsync` on register and on resend, and the
+password reset link, from `AuthService.ForgotPasswordAsync`. Both go out as
 **multipart/alternative** -- `IEmailSender.SendAsync` takes an optional
 `htmlBody`, and `BodyBuilder` puts the text part first so a client picks the
 HTML wherever it can render it. The text part is not a leftover: it is the
 fallback for a plain-text client, and an HTML-only message looks like a blast to
 a spam filter.
 
-Both renderings live in `Emails/` as files, rendered by
-`EmailTemplateProvider` (`{{code}}`, `{{minutes}}`, HTML-escaped into the HTML
-variant). Files rather than strings in C# because email markup is tables with
-every style inlined -- unreadable in a verbatim string, and editable by someone
-who does not touch the service. Read once and cached; the `Content Include` in
-the csproj is what puts them in the publish output.
+Every rendering lives in `Emails/` as a file, rendered by
+`EmailTemplateProvider` (`{{code}}`, `{{minutes}}`, `{{link}}`, HTML-escaped into
+the HTML variant). Files rather than strings in C# because email markup is tables
+with every style inlined -- unreadable in a verbatim string, and editable by
+someone who does not touch the service. Read once and cached; the
+`Content Include` in the csproj is what puts them in the publish output.
 
 The HTML is **email** HTML, which is a different craft from the legal pages:
 
@@ -396,8 +416,13 @@ The HTML is **email** HTML, which is a different craft from the legal pages:
   and Outlook on iOS invert the card and the white design arrives grey.
 - The code sits in its own bordered block with `bgcolor` as well as
   `background-color`, because Outlook ignores the CSS one.
-- Preview text is a hidden div, and **it does not contain the code** -- neither
-  does the subject. Both land on a lock screen.
+- Preview text is a hidden div, and **it does not contain the code or the reset
+  link** -- neither does either subject. Both land on a lock screen.
+- The reset email's button is the one element the confirmation does not have. Its
+  colour sits on the `<td>` as `bgcolor` as well as in CSS, since Outlook ignores
+  the CSS one, and the rounded corner is what it degrades to a plain rectangle
+  without. The full URL is repeated as text underneath, because a user reading
+  mail on a desktop has to be able to copy it.
 
 The sender name in the inbox is `EmailOptions.FromName`, defaulting to `Miso`
 and overridden by `Email__FromName` / `EMAIL_FROM_NAME` in a deployed
@@ -412,6 +437,105 @@ that is simply plain -- so the SMTP password and the confirmation code could
 both go out in the open. `Email:AllowInsecureConnection` restores the lenient
 behaviour for a relay on loopback or a private network, where there is no
 segment to intercept.
+
+### Password reset
+
+A forgotten password is recovered by link, not by code: `POST
+/api/auth/forgot-password` mails one, `GET /reset-password?token=…` opens the app
+at the new-password screen, and `POST /api/auth/reset-password` spends the token.
+The client-facing contract is `docs/password-reset-flow.md`.
+
+`forgot-password` answers **202 with the same body whether the address has an
+account or not**, and whether a mail went out or was suppressed by the 60-second
+per-account cooldown. This is the one anonymous endpoint where the difference
+between two answers *is* the product — a free "does this person use Miso" lookup
+against any list of addresses. `resend-confirmation` does return 404
+`auth_account_not_found`, and it can: the caller there has just been told the
+address is registered. The cooldown is therefore silent rather than a
+`CONFIRMATION_RESEND_TOO_SOON`-style 429, and the per-address rate limiter is
+what actually caps the endpoint.
+
+The link in the email is **https to this API**, not `miso://`. A mail client
+renders a custom scheme as plain text at best and strips it at worst, and the
+message has to be readable on a desktop with no app installed. `/reset-password`
+then serves a page that opens `PasswordReset:AppLink` — on load via a two-line
+script, and from a visible button for when that is blocked. A deployment that
+registers App Links or Universal Links for the host never reaches the route at
+all, which is the better path; the page is what covers everything else, because
+a 302 to a scheme nothing can open is a browser error rather than a sentence the
+user can act on. It answers 200 even for a dead link: the status is about the
+request for a page, and some WebViews replace the body of an error status with
+their own.
+
+Opening the link is a **read** — the token is spent by the POST and nothing else,
+which is what makes a mail scanner's prefetch harmless. The route sets
+`no-store`, `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex` because
+the URL carries a bearer credential.
+
+`PasswordResetToken` is its own table rather than a purpose column on
+`EmailConfirmationCodes`: the two are looked up differently — a code by user, a
+reset by the token in a URL — and sharing the table would put a row that can
+change a password one wrong predicate away from the query that confirms an
+address. 256 random bits, base64url rather than `GenerateRefreshToken`'s plain
+base64 since it travels as a query parameter, stored as SHA256, single use, 30
+minutes, and superseded by the next link for the same account.
+
+What a reset does beyond the password:
+
+- **Revokes every live refresh token**, through `GetAllActiveByUserAsync` rather
+  than `GetActiveByUserAsync` — the latter takes the ten newest, which is enough
+  to sign a session out but would leave an eleventh working for seven days. A
+  reset is what a user does when they believe somebody else knows the password.
+- **Deletes every push registration** (`IDeviceTokenService.UnregisterAllAsync`),
+  which revoking the sessions does not cover: the recipient of a push is decided
+  by the account a `DeviceTokens` row belongs to and by no session at all, so a
+  device that registered while somebody else held the password would carry on
+  receiving the owner's reminders — pet name in the title, the reminder in the
+  body — and the 60-day pruning never arrives, because every delivered push
+  refreshes `LastSeenAt`. It takes *all* of them, unlike logout: after a reset
+  "the user's other devices are still theirs" is precisely the assumption that
+  stopped holding, and each of the owner's devices has to sign in again anyway
+  and registers on the way. Only on success — a rejected link must not become a
+  way to silence somebody's notifications.
+- **Confirms an unconfirmed address.** Following the link proved control of the
+  mailbox, which is what the six-digit code proves; without it an account that
+  never confirmed could reset its password and still not be able to log in.
+- **Returns no session.** The link sat in a mailbox, so it buys one password
+  change, not a signed-in client. The app logs in afterwards.
+
+A Google-only account can use the flow and gains a password. It is not a new way
+in — anyone holding the mailbox can already reset through Google — and refusing
+would leave a user whose Google account is gone with nothing.
+
+The token and the password are written in **one SaveChanges**: the tracked user
+row is loaded, avatar bytes and all, instead of being projected and updated with
+`ExecuteUpdate`, because a reset that burned the link without changing the
+password would lock the user out of their own recovery.
+
+`Pages/password-reset-*.html` are the two renderings, read and cached by
+`PasswordResetPageProvider`, and in the publish output through the same
+`Content Include` the email templates need. They follow the legal pages' rules
+(self-contained, light-only, safe-area padding) with one exception: the automatic
+hand-off needs script, so the link lives in the button's `href` and the script
+reads it back off the element rather than being handed a second copy to escape.
+
+Three findings from the security review were left in deliberately, and
+`docs/password-reset-flow.md` records each with its fix:
+
+- **Enumeration is detectable by timing.** The body is identical for an address
+  with an account and one without; the response time is not, because the email
+  is sent synchronously inside the request. Two orders of magnitude, one request
+  per address. The identical body therefore raises the cost from reading the
+  response to timing it, and no further — treat the registered-address set as
+  obtainable. Not fixed because `SendConfirmationCodeAsync` on register leaks
+  the same way for the same reason, and the fix is one change to how the
+  application sends mail (a queue plus a `BackgroundService`) that should move
+  both or neither. The Privacy Policy §3.1 is worded to claim no more than this.
+- **The token reaches the nginx access log**, since it is in the query string and
+  nginx logs the request line. Everything else about that URL is covered — the
+  route sends `no-store`, `no-referrer` and `noindex`.
+- **A completed reset notifies nobody.** Worst on a Google-only account, where
+  the owner never meets a password prompt and so has no symptom at all.
 
 ### Errors
 
@@ -609,7 +733,7 @@ Dual auth strategy — JWT bearer tokens + Google OAuth:
 - **Google OAuth:** Web (authorization code flow) and mobile (ID token validation) flows both supported via `Google.Apis.Auth`. A token is accepted only when Google reports the account's email as verified — the email is what `LoginOrRegisterOAuthUserAsync` matches an existing row on, so an unverified one naming somebody else's address would be a way into their account.
 - `AuthMiddleware` validates that the JWT user still exists in the database; results are cached for 3 minutes to reduce DB hits.
 - Protected endpoints use `[Authorize]`. Retrieve the current user ID via `ClaimsPrincipalExtensions.GetUserId()`.
-- The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same four routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. A rejection is `auth_too_many_requests` with `Retry-After`.
+- The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password`, `reset-password` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same six routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. `forgot-password` is the same and worse, since it answers identically for an address with an account and one without — the cap is the only thing between a list of addresses and a mailing. A rejection is `auth_too_many_requests` with `Retry-After`.
 - `UseForwardedHeaders` is configured with `XForwardedFor` and an empty known-proxy list, because the limiter partitions on `Connection.RemoteIpAddress`: with the defaults (loopback only) nginx's headers were discarded and every client on earth shared the proxy's address and one partition.
 
 JWT and OAuth settings are loaded from `appsettings.json` (`JwtOptions`, `GoogleOAuthOptions`) and can be overridden with env vars (see `.env`).

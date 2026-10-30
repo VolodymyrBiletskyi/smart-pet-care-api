@@ -43,6 +43,7 @@ public static class ErrorCodes
         public const string PasswordsDoNotMatch = "auth_passwords_do_not_match";
         public const string ConfirmationCodeRequired = "auth_confirmation_code_required";
         public const string ConfirmationCodeMalformed = "auth_confirmation_code_malformed";
+        public const string ResetTokenRequired = "auth_reset_token_required";
 
         public const string ReminderUtcOffsetRequired = "reminder_utc_offset_required";
 
@@ -187,6 +188,20 @@ public static class ErrorCodes
         public const string GoogleAuthFailed = "auth_google_failed";
         public const string RefreshTokenInvalid = "auth_refresh_token_invalid";
         public const string OAuthCodeRequired = "auth_oauth_code_required";
+
+        /// <summary>
+        /// The reset token is unknown or already spent. Unknown and spent are one alias
+        /// on purpose — the client's next step is the same either way, and the two
+        /// answers together would say whether a link had ever existed.
+        /// </summary>
+        public const string ResetTokenInvalid = "auth_reset_token_invalid";
+
+        /// <summary>
+        /// The reset link was real but is past its lifetime. Distinct from
+        /// <see cref="ResetTokenInvalid"/> because it is the one case where the client can
+        /// say something better than "that link is wrong": ask for a fresh one.
+        /// </summary>
+        public const string ResetTokenExpired = "auth_reset_token_expired";
 
         /// <summary>No token, an expired one, or one that fails validation.</summary>
         public const string AuthenticationRequired = "auth_authentication_required";

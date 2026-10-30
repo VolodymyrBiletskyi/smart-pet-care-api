@@ -36,6 +36,8 @@
     <Content Include="Legal\*.pdf;Legal\*.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <!-- Same reason: the email templates are read from the content root at runtime. -->
     <Content Include="Emails\*.html;Emails\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- And the pages /reset-password serves. -->
+    <Content Include="Pages\*.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,5 +11,7 @@ namespace smart_pet_care_api.Infrastructure.Email
     public interface IEmailTemplateProvider
     {
         EmailBody ConfirmationCode(string code, int expiresInMinutes);
+
+        EmailBody PasswordReset(string link, int expiresInMinutes);
     }
 }

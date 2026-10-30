@@ -127,7 +127,7 @@ footer p { margin: 0; }
 <header class="masthead">
 <p class="eyebrow">Smart Pet Care App</p>
 <h1>Privacy Policy</h1>
-<p class="meta">Version 1.1. Effective 16 October 2026. Published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a></p>
+<p class="meta">Version 1.2. Effective 30 October 2026. Published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a></p>
 <a class="action" href="/privacy.pdf" download="privacy-policy.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg> Download PDF</a>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -165,6 +165,7 @@ footer p { margin: 0; }
 <h3 id="s3-1">3.1 Account data</h3>
 <p>Your email address; a password hash if you signed up with a password (hashed with bcrypt - we never hold the password itself); optionally a display name, a phone number and a profile picture; whether and when you accepted the Terms; whether and when you confirmed your email; and the dates your account was created and last changed.</p>
 <p>If you sign up with a password we send a confirmation code to your email and store it, hashed, until it is used or expires 15 minutes later.</p>
+<p>If you ask to reset a forgotten password we email you a link and store the token it carries, hashed, until the link is used or expires 30 minutes later. We do not record the addresses that were entered, and the reply we send back is the same whether or not an address has an account - though we do not claim that someone watching closely could not tell the difference.</p>
 <h3 id="s3-2">3.2 Signing in with Google</h3>
 <p>If you choose Google sign-in, Google tells us the identifier of your Google account, your email address and, if you have them, your name and profile picture. We store the link between your Smart Pet Care account and that Google account so you can sign in again. We never receive your Google password, and we ask Google for nothing beyond basic profile and email.</p>
 <h3 id="s3-3">3.3 Pet profiles</h3>
@@ -190,7 +191,7 @@ footer p { margin: 0; }
 <ul>
   <li><strong>To provide the Service </strong>- keeping your account, storing and showing your pet records, calculating reminder schedules, delivering notifications, answering assistant questions. Legal basis: performance of a contract with you (Art. 6(1)(b) GDPR).</li>
   <li><strong>To verify your email address </strong>and to let you sign in with Google. Legal basis: performance of a contract (Art. 6(1)(b)).</li>
-  <li><strong>To send account and security email </strong>- confirmation codes, security notices, notice of changes to the Terms. Legal basis: performance of a contract (Art. 6(1)(b)).</li>
+  <li><strong>To send account and security email </strong>- confirmation codes, password reset links, security notices, notice of changes to the Terms. Legal basis: performance of a contract (Art. 6(1)(b)).</li>
   <li><strong>To keep the Service secure and working </strong>- authentication, authorisation checks that keep your pets visible only to you, rate limiting, abuse detection, fault diagnosis from logs, and backups so a failure does not lose your records. Legal basis: our legitimate interest in a secure and reliable service (Art. 6(1)(f)).</li>
   <li><strong>To send push notifications </strong>to a device. Legal basis: your consent, given through your device's notification permission (Art. 6(1)(a)); withdraw it by turning notifications off, which also unregisters the device.</li>
   <li><strong>To comply with the law</strong>, where we are obliged to. Legal basis: legal obligation (Art. 6(1)(c)).</li>
@@ -214,8 +215,9 @@ footer p { margin: 0; }
 <ul>
   <li><strong>Account and pet data </strong>- until you delete your account, or you delete the individual pet or record. Deleting an account deletes the account and the pets and records belonging to it.</li>
   <li><strong>Email confirmation codes </strong>- 15 minutes, then they are expired and unusable.</li>
-  <li><strong>Refresh tokens </strong>- 7 days from issue; revoked immediately when you sign out of that device or change your password.</li>
-  <li><strong>Push notification tokens </strong>- until you turn notifications off, you sign out of that device, or the token goes unused for 60 days, after which it is pruned. Registering a device under a different account moves the token to that account.</li>
+  <li><strong>Password reset tokens </strong>- usable for 30 minutes and for one reset, then they are expired and unusable; asking for a new link also cancels the previous one. The hashed record of a spent link is kept with the account.</li>
+  <li><strong>Refresh tokens </strong>- 7 days from issue; revoked immediately when you sign out of that device or change your password. Resetting a forgotten password revokes them on every device, so each one has to sign in again.</li>
+  <li><strong>Push notification tokens </strong>- until you turn notifications off, you sign out of that device, or the token goes unused for 60 days, after which it is pruned. Registering a device under a different account moves the token to that account. Resetting a forgotten password deletes them for every device, so a device somebody else had signed in on stops receiving your notifications.</li>
   <li><strong>Feeding analyses </strong>- only the two most recent per pet are kept; older ones are discarded as new ones are produced.</li>
   <li><strong>Server logs </strong>- kept short-term for fault diagnosis and security, and rotated out.</li>
   <li><strong>Backups </strong>- encrypted database dumps are retained for a limited period (on the order of two weeks for the copies held on the server) and then deleted. A record you delete can survive in a backup until its retention lapses. Backups are restored only as a whole, to recover from failure or data loss; they are not browsed, and nothing is selectively restored from them.</li>
@@ -223,7 +225,7 @@ footer p { margin: 0; }
 <h2 id="s10">10. Security</h2>
 <ul>
   <li>All traffic is served over HTTPS/TLS.</li>
-  <li>Passwords are stored as bcrypt hashes; refresh tokens as SHA-256 hashes. Neither can be read back.</li>
+  <li>Passwords are stored as bcrypt hashes; refresh tokens, confirmation codes and password reset tokens as SHA-256 hashes. None of them can be read back.</li>
   <li>Access tokens are short-lived (15 minutes), so a token that does leak is of little use. They are sent with each request as a bearer token rather than stored by the API.</li>
   <li>Every request for a pet's data is checked against the signed-in account, so one user cannot read another's records.</li>
   <li>The database is not reachable from the public internet; the API reaches it on a private network.</li>

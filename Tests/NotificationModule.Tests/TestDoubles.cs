@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
+using smart_pet_care_api.Modules.AuthModule.Domain;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.AuthModule.OAuth;
 using smart_pet_care_api.Modules.AuthModule.Repository;
@@ -19,6 +20,7 @@ internal sealed class FakeDeviceTokenRepository : IDeviceTokenRepository
     public List<DeviceToken> Rows { get; } = new();
     public List<DeviceToken> Upserted { get; } = new();
     public List<(Guid UserId, string Token)> ScopedRemovals { get; } = new();
+    public List<Guid> UserRemovals { get; } = new();
     public List<string> BulkRemovals { get; } = new();
     public DateTime? StaleCutoff { get; private set; }
     public int SaveChangesCalls { get; private set; }
@@ -59,6 +61,13 @@ internal sealed class FakeDeviceTokenRepository : IDeviceTokenRepository
         return Task.FromResult(true);
     }
 
+    public Task<int> RemoveByUserAsync(Guid userId)
+    {
+        Calls.Add(nameof(RemoveByUserAsync));
+        UserRemovals.Add(userId);
+        return Task.FromResult(Rows.RemoveAll(r => r.UserId == userId));
+    }
+
     public Task RemoveByTokensAsync(IEnumerable<string> tokens)
     {
         Calls.Add(nameof(RemoveByTokensAsync));
@@ -85,6 +94,7 @@ internal sealed class FakeDeviceTokenRepository : IDeviceTokenRepository
 internal sealed class FakeDeviceTokenService : IDeviceTokenService
 {
     public List<(Guid UserId, string Token)> Unregistered { get; } = new();
+    public List<Guid> UnregisteredAll { get; } = new();
     public bool UnregisterResult { get; set; } = true;
 
     /// <summary>Stands in for the delete losing its row to the push sender's own pruning.</summary>
@@ -102,6 +112,12 @@ internal sealed class FakeDeviceTokenService : IDeviceTokenService
 
         return Task.FromResult(UnregisterResult);
     }
+
+    public Task<int> UnregisterAllAsync(Guid userId)
+    {
+        UnregisteredAll.Add(userId);
+        return Task.FromResult(1);
+    }
 }
 
 internal sealed class FakeAuthRepository : IAuthRepository
@@ -118,11 +134,16 @@ internal sealed class FakeAuthRepository : IAuthRepository
         return Task.FromResult(0);
     }
 
+    public Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId) => throw new NotSupportedException();
     public Task<RefreshToken?> GetByHashAsync(string tokenHash) => throw new NotSupportedException();
     public Task AddAsync(RefreshToken token) => throw new NotSupportedException();
     public Task AddConfirmationCodeAsync(EmailConfirmationCode code) => throw new NotSupportedException();
     public Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId) => throw new NotSupportedException();
     public Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId) => throw new NotSupportedException();
+    public Task AddPasswordResetTokenAsync(PasswordResetToken token) => throw new NotSupportedException();
+    public Task<PasswordResetToken?> GetPasswordResetTokenAsync(string tokenHash) => throw new NotSupportedException();
+    public Task<PasswordResetToken?> GetLatestPasswordResetTokenAsync(Guid userId) => throw new NotSupportedException();
+    public Task<List<PasswordResetToken>> GetActivePasswordResetTokensAsync(Guid userId) => throw new NotSupportedException();
 }
 
 /// <summary>
@@ -161,6 +182,12 @@ internal sealed class UnusedGoogleOAuth : IGoogleOAuth
     public Task<GoogleUserInfo> ValidateIdTokenAsync(string idToken) => throw new NotSupportedException();
 }
 
+internal sealed class UnusedPasswordResetLinkBuilder : IPasswordResetLinkBuilder
+{
+    public string EmailLink(string rawToken) => throw new NotSupportedException();
+    public string AppLink(string rawToken) => throw new NotSupportedException();
+}
+
 internal sealed class UnusedEmailSender : IEmailSender
 {
     public Task SendAsync(string toAddress, string subject, string textBody, string? htmlBody = null) =>
@@ -170,5 +197,8 @@ internal sealed class UnusedEmailSender : IEmailSender
 internal sealed class UnusedEmailTemplates : IEmailTemplateProvider
 {
     public EmailBody ConfirmationCode(string code, int expiresInMinutes) =>
+        throw new NotSupportedException();
+
+    public EmailBody PasswordReset(string link, int expiresInMinutes) =>
         throw new NotSupportedException();
 }

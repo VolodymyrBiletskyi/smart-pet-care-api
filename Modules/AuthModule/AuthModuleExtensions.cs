@@ -45,7 +45,27 @@ namespace smart_pet_care_api.Modules.AuthModule
             services.AddScoped<IEmailSender, SmtpEmailSender>();
             // Singleton: the templates are read from disk once and held.
             services.AddSingleton<IEmailTemplateProvider, EmailTemplateProvider>();
+            services.AddSingleton<IPasswordResetPageProvider, PasswordResetPageProvider>();
             services.AddMemoryCache();
+
+            // ApiPublicUrl as the fallback rather than a second variable to keep in step:
+            // it is already the one place a deployment states where it answers from.
+            services.Configure<PasswordResetOptions>(options =>
+            {
+                configuration.GetSection("PasswordReset").Bind(options);
+
+                if (string.IsNullOrWhiteSpace(options.PublicBaseUrl))
+                    options.PublicBaseUrl = configuration["ApiPublicUrl"] ?? string.Empty;
+
+                // An env var that exists but is empty binds "" over the default, which
+                // would leave /reset-password handing the browser off to nothing. A host
+                // whose .env is missing the variable gets the default instead.
+                if (string.IsNullOrWhiteSpace(options.AppLink))
+                    options.AppLink = PasswordResetOptions.DefaultAppLink;
+            });
+            // The link builder falls back to the request's own host when neither is set.
+            services.AddHttpContextAccessor();
+            services.AddScoped<IPasswordResetLinkBuilder, PasswordResetLinkBuilder>();
 
             // jwt auth
             var jwtOptions = configuration.GetSection("JwtOptions").Get<JwtOptions>()!;

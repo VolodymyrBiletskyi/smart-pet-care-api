@@ -1,5 +1,7 @@
 ﻿using smart_pet_care_api.Common.Api;
+using System.Buffers.Text;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.DTOs.Requests;
@@ -22,12 +24,14 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         private readonly IEmailSender _emailSender;
         private readonly IEmailTemplateProvider _emailTemplates;
         private readonly IDeviceTokenService _deviceTokenService;
+        private readonly IPasswordResetLinkBuilder _resetLinks;
+        private readonly PasswordResetOptions _resetOptions;
 
         private const int ConfirmationCodeMinutes = 15;
         private const int MaxConfirmationAttempts = 5;
         private const int ResendCooldownSeconds = 60;
 
-        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IEmailTemplateProvider emailTemplates, IDeviceTokenService deviceTokenService)
+        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IEmailTemplateProvider emailTemplates, IDeviceTokenService deviceTokenService, IPasswordResetLinkBuilder resetLinks, IOptions<PasswordResetOptions> resetOptions)
         {
             _jwt = jwt;
             _userRepo = userRepo;
@@ -36,6 +40,8 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             _emailSender = emailSender;
             _emailTemplates = emailTemplates;
             _deviceTokenService = deviceTokenService;
+            _resetLinks = resetLinks;
+            _resetOptions = resetOptions.Value;
         }
 
         private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
@@ -151,6 +157,139 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             await _emailSender.SendAsync(
                 user.Email, "Confirm your Miso email", body.Text, body.Html);
         }
+
+        /// <summary>
+        /// Mails a reset link. Answers identically for an address with an account and one
+        /// without: this is the one anonymous endpoint where the difference between the
+        /// two answers is itself the product — a free "does this person use Miso" lookup
+        /// against any list of addresses. <c>resend-confirmation</c> does return a 404,
+        /// and it can: the caller there has just been told the address is registered.
+        /// </summary>
+        public async Task ForgotPasswordAsync(string email)
+        {
+            // Not the tracked row: nothing here writes to the user, and the tracked load
+            // drags the avatar bytes along with it.
+            var user = await _userRepo.GetCredentialsByEmailAsync(NormalizeEmail(email));
+            if (user is null)
+                return;
+
+            // A per-account cooldown like the confirmation code's, but silent. Raising
+            // ResendTooSoon would answer the question the 404 above refuses to, so the
+            // second request inside the window is accepted and simply sends nothing. The
+            // per-address rate limiter is what actually caps the endpoint.
+            var latest = await _authRepo.GetLatestPasswordResetTokenAsync(user.Id);
+            if (latest is not null && latest.CreatedAt > DateTime.UtcNow.AddSeconds(-ResendCooldownSeconds))
+                return;
+
+            // A new link supersedes any previous one, so a user who clicks the older mail
+            // is told the link is spent rather than quietly handed a second live
+            // credential for the same account.
+            foreach (var old in await _authRepo.GetActivePasswordResetTokensAsync(user.Id))
+                old.UsedAt = DateTime.UtcNow;
+
+            var rawToken = GeneratePasswordResetToken();
+
+            await _authRepo.AddPasswordResetTokenAsync(new PasswordResetToken
+            {
+                UserId = user.Id,
+                TokenHash = _jwt.HashToken(rawToken),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_resetOptions.LinkLifetimeMinutes),
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _authRepo.SaveChangesAsync();
+
+            var body = _emailTemplates.PasswordReset(
+                _resetLinks.EmailLink(rawToken), _resetOptions.LinkLifetimeMinutes);
+
+            await _emailSender.SendAsync(
+                user.Email, "Reset your Miso password", body.Text, body.Html);
+        }
+
+        public async Task<bool> IsPasswordResetTokenUsableAsync(string rawToken)
+        {
+            if (string.IsNullOrWhiteSpace(rawToken))
+                return false;
+
+            var token = await _authRepo.GetPasswordResetTokenAsync(HashResetToken(rawToken));
+            return token?.IsActive == true;
+        }
+
+        public async Task ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            var token = await _authRepo.GetPasswordResetTokenAsync(HashResetToken(request.Token));
+
+            if (token is null || token.UsedAt is not null)
+                throw new ValidationException(
+                    ErrorCodes.Auth.ResetTokenInvalid, "This reset link is not valid");
+
+            if (token.IsExpired)
+                throw new GoneException(
+                    ErrorCodes.Auth.ResetTokenExpired, "This reset link has expired, request a new one");
+
+            // Tracked, avatar bytes and all, rather than a projection plus an
+            // ExecuteUpdate: spending the token and setting the password have to be one
+            // statement batch, and a reset that burned the link without changing the
+            // password would lock the user out of their own recovery.
+            var user = await _userRepo.GetTrackedByIdAsync(token.UserId)
+                ?? throw new ValidationException(
+                    ErrorCodes.Auth.ResetTokenInvalid, "This reset link is not valid");
+
+            token.UsedAt = DateTime.UtcNow;
+            user.PasswordHash = HashPassword(request.Password);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Following the link proved control of the mailbox, which is exactly what the
+            // six-digit code proves. Without this an account that never confirmed could
+            // reset its password and still be unable to log in.
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                user.EmailConfirmedAt = DateTime.UtcNow;
+            }
+
+            // Every session goes with the password. A reset is what a user does when they
+            // believe somebody else knows it, and a refresh token left alive keeps that
+            // somebody signed in for its remaining seven days.
+            foreach (var refresh in await _authRepo.GetAllActiveByUserAsync(user.Id))
+                refresh.RevokedAt = DateTime.UtcNow;
+
+            await _authRepo.SaveChangesAsync();
+
+            // And every push registration, which revoking the sessions does not cover:
+            // who receives a notification is decided by the account a DeviceTokens row
+            // belongs to, not by any session, so a device that registered while somebody
+            // else held this password keeps receiving the owner's reminders — pet name in
+            // the title, the reminder in the body — until the 60-day pruning, which a
+            // delivered push keeps pushing back. Unlike logout this takes all of them:
+            // after a reset, "the user's other devices are still theirs" is exactly the
+            // assumption that no longer holds. Each of the owner's own devices has to log
+            // in again anyway, and registers on the way.
+            //
+            // After the save, like logout, and one ExecuteDelete for the same reason: the
+            // password change is the part that must not be lost to a row the push sender
+            // pruned at the same moment.
+            await _deviceTokenService.UnregisterAllAsync(user.Id);
+        }
+
+        /// <summary>
+        /// 256 bits, base64url. URL-safe rather than <see cref="IJwtProvider.GenerateRefreshToken"/>'s
+        /// plain base64, because this one travels as a query parameter through a mail
+        /// client, and <c>+</c> surviving that round trip is not something to rely on.
+        /// </summary>
+        private static string GeneratePasswordResetToken()
+        {
+            var bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            return Base64Url.EncodeToString(bytes);
+        }
+
+        /// <summary>
+        /// Trimmed, because base64url contains no whitespace and an app that pulls the
+        /// token out of a deep link can easily arrive with a trailing newline — which
+        /// would otherwise read as a link that does not exist.
+        /// </summary>
+        private string HashResetToken(string rawToken) => _jwt.HashToken(rawToken.Trim());
 
         public async Task<AuthTokenPair> LoginAsync(LoginRequest request)
         {
