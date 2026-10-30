@@ -13,6 +13,7 @@ namespace smart_pet_care_api.Infrastructure.Email
     {
         private const string Directory = "Emails";
         private const string ConfirmationCodeTemplate = "email-confirmation";
+        private const string PasswordResetTemplate = "password-reset";
 
         private readonly IWebHostEnvironment _environment;
         private readonly ConcurrentDictionary<string, string> _cache = new();
@@ -33,6 +34,19 @@ namespace smart_pet_care_api.Infrastructure.Email
             return new EmailBody(
                 Render(ConfirmationCodeTemplate + ".txt", values, escape: false),
                 Render(ConfirmationCodeTemplate + ".html", values, escape: true));
+        }
+
+        public EmailBody PasswordReset(string link, int expiresInMinutes)
+        {
+            var values = new Dictionary<string, string>
+            {
+                ["link"] = link,
+                ["minutes"] = expiresInMinutes.ToString()
+            };
+
+            return new EmailBody(
+                Render(PasswordResetTemplate + ".txt", values, escape: false),
+                Render(PasswordResetTemplate + ".html", values, escape: true));
         }
 
         private string Render(string fileName, Dictionary<string, string> values, bool escape)

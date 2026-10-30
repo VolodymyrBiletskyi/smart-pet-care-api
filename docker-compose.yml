@@ -61,6 +61,11 @@ services:
       - Email__Password=${EMAIL_PASSWORD}
       - Email__FromAddress=${EMAIL_FROM_ADDRESS}
       - Email__FromName=${EMAIL_FROM_NAME}
+      # Where /reset-password hands the browser off to. Left unset the app link
+      # falls back to the built-in miso:// scheme; set it to change the scheme or
+      # the path without a release. PublicBaseUrl is not here on purpose -- it
+      # follows ApiPublicUrl above.
+      - PasswordReset__AppLink=${PASSWORD_RESET_APP_LINK}
     volumes:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
       # DataProtection writes its key ring here. Kept in a volume because a

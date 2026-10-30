@@ -49,6 +49,18 @@ namespace smart_pet_care_api.Modules.NotificationModule.Repository
                 .ExecuteDeleteAsync() > 0;
         }
 
+        /// <summary>
+        /// Every registration this account has. One statement for the same reason as
+        /// above, and because the caller is a password reset: a concurrency exception
+        /// raised here must not be able to abort one.
+        /// </summary>
+        public async Task<int> RemoveByUserAsync(Guid userId)
+        {
+            return await _dbContext.DeviceTokens
+                .Where(t => t.UserId == userId)
+                .ExecuteDeleteAsync();
+        }
+
         public async Task RemoveByTokensAsync(IEnumerable<string> tokens)
         {
             var set = tokens.Distinct().ToList();

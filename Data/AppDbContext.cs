@@ -37,6 +37,7 @@ namespace smart_pet_care_api.Data
         public DbSet<PetWellnessAssessment> PetWellnessAssessments { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<EmailConfirmationCode> EmailConfirmationCodes { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

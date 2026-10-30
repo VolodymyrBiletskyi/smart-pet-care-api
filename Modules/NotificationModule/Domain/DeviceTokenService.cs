@@ -45,6 +45,8 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             // whatever else the request-scoped context happens to be tracking.
             return await _repo.RemoveByUserAndTokenAsync(userId, token.Trim());
         }
+
+        public Task<int> UnregisterAllAsync(Guid userId) => _repo.RemoveByUserAsync(userId);
     }
 }
 

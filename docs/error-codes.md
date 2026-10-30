@@ -173,9 +173,9 @@ A field can carry more than one alias when several rules failed at once.
 
 | Code | Field it guards |
 |---|---|
-| `auth_email_required` | Email on register, login, confirm, resend. |
+| `auth_email_required` | Email on register, login, confirm, resend, forgot-password. |
 | `auth_email_invalid` | Email is not an address, or has no domain part. |
-| `auth_password_required` | Password on register and login. |
+| `auth_password_required` | Password on register, login and reset-password. |
 | `auth_password_too_short` | Password under the minimum length. |
 | `auth_password_too_weak` | Password lacks a letter, a digit or a symbol. |
 | `auth_password_confirm_required` | Confirmation field empty. |
@@ -183,6 +183,7 @@ A field can carry more than one alias when several rules failed at once.
 | `auth_terms_not_accepted` | Terms checkbox not ticked. |
 | `auth_confirmation_code_required` | Confirmation code empty. |
 | `auth_confirmation_code_malformed` | Code is not six digits. |
+| `auth_reset_token_required` | `token` missing on reset-password. |
 | `chat_pet_id_required` | Pet id on session create. |
 | `chat_client_message_id_required` | Client message id on post. |
 | `chat_message_text_required` | Message text empty. |
@@ -400,7 +401,19 @@ record a weight, the other means correct the one that is there.
 | `auth_invalid_credentials` | 401 | Wrong email or password. |
 | `auth_google_failed` | 401 | Google rejected the token or the exchange failed, or the account's email is not verified. |
 | `auth_oauth_code_required` | 400 | OAuth callback without a code. |
-| `auth_too_many_requests` | 429 | Too many attempts from this address against `login`, `register`, `confirm-email` or `resend-confirmation`. `Retry-After` carries the seconds left in the window. |
+| `auth_reset_token_invalid` | 400 | The reset token is unknown or already spent — including a link superseded by a newer one. Send the user back to **Forgot password**. |
+| `auth_reset_token_expired` | 410 | The reset link is past its lifetime. Same screen, but the message can say the link simply aged out. |
+| `auth_too_many_requests` | 429 | Too many attempts from this address against `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password` or `reset-password`. `Retry-After` carries the seconds left in the window. |
+
+`POST /api/auth/forgot-password` has **no failure code for an unknown address**.
+It answers `202` whether the address has an account or not, and whether a link
+was actually sent or suppressed by the per-account cooldown — the difference
+between those answers would be a "does this person have an account" lookup. The
+client shows "check your inbox" on every `202` and never branches on it. The only
+errors it can return are `request_validation_failed` for a malformed address and
+`auth_too_many_requests`. The response *body* is identical; its timing is not, so
+this is not enumeration resistance — see "Known limitations" in
+`docs/password-reset-flow.md` before relying on it.
 
 `auth_too_many_requests` comes from the rate limiter rather than from a
 service, so it says nothing about whether the address or the credentials were
@@ -481,7 +494,7 @@ the UI is a bug waiting for the ceiling to move.
 
 ## Appendix: every code, for the translation table
 
-All 156 aliases in one block, ready to seed an i18n file. Field-level aliases
+All 165 aliases in one block, ready to seed an i18n file. Field-level aliases
 are included — they appear inside `errors` and need text just as much. Values
 are intentionally blank: the English text lives in `message`, and this file is
 for your own translations.
@@ -504,6 +517,7 @@ for your own translations.
   "auth_passwords_do_not_match": "",
   "auth_confirmation_code_required": "",
   "auth_confirmation_code_malformed": "",
+  "auth_reset_token_required": "",
   "reminder_utc_offset_required": "",
   "nutrition_breed_too_long": "",
   "nutrition_age_out_of_range": "",
@@ -616,6 +630,8 @@ for your own translations.
   "auth_google_failed": "",
   "auth_refresh_token_invalid": "",
   "auth_oauth_code_required": "",
+  "auth_reset_token_invalid": "",
+  "auth_reset_token_expired": "",
   "auth_authentication_required": "",
   "auth_account_no_longer_exists": "",
   "auth_forbidden": "",

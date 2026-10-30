@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Domain;
 using Xunit;
@@ -110,5 +111,7 @@ public class AuthServiceLogoutTests
             new UnusedGoogleOAuth(),
             new UnusedEmailSender(),
             new UnusedEmailTemplates(),
-            deviceTokens);
+            deviceTokens,
+            new UnusedPasswordResetLinkBuilder(),
+            Options.Create(new PasswordResetOptions()));
 }

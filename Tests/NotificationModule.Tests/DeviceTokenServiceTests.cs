@@ -129,5 +129,33 @@ public class DeviceTokenServiceTests
         Assert.Empty(repo.Calls);
     }
 
+    /// <summary>
+    /// What a password reset calls. All of this account's devices, because after a reset
+    /// "the user's other devices are still theirs" is the assumption that stopped
+    /// holding — and none of anybody else's.
+    /// </summary>
+    [Fact]
+    public async Task UnregisterAllAsync_RemovesEveryRowOfThisAccountAndNoOthers()
+    {
+        var repo = new FakeDeviceTokenRepository();
+        repo.Rows.Add(new DeviceToken { UserId = _userId, Token = "phone" });
+        repo.Rows.Add(new DeviceToken { UserId = _userId, Token = "tablet" });
+        repo.Rows.Add(new DeviceToken { UserId = _otherUserId, Token = "someone-else" });
+
+        var removed = await Service(repo).UnregisterAllAsync(_userId);
+
+        Assert.Equal(2, removed);
+        Assert.Equal(_userId, Assert.Single(repo.UserRemovals));
+        Assert.Equal("someone-else", Assert.Single(repo.Rows).Token);
+    }
+
+    [Fact]
+    public async Task UnregisterAllAsync_IsHarmlessWhenTheAccountHasNoDevices()
+    {
+        var repo = new FakeDeviceTokenRepository();
+
+        Assert.Equal(0, await Service(repo).UnregisterAllAsync(_userId));
+    }
+
     private static DeviceTokenService Service(FakeDeviceTokenRepository repo) => new(repo);
 }

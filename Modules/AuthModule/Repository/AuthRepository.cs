@@ -31,6 +31,18 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
                 .ToListAsync();
         }
 
+        public async Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _dbContext.RefreshTokens
+                .Where(t =>
+                    t.UserId == userId &&
+                    t.RevokedAt == null &&
+                    t.ExpiresAt > now)
+                .ToListAsync();
+        }
+
         public async Task<RefreshToken?> GetByHashAsync(string tokenHash)
         {
             return await _dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
@@ -55,6 +67,34 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
 
             return await _dbContext.EmailConfirmationCodes
                 .Where(c => c.UserId == userId && c.UsedAt == null && c.ExpiresAt > now)
+                .ToListAsync();
+        }
+
+        public async Task AddPasswordResetTokenAsync(PasswordResetToken token)
+        {
+            await _dbContext.PasswordResetTokens.AddAsync(token);
+        }
+
+        public async Task<PasswordResetToken?> GetPasswordResetTokenAsync(string tokenHash)
+        {
+            return await _dbContext.PasswordResetTokens
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+        }
+
+        public async Task<PasswordResetToken?> GetLatestPasswordResetTokenAsync(Guid userId)
+        {
+            return await _dbContext.PasswordResetTokens
+                .Where(t => t.UserId == userId)
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<PasswordResetToken>> GetActivePasswordResetTokensAsync(Guid userId)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _dbContext.PasswordResetTokens
+                .Where(t => t.UserId == userId && t.UsedAt == null && t.ExpiresAt > now)
                 .ToListAsync();
         }
 
