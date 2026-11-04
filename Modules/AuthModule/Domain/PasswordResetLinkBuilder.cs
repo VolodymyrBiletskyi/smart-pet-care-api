@@ -19,9 +19,6 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         public string EmailLink(string rawToken) =>
             $"{BaseUrl()}{Path}?token={Uri.EscapeDataString(rawToken)}";
 
-        public string AppLink(string rawToken) =>
-            _options.AppLink.Replace("{token}", Uri.EscapeDataString(rawToken));
-
         /// <summary>
         /// The request's own scheme and host are the last resort rather than a
         /// hardcoded production URL: a developer running this locally would otherwise

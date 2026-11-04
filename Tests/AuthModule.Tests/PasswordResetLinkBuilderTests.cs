@@ -48,17 +48,6 @@ public class PasswordResetLinkBuilderTests
             builder.EmailLink(Token));
     }
 
-    [Fact]
-    public void AppLink_SubstitutesTheToken()
-    {
-        var builder = Builder(new PasswordResetOptions
-        {
-            AppLink = "miso://auth/new-password?t={token}"
-        });
-
-        Assert.Equal("miso://auth/new-password?t=abc-123_XYZ", builder.AppLink(Token));
-    }
-
     private static PasswordResetLinkBuilder Builder(
         PasswordResetOptions options, HttpContext? context = null) =>
         new(Options.Create(options), new HttpContextAccessor { HttpContext = context });

@@ -9,8 +9,14 @@ namespace smart_pet_care_api.Modules.AuthModule.Tests;
 
 public class PasswordResetLinkControllerTests
 {
+    /// <summary>
+    /// The token reaches the page in no form at all. Android opens a verified link in
+    /// the app and never loads this, so the only readers are devices that cannot finish
+    /// the reset — and the hand-off this replaced let any app claiming the
+    /// <c>miso://</c> scheme take the token instead.
+    /// </summary>
     [Fact]
-    public async Task Open_RendersTheAppLinkForAUsableToken()
+    public async Task Open_RendersThePageWithoutTheTokenForAUsableToken()
     {
         var pages = new RecordingPageProvider();
         var controller = Controller(pages, tokenIsUsable: true);
@@ -18,8 +24,9 @@ public class PasswordResetLinkControllerTests
         var result = Assert.IsType<ContentResult>(await controller.Open("good-token"));
 
         Assert.Equal("text/html; charset=utf-8", result.ContentType);
-        Assert.Equal("miso://reset-password?token=good-token", pages.OpenedWith);
-        Assert.Contains("good-token", result.Content);
+        Assert.Equal(RecordingPageProvider.OpenBody, result.Content);
+        Assert.True(pages.OpenWasCalled);
+        Assert.DoesNotContain("good-token", result.Content);
     }
 
     [Theory]
@@ -32,7 +39,7 @@ public class PasswordResetLinkControllerTests
 
         var result = Assert.IsType<ContentResult>(await controller.Open(token));
 
-        Assert.Null(pages.OpenedWith);
+        Assert.False(pages.OpenWasCalled);
         Assert.Equal(RecordingPageProvider.ExpiredBody, result.Content);
     }
 
@@ -69,7 +76,7 @@ public class PasswordResetLinkControllerTests
 
     private static PasswordResetLinkController Controller(
         IPasswordResetPageProvider pages, bool tokenIsUsable) =>
-        new(new StubAuthService(tokenIsUsable), new StubResetLinkBuilder(), pages)
+        new(new StubAuthService(tokenIsUsable), pages)
         {
             ControllerContext = new ControllerContext
             {
@@ -80,13 +87,14 @@ public class PasswordResetLinkControllerTests
     private sealed class RecordingPageProvider : IPasswordResetPageProvider
     {
         public const string ExpiredBody = "<html>expired</html>";
+        public const string OpenBody = "<html>open</html>";
 
-        public string? OpenedWith { get; private set; }
+        public bool OpenWasCalled { get; private set; }
 
-        public string Open(string appLink)
+        public string Open()
         {
-            OpenedWith = appLink;
-            return $"<html>{appLink}</html>";
+            OpenWasCalled = true;
+            return OpenBody;
         }
 
         public string Expired() => ExpiredBody;

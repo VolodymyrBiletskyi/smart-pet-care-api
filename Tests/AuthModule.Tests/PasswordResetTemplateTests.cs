@@ -41,14 +41,22 @@ public class PasswordResetTemplateTests
         Assert.DoesNotContain("token", preview);
     }
 
+    /// <summary>
+    /// The page is only reached where the reset cannot be finished anyway, so it hands
+    /// over nothing. It used to open <c>miso://reset-password?token=…</c>; a custom
+    /// scheme has no owner, so any installed app could claim it and take the token out
+    /// of a link anybody can have mailed to any address.
+    /// </summary>
     [Fact]
-    public void OpenPage_CarriesTheAppLinkAndNoPlaceholder()
+    public void OpenPage_HandsNothingToTheApp()
     {
-        var html = new PasswordResetPageProvider(Environment())
-            .Open("miso://reset-password?token=abc123");
+        var html = new PasswordResetPageProvider(Environment()).Open();
 
         Assert.DoesNotContain("{{", html);
-        Assert.Contains("miso://reset-password?token=abc123", html);
+        Assert.DoesNotContain("token", html);
+        Assert.DoesNotContain("miso:", html);
+        // The automatic hand-off was the only thing here that needed script.
+        Assert.DoesNotContain("<script", html);
     }
 
     [Fact]
