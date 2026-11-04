@@ -70,8 +70,10 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             var (title, body) = BuildContent(reminder, pet.Name);
 
             // Resolved once per reminder rather than per token: every device for this user is
-            // being notified about the same pet, so the channel cannot differ between messages.
+            // being notified about the same pet, so neither the channel nor the event time can
+            // differ between messages.
             var channel = ResolveChannel(pet.Species);
+            var eventTime = DateTime.UtcNow;
 
             var data = new Dictionary<string, string>
             {
@@ -84,8 +86,8 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             };
 
             return tokens.Count == 1
-                ? await SendSingleAsync(tokens[0], title, body, data, channel, ct)
-                : await SendBatchAsync(tokens, title, body, data, channel, ct);
+                ? await SendSingleAsync(tokens[0], title, body, data, channel, eventTime, ct)
+                : await SendBatchAsync(tokens, title, body, data, channel, eventTime, ct);
         }
 
         private static (string ChannelId, string Sound) ResolveChannel(AnimalSpecies species) =>
@@ -94,9 +96,9 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
         private async Task<bool> SendSingleAsync(
             DeviceToken token, string title, string body,
             IReadOnlyDictionary<string, string> data,
-            (string ChannelId, string Sound) channel, CancellationToken ct)
+            (string ChannelId, string Sound) channel, DateTime eventTime, CancellationToken ct)
         {
-            var message = BuildMessage(token.Token, title, body, data, channel);
+            var message = BuildMessage(token.Token, title, body, data, channel, eventTime);
 
             try
             {
@@ -120,10 +122,10 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
         private async Task<bool> SendBatchAsync(
             IReadOnlyList<DeviceToken> tokens, string title, string body,
             IReadOnlyDictionary<string, string> data,
-            (string ChannelId, string Sound) channel, CancellationToken ct)
+            (string ChannelId, string Sound) channel, DateTime eventTime, CancellationToken ct)
         {
             var messages = tokens
-                .Select(t => BuildMessage(t.Token, title, body, data, channel))
+                .Select(t => BuildMessage(t.Token, title, body, data, channel, eventTime))
                 .ToList();
 
             BatchResponse response;
@@ -159,9 +161,9 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
             return response.SuccessCount > 0;
         }
 
-        private static Message BuildMessage(
+        internal static Message BuildMessage(
             string token, string title, string body, IReadOnlyDictionary<string, string> data,
-            (string ChannelId, string Sound) channel)
+            (string ChannelId, string Sound) channel, DateTime eventTime)
         {
             return new Message
             {
@@ -174,7 +176,15 @@ namespace smart_pet_care_api.Modules.NotificationModule.Domain
                     Notification = new AndroidNotification
                     {
                         ChannelId = channel.ChannelId,
-                        Sound = channel.Sound
+                        Sound = channel.Sound,
+                        // Has to be set, and set in UTC. EventTimestamp is a non-nullable
+                        // DateTime in the admin SDK, so an unassigned one is not omitted from
+                        // the payload — it serializes as event_time 0001-01-01T00:00:00Z, which
+                        // is the notification's `when`, and the shade renders it as a date in
+                        // 2032 or 1/3/01 instead of the arrival time. The SDK also reads an
+                        // Unspecified kind as the server's local time and shifts the instant by
+                        // its offset, so this must stay a UTC value.
+                        EventTimestamp = eventTime
                     }
                 },
                 Apns = new ApnsConfig
