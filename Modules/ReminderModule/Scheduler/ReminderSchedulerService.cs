@@ -44,7 +44,12 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
             }
         }
 
-        private async Task ProcessDueRemindersAsync()
+        /// <summary>
+        /// One tick. Internal so a test can drive the whole thing — the sweep and the firing
+        /// are each reachable on their own, but nothing would otherwise catch the call to one
+        /// of them going missing from here.
+        /// </summary>
+        internal async Task ProcessDueRemindersAsync()
         {
             var now = DateTime.UtcNow;
 

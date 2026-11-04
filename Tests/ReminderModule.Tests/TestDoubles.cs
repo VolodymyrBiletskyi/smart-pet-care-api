@@ -129,6 +129,7 @@ internal sealed class FakeReminderRepository : IReminderRepository
 
         var overdue = Runs
             .Where(r => r.ScheduledFor < cutoffUtc
+                && r.CreatedAt < cutoffUtc
                 && r.CompletedAt == null
                 && r.Status is ReminderRunStatus.Pending
                     or ReminderRunStatus.Sent

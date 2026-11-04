@@ -231,7 +231,13 @@ occurrence and closes that too, skipping a slot.
 
 An unconfirmed run becomes `Missed` on a clock, swept once per scheduler tick by
 `MarkOverdueRunsMissedAsync` at `now - 24h`, not only when the next occurrence
-fires.
+fires. Both `ScheduledFor` and `CreatedAt` have to predate the cutoff: the grace
+is the user's window to answer, and it opens when the run appears rather than
+when the slot was due. A scheduler coming back from an outage longer than the
+grace — this host has had a 27-hour one — fires a trigger days in the past, and
+on the slot alone the push it had just sent would be marked missed thirty seconds
+later. `CreatedAt` rather than `SentAt`, because a crash between the push and the
+save leaves a row with no `SentAt` at all and that run still has to age out.
 
 The sweep inside `FireReminderAsync` is still there and still right, but it can
 only reach runs that something fires *after*. A `Once` rule has no second
@@ -263,8 +269,14 @@ Two statuses stayed as they were, on purpose. `ReminderStatus` is the lifecycle
 of the **rule** — `Completed` there means "no further triggers", not "the user
 did it" — so putting `Missed` on it would conflate the rule with the fate of one
 occurrence and would be plainly wrong for a repeating rule that reached `EndAt`
-with every dose confirmed. `ReminderStatus.Missed` and `.Cancelled` are
-consequently never assigned anywhere.
+with every dose confirmed.
+
+`ReminderStatus.Missed` and `.Cancelled` are consequently never set by the server
+itself. They are still writable by a client, since `Status` is a patchable field
+on `PATCH /api/reminders/{id}` and the patch assigns whatever it is given — so a
+reader cannot assume the two values are absent, only that nothing here produces
+them. Any value other than `Active` means the scheduler stops firing the rule,
+which is what `GetDueRemindersAsync` filters on.
 
 ### Notes
 

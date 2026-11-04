@@ -164,8 +164,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
             // normally matches nothing, and the (Status, ScheduledFor) index covers the
             // predicate. Deliberately not filtered by reminder — a run's fate does not depend
             // on whether its rule still has a future.
+            //
+            // Both the slot and the row have to be old. The grace is the user's window to
+            // answer, and that window opens when the run appears, not when the slot was due:
+            // a scheduler coming back from a long outage fires a trigger older than the grace,
+            // and on ScheduledFor alone the push it just sent would be marked missed on the
+            // next tick, thirty seconds later. CreatedAt rather than SentAt because a crash
+            // between the push and the save leaves a row with no SentAt at all, and that run
+            // still has to age out eventually.
             return await _db.ReminderRuns
                 .Where(rr => rr.ScheduledFor < cutoffUtc
+                    && rr.CreatedAt < cutoffUtc
                     && rr.CompletedAt == null
                     && (rr.Status == ReminderRunStatus.Pending
                         || rr.Status == ReminderRunStatus.Sent

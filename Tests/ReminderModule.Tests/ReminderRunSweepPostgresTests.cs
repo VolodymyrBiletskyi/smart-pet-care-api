@@ -9,15 +9,15 @@ using static smart_pet_care_api.Models.Enums;
 namespace smart_pet_care_api.Modules.ReminderModule.Tests;
 
 /// <summary>
-/// The sweep is one <c>ExecuteUpdate</c> statement, so its predicate never runs in C# and the
-/// fake repository cannot stand in for it: the in-memory provider does not implement
-/// <c>ExecuteUpdate</c> at all. Requires Docker, like DeviceTokenRepositoryPostgresTests.
+/// One container and one migration run for the whole class. Per-test containers cost 37
+/// migrations each, and the sweep needs no isolation beyond an empty run table, which
+/// <see cref="ReminderRunSweepPostgresTests.SeedRunsAsync"/> provides.
 /// </summary>
-public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
+public sealed class PostgresFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer database = new PostgreSqlBuilder("postgres:16").Build();
 
-    private Guid petId;
+    public Guid PetId { get; private set; }
 
     public async ValueTask InitializeAsync()
     {
@@ -30,10 +30,31 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
         dbContext.AddRange(user, pet);
         await dbContext.SaveChangesAsync();
 
-        petId = pet.Id;
+        PetId = pet.Id;
     }
 
     public ValueTask DisposeAsync() => database.DisposeAsync();
+
+    public AppDbContext CreateContext()
+    {
+        return new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(database.GetConnectionString())
+            .Options);
+    }
+}
+
+/// <summary>
+/// The sweep is one <c>ExecuteUpdate</c> statement, so its predicate never runs in C# and the
+/// fake repository cannot stand in for it: the in-memory provider does not implement
+/// <c>ExecuteUpdate</c> at all. Requires Docker, like DeviceTokenRepositoryPostgresTests.
+/// </summary>
+public sealed class ReminderRunSweepPostgresTests : IClassFixture<PostgresFixture>
+{
+    private static readonly TimeSpan Grace = TimeSpan.FromHours(24);
+
+    private readonly PostgresFixture fixture;
+
+    public ReminderRunSweepPostgresTests(PostgresFixture fixture) => this.fixture = fixture;
 
     [Theory]
     [InlineData(ReminderRunStatus.Pending)]
@@ -44,11 +65,7 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
         var scheduledFor = DateTime.UtcNow.AddDays(-2);
         var runId = await SeedRunAsync(status, scheduledFor);
 
-        await using var context = CreateContext();
-        var closed = await new ReminderRepository(context)
-            .MarkOverdueRunsMissedAsync(DateTime.UtcNow.AddHours(-24));
-
-        Assert.Equal(1, closed);
+        Assert.Equal(1, await SweepAsync());
 
         var run = await ReadRunAsync(runId);
         Assert.Equal(ReminderRunStatus.Missed, run.Status);
@@ -67,11 +84,7 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
     {
         var runId = await SeedRunAsync(status, DateTime.UtcNow.AddDays(-9));
 
-        await using var context = CreateContext();
-        var closed = await new ReminderRepository(context)
-            .MarkOverdueRunsMissedAsync(DateTime.UtcNow.AddHours(-24));
-
-        Assert.Equal(0, closed);
+        Assert.Equal(0, await SweepAsync());
         Assert.Equal(status, (await ReadRunAsync(runId)).Status);
     }
 
@@ -85,11 +98,7 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
         var runId = await SeedRunAsync(
             ReminderRunStatus.Sent, DateTime.UtcNow.AddDays(-4), completedAt: DateTime.UtcNow.AddDays(-4));
 
-        await using var context = CreateContext();
-        var closed = await new ReminderRepository(context)
-            .MarkOverdueRunsMissedAsync(DateTime.UtcNow.AddHours(-24));
-
-        Assert.Equal(0, closed);
+        Assert.Equal(0, await SweepAsync());
         Assert.Equal(ReminderRunStatus.Sent, (await ReadRunAsync(runId)).Status);
     }
 
@@ -98,11 +107,8 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
     {
         var runId = await SeedRunAsync(ReminderRunStatus.Sent, DateTime.UtcNow.AddHours(-3));
 
-        await using var context = CreateContext();
-        var closed = await new ReminderRepository(context)
-            .MarkOverdueRunsMissedAsync(DateTime.UtcNow.AddHours(-24));
+        Assert.Equal(0, await SweepAsync());
 
-        Assert.Equal(0, closed);
         var run = await ReadRunAsync(runId);
         Assert.Equal(ReminderRunStatus.Sent, run.Status);
         Assert.Null(run.UpdatedAt);
@@ -119,23 +125,58 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
             ReminderRunStatus.Sent, DateTime.UtcNow.AddDays(-5),
             repeatType: RepeatType.Once, reminderStatus: ReminderStatus.Completed);
 
-        await using var context = CreateContext();
-        var closed = await new ReminderRepository(context)
-            .MarkOverdueRunsMissedAsync(DateTime.UtcNow.AddHours(-24));
-
-        Assert.Equal(1, closed);
+        Assert.Equal(1, await SweepAsync());
         Assert.Equal(ReminderRunStatus.Missed, (await ReadRunAsync(runId)).Status);
     }
 
+    /// <summary>
+    /// The grace runs from when the user could first see the notification, so both the slot and
+    /// the row have to be old. A scheduler back from an outage longer than the grace fires a
+    /// trigger days in the past; on the slot alone the push it has just sent would be called
+    /// missed on the next tick, thirty seconds later.
+    /// </summary>
+    [Fact]
+    public async Task ARunJustCreatedForALongOverdueSlotIsSpared()
+    {
+        var missedSlot = DateTime.UtcNow.AddDays(-3);
+
+        var justFired = await SeedRunAsync(
+            ReminderRunStatus.Sent, missedSlot, createdAt: DateTime.UtcNow, clear: true);
+        var genuinelyStale = await SeedRunAsync(
+            ReminderRunStatus.Sent, missedSlot, createdAt: missedSlot, clear: false);
+
+        Assert.Equal(1, await SweepAsync());
+
+        Assert.Equal(ReminderRunStatus.Sent, (await ReadRunAsync(justFired)).Status);
+        Assert.Equal(ReminderRunStatus.Missed, (await ReadRunAsync(genuinelyStale)).Status);
+    }
+
+    private async Task<int> SweepAsync()
+    {
+        await using var context = fixture.CreateContext();
+        return await new ReminderRepository(context).MarkOverdueRunsMissedAsync(DateTime.UtcNow - Grace);
+    }
+
+    /// <summary>
+    /// Clears the run table first, since the sweep spans every reminder and the returned count
+    /// is what the assertions turn on. Tests in one class do not run in parallel.
+    /// </summary>
     private async Task<Guid> SeedRunAsync(
         ReminderRunStatus status, DateTime scheduledFor, DateTime? completedAt = null,
-        RepeatType repeatType = RepeatType.Daily, ReminderStatus reminderStatus = ReminderStatus.Active)
+        RepeatType repeatType = RepeatType.Daily, ReminderStatus reminderStatus = ReminderStatus.Active,
+        DateTime? createdAt = null, bool clear = true)
     {
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
+
+        if (clear)
+        {
+            await context.ReminderRuns.ExecuteDeleteAsync();
+            await context.Reminders.ExecuteDeleteAsync();
+        }
 
         var reminder = new Reminder
         {
-            PetId = petId,
+            PetId = fixture.PetId,
             Title = "Morning meal",
             Type = ReminderType.Feeding,
             RepeatType = repeatType,
@@ -153,6 +194,9 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
             ScheduledFor = scheduledFor,
             SentAt = scheduledFor,
             CompletedAt = completedAt,
+            // The slot is when the run would ordinarily have been created; a test about an old
+            // slot on a fresh row passes its own value.
+            CreatedAt = createdAt ?? scheduledFor,
             Status = status,
             Type = ReminderType.Feeding,
             Channel = "push"
@@ -166,15 +210,8 @@ public sealed class ReminderRunSweepPostgresTests : IAsyncLifetime
 
     private async Task<ReminderRun> ReadRunAsync(Guid runId)
     {
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         return await context.ReminderRuns.SingleAsync(
             rr => rr.Id == runId, TestContext.Current.CancellationToken);
-    }
-
-    private AppDbContext CreateContext()
-    {
-        return new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(database.GetConnectionString())
-            .Options);
     }
 }
