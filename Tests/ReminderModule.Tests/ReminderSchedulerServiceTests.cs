@@ -204,4 +204,97 @@ public class ReminderSchedulerServiceTests
         Assert.Equal(ReminderRunStatus.Failed, run.Status);
         Assert.Null(run.SentAt);
     }
+
+    private static ReminderRun BuildRun(Guid reminderId, DateTime scheduledFor) => new()
+    {
+        ReminderId = reminderId,
+        ScheduledFor = scheduledFor,
+        SentAt = scheduledFor,
+        Status = ReminderRunStatus.Sent,
+        Type = ReminderType.Feeding
+    };
+
+    /// <summary>
+    /// The gap the time-based sweep exists for. A Once rule has no second occurrence, so the
+    /// sweep inside <c>FireReminderAsync</c> is never reached and the run stayed in Sent for
+    /// good — indistinguishable from one still waiting for an answer.
+    /// </summary>
+    [Fact]
+    public async Task Sweeping_closes_a_run_no_later_firing_would_ever_reach()
+    {
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.Calendar, now.AddDays(-2));
+        reminder.RepeatType = RepeatType.Once;
+        reminder.Status = ReminderStatus.Completed;
+        reminder.NextTriggerAt = null;
+
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+        repo.Runs.Add(BuildRun(reminder.Id, now.AddDays(-2)));
+
+        var closed = await ReminderSchedulerService.SweepMissedRunsAsync(repo, now);
+
+        Assert.Equal(1, closed);
+        Assert.Equal(ReminderRunStatus.Missed, Assert.Single(repo.Runs).Status);
+    }
+
+    [Fact]
+    public async Task Sweeping_leaves_an_occurrence_still_inside_its_day_alone()
+    {
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.Calendar, now.AddHours(-2));
+
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+        repo.Runs.Add(BuildRun(reminder.Id, now.AddHours(-2)));
+
+        var closed = await ReminderSchedulerService.SweepMissedRunsAsync(repo, now);
+
+        Assert.Equal(0, closed);
+        Assert.Equal(ReminderRunStatus.Sent, Assert.Single(repo.Runs).Status);
+        // A day exactly: anything shorter would overtake a Daily rule's own next firing.
+        Assert.Equal(now.AddHours(-24), Assert.Single(repo.MissedSweepCutoffs));
+    }
+
+    [Fact]
+    public async Task Sweeping_leaves_a_confirmed_occurrence_alone()
+    {
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, now.AddDays(-3));
+
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+
+        var confirmed = BuildRun(reminder.Id, now.AddDays(-3));
+        confirmed.Status = ReminderRunStatus.Completed;
+        confirmed.CompletedAt = now.AddDays(-3).AddMinutes(10);
+        repo.Runs.Add(confirmed);
+
+        Assert.Equal(0, await ReminderSchedulerService.SweepMissedRunsAsync(repo, now));
+        Assert.Equal(ReminderRunStatus.Completed, confirmed.Status);
+    }
+
+    /// <summary>
+    /// Missed is a label on history, not a lock. The user who answers the next morning has to
+    /// land on the same occurrence rather than open a second one.
+    /// </summary>
+    [Fact]
+    public async Task A_swept_occurrence_can_still_be_confirmed_late()
+    {
+        var now = DateTime.UtcNow;
+        var reminder = BuildReminder(RecalcStrategy.FromCompletion, now.AddDays(-2));
+
+        var repo = new FakeReminderRepository();
+        repo.Reminders.Add(reminder);
+        repo.Runs.Add(BuildRun(reminder.Id, now.AddDays(-2)));
+
+        await ReminderSchedulerService.SweepMissedRunsAsync(repo, now);
+
+        var service = new ReminderRecalculationService(repo);
+        var outcome = await service.RegisterCompletionAsync(reminder.Id, now);
+
+        Assert.NotNull(outcome);
+        Assert.False(outcome!.AlreadyRecorded);
+        Assert.Equal(ReminderRunStatus.Completed, Assert.Single(repo.Runs).Status);
+    }
 }

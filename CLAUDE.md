@@ -48,7 +48,11 @@ schedule calculator (interval arithmetic, week parity against the anchor,
 month clamping, forward-only weekday alignment, local-vs-UTC date handling),
 the recalculation service (completion closing an occurrence, early and
 backdated completion, idempotency, end-of-series) and the completion service
-(health record filing, type mapping, ownership).
+(health record filing, type mapping, ownership). The missed sweep is covered
+twice: the grace period and the late-confirmation guarantee against fakes, and
+the predicate itself against a real Postgres, since it is one `ExecuteUpdate`
+and the in-memory provider does not implement that at all —
+`ReminderRunSweepPostgresTests` therefore needs Docker.
 
 Activity module tests are in `Tests/ActivityModule.Tests/`. They cover the
 CRUD service (ownership, validation, UTC normalisation, persistence), the
@@ -222,6 +226,45 @@ instant. No rule the calculator can express fires twice in one local day, so
 same day means same occurrence. Matching exactly would let the second call
 through, and it would not merely duplicate history: it materialises the next
 occurrence and closes that too, skipping a slot.
+
+#### Closing an occurrence nobody answered
+
+An unconfirmed run becomes `Missed` on a clock, swept once per scheduler tick by
+`MarkOverdueRunsMissedAsync` at `now - 24h`, not only when the next occurrence
+fires.
+
+The sweep inside `FireReminderAsync` is still there and still right, but it can
+only reach runs that something fires *after*. A `Once` rule has no second
+occurrence, and neither does the last one before `EndAt` — those runs sat in
+`Sent` for good, indistinguishable from an occurrence still waiting for an
+answer, which is also why `ReminderStatus.Completed` on a fired `Once` rule read
+as if the user had done something. For a weekly or monthly rule the old sweep
+meant "missed" appeared a week or a month late.
+
+A day is the grace because no rule the calculator can express fires twice in
+one — the bound the completion duplicate guard above already leans on. So a run
+older than that cannot still be the current occurrence of its rule, whatever the
+rule is, and for a `Daily` rule the deadline lands exactly where the next firing
+used to move it. Nothing shorter would be safe for that reason.
+
+`Missed` is a label on history, not a lock: `GetLatestOpenRunAsync` excludes only
+`Completed` and `Cancelled`, so the user who answers the next morning still
+lands on that same run and carries it to `Completed` rather than opening a
+second one for the same slot.
+
+The sweep is deliberately **not** scoped to a reminder — a run's fate does not
+depend on whether its rule still has a future, and the rules that need it most
+are the exhausted ones. It is one `ExecuteUpdate` covered by the
+`(Status, ScheduledFor)` index, and it runs inside its own scope and `catch`:
+firing is the job that matters, and bookkeeping that throws would otherwise cost
+that tick's pushes.
+
+Two statuses stayed as they were, on purpose. `ReminderStatus` is the lifecycle
+of the **rule** — `Completed` there means "no further triggers", not "the user
+did it" — so putting `Missed` on it would conflate the rule with the fate of one
+occurrence and would be plainly wrong for a repeating rule that reached `EndAt`
+with every dose confirmed. `ReminderStatus.Missed` and `.Cancelled` are
+consequently never assigned anywhere.
 
 ### Notes
 

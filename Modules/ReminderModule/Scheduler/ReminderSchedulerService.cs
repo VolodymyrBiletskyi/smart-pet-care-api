@@ -12,6 +12,15 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
         private readonly ILogger<ReminderSchedulerService> _logger;
         private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
 
+        /// <summary>
+        /// How long an occurrence stays open before it counts as missed. A day, because no rule
+        /// the calculator can express fires twice in one — the bound the completion duplicate
+        /// guard already relies on. So a run older than this cannot still be the current
+        /// occurrence of its rule, whatever the rule is, and for a Daily one the deadline falls
+        /// exactly where the next firing used to move it.
+        /// </summary>
+        private static readonly TimeSpan MissedGrace = TimeSpan.FromHours(24);
+
         public ReminderSchedulerService(IServiceScopeFactory scopeFactory, ILogger<ReminderSchedulerService> logger)
         {
             _scopeFactory = scopeFactory;
@@ -38,6 +47,8 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
         private async Task ProcessDueRemindersAsync()
         {
             var now = DateTime.UtcNow;
+
+            await SweepMissedRunsAsync(now);
 
             List<Guid> dueIds;
             using (var queryScope = _scopeFactory.CreateScope())
@@ -68,6 +79,40 @@ namespace smart_pet_care_api.Modules.ReminderModule.Scheduler
                 }
             }
         }
+
+        /// <summary>
+        /// An occurrence nobody confirmed is closed on a clock, not only when the next one
+        /// fires. <see cref="FireReminderAsync"/>'s own sweep cannot reach the last run of a
+        /// series — a Once rule, and the final occurrence before <c>EndAt</c>, have no next
+        /// firing, so their run sat in Sent for good and the client had no way to tell it from
+        /// one still awaiting an answer. For a weekly or monthly rule it also meant "missed"
+        /// appeared a week or a month late.
+        ///
+        /// Marking a run missed does not close the door on a late confirmation:
+        /// <c>GetLatestOpenRunAsync</c> excludes only Completed and Cancelled, so a Done tap
+        /// the next morning still lands on that same run and carries it to Completed.
+        /// </summary>
+        private async Task SweepMissedRunsAsync(DateTime now)
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var reminderRepo = scope.ServiceProvider.GetRequiredService<IReminderRepository>();
+
+                var closed = await SweepMissedRunsAsync(reminderRepo, now);
+                if (closed > 0)
+                    _logger.LogInformation("Closed {Count} unconfirmed reminder runs as missed", closed);
+            }
+            catch (Exception ex)
+            {
+                // Firing is the job that matters, and the sweep is bookkeeping that will be
+                // retried in 30 seconds; letting it throw here would cost this tick's pushes.
+                _logger.LogError(ex, "Failed to sweep unconfirmed reminder runs");
+            }
+        }
+
+        internal static Task<int> SweepMissedRunsAsync(IReminderRepository reminderRepo, DateTime now) =>
+            reminderRepo.MarkOverdueRunsMissedAsync(now - MissedGrace);
 
         /// <summary>
         /// Re-checked against this tick's <paramref name="now"/> rather than merely for presence:

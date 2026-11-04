@@ -155,5 +155,24 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
                 .OrderByDescending(rr => rr.PerformedAt)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<int> MarkOverdueRunsMissedAsync(DateTime cutoffUtc)
+        {
+            var now = DateTime.UtcNow;
+
+            // One statement rather than a tracked load: this runs on every scheduler tick and
+            // normally matches nothing, and the (Status, ScheduledFor) index covers the
+            // predicate. Deliberately not filtered by reminder — a run's fate does not depend
+            // on whether its rule still has a future.
+            return await _db.ReminderRuns
+                .Where(rr => rr.ScheduledFor < cutoffUtc
+                    && rr.CompletedAt == null
+                    && (rr.Status == ReminderRunStatus.Pending
+                        || rr.Status == ReminderRunStatus.Sent
+                        || rr.Status == ReminderRunStatus.Delivered))
+                .ExecuteUpdateAsync(set => set
+                    .SetProperty(rr => rr.Status, ReminderRunStatus.Missed)
+                    .SetProperty(rr => rr.UpdatedAt, now));
+        }
     }
 }
