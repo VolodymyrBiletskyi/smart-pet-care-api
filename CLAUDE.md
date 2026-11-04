@@ -80,7 +80,9 @@ Notification module tests are in `Tests/NotificationModule.Tests/`. They cover
 device token registration (blank rejected, trimming, the 60-day staleness
 window, a token moving between accounts), unregistration scoped to the caller,
 the account-wide unregistration a password reset calls, and logout dropping the
-signing-out device's registration. Three of them need
+signing-out device's registration. They also pin the Android push payload — the
+event timestamp being set at all, in UTC, and the species channel surviving —
+which is why the project has `InternalsVisibleTo`. Three of them need
 Docker: the upsert is raw SQL resolved by a unique index, so `ON CONFLICT` and
 the migration that creates its target can only be exercised against a real
 Postgres.
@@ -268,6 +270,35 @@ client simply keeps relying on the reassignment above. Only the signing-out
 device is dropped; wiping every token for the user would silence the pushes on
 their other devices. A password reset is the one case where wiping all of them
 is right, and it does — see the password reset section.
+
+#### The Android payload
+
+`BuildMessage` fills `AndroidNotification` because the Firebase SDK on the device
+renders the notification itself whenever the app is in the background — the app
+never sees the payload, so a field left at its default is a visible bug with
+nothing in the logs.
+
+`EventTimestamp` is the one that bites. It is a non-nullable `DateTime` in the
+admin SDK, unlike `Priority`, `Visibility` and `NotificationCount` next to it, so
+there is no way to leave `event_time` out of the payload: an unassigned one goes
+out as `0001-01-01T00:00:00Z` and becomes the notification's `when`, which the
+shade renders as a date in 2032 or `1/3/01` instead of the arrival time. It must
+also be a UTC value — the SDK reads an `Unspecified` kind as the server's local
+time and shifts the instant by the host's offset.
+
+It is set to the send time rather than to the occurrence's `ScheduledFor`,
+because `when` is what the shade shows and what it sorts by: a scheduler
+resuming after an outage fires the missed slot (`NextAfterMiss` counts from
+`now`, but the run keeps the old `ScheduledFor`), and dating that push hours into
+the past would bury it under newer notifications. The slot is in the data
+payload as `scheduledAt` for a client that wants it.
+
+Verifying it on a device needs the app in the **background**, so the SDK and not
+the app builds the notification:
+
+```bash
+adb shell dumpsys notification --noredact | grep -A40 'pkg=com.misopets.app' | grep 'when='
+```
 
 ### Legal documents
 

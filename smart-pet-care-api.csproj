@@ -23,6 +23,8 @@
   <ItemGroup>
     <!-- Lets the scheduler's fire step be exercised without making it public API. -->
     <InternalsVisibleTo Include="ReminderModule.Tests" />
+    <!-- Same, for the FCM payload builder. -->
+    <InternalsVisibleTo Include="NotificationModule.Tests" />
   </ItemGroup>
 
   <ItemGroup>
