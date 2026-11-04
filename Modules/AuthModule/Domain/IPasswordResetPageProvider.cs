@@ -7,8 +7,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
     /// </summary>
     public interface IPasswordResetPageProvider
     {
-        /// <summary>The page that hands the browser off to the app.</summary>
-        string Open(string appLink);
+        /// <summary>
+        /// Shown for a live link. It carries no token and no way into the app: with the
+        /// domain verified, Android opens the link in the app and never reaches this
+        /// page, so whoever lands here is on a device that cannot continue anyway.
+        /// </summary>
+        string Open();
 
         /// <summary>Shown for a link that is spent, expired or was never ours.</summary>
         string Expired();

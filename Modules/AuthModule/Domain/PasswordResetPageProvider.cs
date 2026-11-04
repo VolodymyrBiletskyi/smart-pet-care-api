@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Net;
 
 namespace smart_pet_care_api.Modules.AuthModule.Domain
 {
@@ -15,8 +14,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             _environment = environment;
         }
 
-        public string Open(string appLink) =>
-            Read("password-reset-open.html").Replace("{{appLink}}", WebUtility.HtmlEncode(appLink));
+        public string Open() => Read("password-reset-open.html");
 
         public string Expired() => Read("password-reset-expired.html");
 

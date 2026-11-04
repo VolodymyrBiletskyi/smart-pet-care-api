@@ -201,8 +201,6 @@ internal sealed class StubResetLinkBuilder : IPasswordResetLinkBuilder
     public const string Base = "https://api.test/reset-password?token=";
 
     public string EmailLink(string rawToken) => Base + rawToken;
-
-    public string AppLink(string rawToken) => "miso://reset-password?token=" + rawToken;
 }
 
 internal static class AuthServiceFactory

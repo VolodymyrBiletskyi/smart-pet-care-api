@@ -16,29 +16,32 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
     public sealed class PasswordResetLinkController : ControllerBase
     {
         private readonly IAuthService _authService;
-        private readonly IPasswordResetLinkBuilder _links;
         private readonly IPasswordResetPageProvider _pages;
 
         public PasswordResetLinkController(
             IAuthService authService,
-            IPasswordResetLinkBuilder links,
             IPasswordResetPageProvider pages)
         {
             _authService = authService;
-            _links = links;
             _pages = pages;
         }
 
         /// <summary>
-        /// Opens the app at the reset screen, carrying the token across.
+        /// Tells the reader whether their link is still live, and nothing more.
         /// </summary>
         /// <remarks>
-        /// A page rather than a 302 to the app's own scheme: a mail scanner prefetching
-        /// the link, a desktop browser and a phone with no app installed all arrive
-        /// here, and a redirect to a scheme nothing can open is a browser error rather
-        /// than a sentence the user can act on. A deployment that registers App Links or
-        /// Universal Links for this URL never reaches this method at all — the OS hands
-        /// the app the https link directly.
+        /// This method is the fallback, not the path: with the domain verified through
+        /// <c>/.well-known/assetlinks.json</c>, Android hands the app the https link
+        /// directly and never comes here. Whoever does arrive — a desktop browser, a
+        /// phone without the app, a mail scanner prefetching — is on a device that
+        /// cannot finish the reset anyway.
+        ///
+        /// So the page carries **no token and no hand-off**. It used to open
+        /// <c>miso://reset-password?token=…</c>, and any app on the phone could claim
+        /// that scheme and take the token: a custom scheme has no owner, which is the
+        /// whole difference between it and a verified App Link. The link in the email is
+        /// public — anyone can have one mailed to any address — so that was a way into
+        /// any account whose owner could be made to tap once.
         ///
         /// It is a read, which is what makes the prefetch harmless: the token is spent
         /// by <c>POST /api/auth/reset-password</c> and by nothing else.
@@ -58,7 +61,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Api
             Response.Headers["Referrer-Policy"] = "no-referrer";
             Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
 
-            var html = usable ? _pages.Open(_links.AppLink(token!)) : _pages.Expired();
+            var html = usable ? _pages.Open() : _pages.Expired();
 
             // 200 for the expired page too. The status describes the request for a page,
             // and the page is exactly what a person who clicked a stale link needs to

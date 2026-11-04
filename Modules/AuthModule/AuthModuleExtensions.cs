@@ -56,12 +56,6 @@ namespace smart_pet_care_api.Modules.AuthModule
 
                 if (string.IsNullOrWhiteSpace(options.PublicBaseUrl))
                     options.PublicBaseUrl = configuration["ApiPublicUrl"] ?? string.Empty;
-
-                // An env var that exists but is empty binds "" over the default, which
-                // would leave /reset-password handing the browser off to nothing. A host
-                // whose .env is missing the variable gets the default instead.
-                if (string.IsNullOrWhiteSpace(options.AppLink))
-                    options.AppLink = PasswordResetOptions.DefaultAppLink;
             });
             // The link builder falls back to the request's own host when neither is set.
             services.AddHttpContextAccessor();

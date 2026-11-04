@@ -543,15 +543,33 @@ what actually caps the endpoint.
 
 The link in the email is **https to this API**, not `miso://`. A mail client
 renders a custom scheme as plain text at best and strips it at worst, and the
-message has to be readable on a desktop with no app installed. `/reset-password`
-then serves a page that opens `PasswordReset:AppLink` — on load via a two-line
-script, and from a visible button for when that is blocked. A deployment that
-registers App Links or Universal Links for the host never reaches the route at
-all, which is the better path; the page is what covers everything else, because
-a 302 to a scheme nothing can open is a browser error rather than a sentence the
-user can act on. It answers 200 even for a dead link: the status is about the
-request for a page, and some WebViews replace the body of an error status with
-their own.
+message has to be readable on a desktop with no app installed.
+
+On Android the link opens straight in the app and the route is never reached,
+because nginx serves `/.well-known/assetlinks.json` naming `com.misopets.app` as
+the owner of this domain and the app declares `autoVerify` for
+`/reset-password*`. **Android verifies that itself, which is the guarantee a
+custom scheme cannot give** — and the reason the hand-off that used to live here
+is gone. `/reset-password` previously opened `miso://reset-password?token=…` on
+load and from a button; any app on the phone could register that scheme, take the
+token and change the password. It applied to every account whether or not its
+owner had Miso installed, since `forgot-password` is public and the attacker can
+have the mail sent to the victim. `PasswordReset:AppLink` went with it.
+
+What is left of the route is a page that says the link is live and to open it on a
+phone with Miso installed, carrying **no token and nothing that opens the app** —
+a device that reaches it cannot finish the reset anyway. It answers 200 even for
+a dead link: the status is about the request for a page, and some WebViews
+replace the body of an error status with their own.
+
+`assetlinks.json` is served by **nginx from a mount**, not by the API, under an
+exact-match `location`. Verification runs at install time and again on app
+updates, so an API outage would leave the domain unverified and every reset link
+back in a browser; the exact match also keeps it from shadowing the
+`acme-challenge` location. Two lines there are load-bearing and easy to lose:
+this `nginx.conf` never includes `mime.types`, so without `types { }` plus
+`default_type application/json` nginx answers `text/plain` and Android rejects
+the file.
 
 Opening the link is a **read** — the token is spent by the POST and nothing else,
 which is what makes a mail scanner's prefetch harmless. The route sets
@@ -601,11 +619,12 @@ password would lock the user out of their own recovery.
 `Pages/password-reset-*.html` are the two renderings, read and cached by
 `PasswordResetPageProvider`, and in the publish output through the same
 `Content Include` the email templates need. They follow the legal pages' rules
-(self-contained, light-only, safe-area padding) with one exception: the automatic
-hand-off needs script, so the link lives in the button's `href` and the script
-reads it back off the element rather than being handed a second copy to escape.
+(self-contained, light-only, safe-area padding) and now with no exception: once
+the hand-off went, the last reason for script on either page went with it. A test
+asserts the open page contains no `{{`, no `token`, no `miso:` and no `<script`,
+since what matters about it now is what it does *not* carry.
 
-Three findings from the security review were left in deliberately, and
+Two findings from the security review are still open, and
 `docs/password-reset-flow.md` records each with its fix:
 
 - **Enumeration is detectable by timing.** The body is identical for an address
@@ -617,11 +636,14 @@ Three findings from the security review were left in deliberately, and
   the same way for the same reason, and the fix is one change to how the
   application sends mail (a queue plus a `BackgroundService`) that should move
   both or neither. The Privacy Policy §3.1 is worded to claim no more than this.
-- **The token reaches the nginx access log**, since it is in the query string and
-  nginx logs the request line. Everything else about that URL is covered — the
-  route sends `no-store`, `no-referrer` and `noindex`.
 - **A completed reset notifies nobody.** Worst on a Google-only account, where
   the owner never meets a password prompt and so has no symptom at all.
+
+The third — **the token reaching the nginx access log** — is fixed:
+`location = /reset-password` has its own block with `access_log off`, so the
+request line and the token in its query string are not written down. Any future
+route that takes a credential in a URL needs the same, because the default log
+format records the whole request line.
 
 ### Errors
 

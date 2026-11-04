@@ -58,18 +58,29 @@ desktop with no app installed.
 
 What that URL does:
 
-- **With App Links / Universal Links configured** for the API's host, the OS
-  hands the app the https URL directly and the server is never reached. This is
-  the better of the two paths and the one to aim for.
-- **Otherwise** the API serves a small page that opens
-  `miso://reset-password?token=…` — once on load, and again from a visible
-  button for the case where the automatic attempt is blocked. The scheme and
-  path come from `PasswordReset:AppLink` (`PASSWORD_RESET_APP_LINK`), so they can
-  be changed without a server release.
+- **On Android**, the OS hands the app the https URL directly and the server is
+  never reached. This is the path; everything below is what happens when it does
+  not apply. It works because
+  `https://smart-pet-care.duckdns.org/.well-known/assetlinks.json` states that
+  `com.misopets.app` owns this domain, and the app declares `autoVerify` for
+  `/reset-password*`. Android checks that itself — which is exactly the guarantee
+  a custom scheme cannot give.
+- **Everywhere else** — a desktop browser, a phone without the app, a mail
+  scanner prefetching — the API serves a page that says the link is live and to
+  open it on a phone with Miso installed. It carries **no token and no way into
+  the app**, because a device that reaches it cannot finish the reset anyway.
 
-Either way the app receives the **raw token** and nothing else. It does not need
-to call the API to find out whether the token is good — just show the form and
-let step 3 answer.
+The app receives the **raw token** from the link itself. It does not need to call
+the API to find out whether the token is good — just show the form and let step 3
+answer.
+
+> **The page used to hand off to `miso://reset-password?token=…`, and that was a
+> vulnerability.** A custom scheme has no owner: any app on the phone could
+> register it, receive the token and change the password on the account. It
+> applied to every account whether or not its owner had Miso installed, since
+> `forgot-password` is public and an attacker can have the email sent to the
+> victim themselves. The hand-off, the button and the `PasswordReset:AppLink`
+> setting behind them are gone; App Links replace them.
 
 The page itself is a `200` in both cases, including for a dead link: the status
 describes the request for a page, and some WebViews replace the body of an error
@@ -149,7 +160,6 @@ account is gone with nothing.
 
 | Setting | Env var | Default |
 |---|---|---|
-| `PasswordReset:AppLink` | `PASSWORD_RESET_APP_LINK` | `miso://reset-password?token={token}` |
 | `PasswordReset:LinkLifetimeMinutes` | — | `30` |
 | `PasswordReset:PublicBaseUrl` | — | falls back to `ApiPublicUrl`, then to the host the request arrived on |
 
@@ -196,17 +206,17 @@ application sends mail: `SendConfirmationCodeAsync` on register leaks the same
 way for the same reason, and moving one and not the other would be worse than
 moving neither. Whoever does it should do both.
 
-### The token is written to the nginx access log
+### ~~The token is written to the nginx access log~~ — fixed
 
-It travels in the query string, and nginx logs the request line in full. Live
-reset tokens are therefore readable in `/var/log/nginx/access.log` on the host
-for as long as the log is kept — each one single-use and good for 30 minutes,
-but a usable password-reset credential for anyone who can read those files or
-receives a copy of them.
+`location = /reset-password` now sets `access_log off`, so the request line — and
+the token in its query string — is no longer written anywhere. It had been
+readable in nginx's access log for as long as the log was kept: single-use and
+good for 30 minutes, but a usable password-reset credential for anyone who could
+read those files or received a copy.
 
-Narrow it with `access_log off;` or a log format without `$query_string` in
-`location = /reset-password`, and remember the same when adding any other route
-that takes a credential in a URL.
+The same applies to any future route that takes a credential in a URL: it needs
+its own `location` with logging off, because the default format logs the whole
+request line.
 
 Everything else about that URL is already handled: the route answers with
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer` and

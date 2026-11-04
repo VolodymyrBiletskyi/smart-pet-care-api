@@ -185,7 +185,6 @@ internal sealed class UnusedGoogleOAuth : IGoogleOAuth
 internal sealed class UnusedPasswordResetLinkBuilder : IPasswordResetLinkBuilder
 {
     public string EmailLink(string rawToken) => throw new NotSupportedException();
-    public string AppLink(string rawToken) => throw new NotSupportedException();
 }
 
 internal sealed class UnusedEmailSender : IEmailSender
