@@ -45,5 +45,17 @@ namespace smart_pet_care_api.Modules.ReminderModule.Repository
         /// confirmed. Tracked, so the caller can mark them missed.
         /// </summary>
         Task<IReadOnlyList<ReminderRun>> GetUnconfirmedRunsAsync(Guid reminderId, DateTime beforeUtc);
+
+        /// <summary>
+        /// Closes every unconfirmed occurrence older than <paramref name="cutoffUtc"/> as missed,
+        /// across all reminders, and returns how many rows moved. The per-reminder sweep above
+        /// only runs when the next occurrence fires, which never happens for the last run of a
+        /// series.
+        /// <para>
+        /// Both the slot and the row must predate the cutoff, so a run only ages out once the
+        /// user has actually had the grace period to answer it.
+        /// </para>
+        /// </summary>
+        Task<int> MarkOverdueRunsMissedAsync(DateTime cutoffUtc);
     }
 }

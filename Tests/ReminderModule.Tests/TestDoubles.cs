@@ -120,6 +120,31 @@ internal sealed class FakeReminderRepository : IReminderRepository
                     or ReminderRunStatus.Delivered)
             .ToList());
 
+    /// <summary>Cutoffs the sweep has been called with, so a test can pin the grace period.</summary>
+    public List<DateTime> MissedSweepCutoffs { get; } = [];
+
+    public Task<int> MarkOverdueRunsMissedAsync(DateTime cutoffUtc)
+    {
+        MissedSweepCutoffs.Add(cutoffUtc);
+
+        var overdue = Runs
+            .Where(r => r.ScheduledFor < cutoffUtc
+                && r.CreatedAt < cutoffUtc
+                && r.CompletedAt == null
+                && r.Status is ReminderRunStatus.Pending
+                    or ReminderRunStatus.Sent
+                    or ReminderRunStatus.Delivered)
+            .ToList();
+
+        foreach (var run in overdue)
+        {
+            run.Status = ReminderRunStatus.Missed;
+            run.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return Task.FromResult(overdue.Count);
+    }
+
     public Task<ReminderRun?> GetCompletedRunInRangeAsync(Guid reminderId, DateTime fromUtc, DateTime toUtc) =>
         Task.FromResult(Runs
             .Where(r => r.ReminderId == reminderId
