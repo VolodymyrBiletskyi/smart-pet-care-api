@@ -127,7 +127,7 @@ footer p { margin: 0; }
 <header class="masthead">
 <p class="eyebrow">Smart Pet Care App</p>
 <h1>Privacy Policy</h1>
-<p class="meta">Version 1.2. Effective 30 October 2026. Published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a></p>
+<p class="meta">Version 1.3. Effective 6 November 2026. Published at <a href="https://smart-pet-care.duckdns.org/privacy">https://smart-pet-care.duckdns.org/privacy</a></p>
 <a class="action" href="/privacy.pdf" download="privacy-policy.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg> Download PDF</a>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -164,7 +164,7 @@ footer p { margin: 0; }
 <h2 id="s3">3. What we process</h2>
 <h3 id="s3-1">3.1 Account data</h3>
 <p>Your email address; a password hash if you signed up with a password (hashed with bcrypt - we never hold the password itself); optionally a display name, a phone number and a profile picture; whether and when you accepted the Terms; whether and when you confirmed your email; and the dates your account was created and last changed.</p>
-<p>If you sign up with a password we send a confirmation code to your email and store it, hashed, until it is used or expires 15 minutes later.</p>
+<p>If you sign up with a password we send a confirmation code to your email and store it, hashed, until it is used or expires 15 minutes later. While an address is not yet confirmed, the bcrypt hash of the password that sign-up chose is kept with the code rather than on the account, and is applied to the account when the code is used. This is what stops a second sign-up for an address someone else is in the middle of confirming from setting the password on it.</p>
 <p>If you ask to reset a forgotten password we email you a link and store the token it carries, hashed, until the link is used or expires 30 minutes later. We do not record the addresses that were entered, and the reply we send back is the same whether or not an address has an account - though we do not claim that someone watching closely could not tell the difference.</p>
 <h3 id="s3-2">3.2 Signing in with Google</h3>
 <p>If you choose Google sign-in, Google tells us the identifier of your Google account, your email address and, if you have them, your name and profile picture. We store the link between your Smart Pet Care account and that Google account so you can sign in again. We never receive your Google password, and we ask Google for nothing beyond basic profile and email.</p>
@@ -179,7 +179,7 @@ footer p { margin: 0; }
 <h3 id="s3-7">3.7 Devices, sessions and technical data</h3>
 <ul>
   <li>A push notification token for each device you allow notifications on, with the platform (Android, iOS or web) and when it was last seen. The token identifies a device to Google's messaging service; it is not an advertising identifier.</li>
-  <li>Session data: refresh tokens, stored as SHA-256 hashes rather than in the clear, with their expiry and whether they have been revoked. The API returns both tokens to the app in the response body; where they are then kept is the app's responsibility, and on a phone that is the platform's protected storage for the app.</li>
+  <li>Session data: refresh tokens, stored as SHA-256 hashes rather than in the clear, with their expiry, whether they have been revoked, an identifier for the sign-in they belong to and the hash of the token that replaced each one. Those last two are what let us end a single session - and only that session - when a token is presented twice, which is what the theft of a token looks like. The API returns both tokens to the app in the response body; where they are then kept is the app's responsibility, and on a phone that is the platform's protected storage for the app.</li>
   <li>Server logs produced by handling your requests, which contain IP addresses, the requested route, timestamps, response status, user agent and a trace identifier. These are operational records used to find faults and detect abuse.</li>
 </ul>
 <h3 id="s3-8">3.8 What we do not collect</h3>
@@ -214,9 +214,9 @@ footer p { margin: 0; }
 <h2 id="s9">9. How long we keep it</h2>
 <ul>
   <li><strong>Account and pet data </strong>- until you delete your account, or you delete the individual pet or record. Deleting an account deletes the account and the pets and records belonging to it.</li>
-  <li><strong>Email confirmation codes </strong>- 15 minutes, then they are expired and unusable.</li>
+  <li><strong>Email confirmation codes </strong>- 15 minutes, then they are expired and unusable. The password hash held with an unconfirmed sign-up's code expires with it.</li>
   <li><strong>Password reset tokens </strong>- usable for 30 minutes and for one reset, then they are expired and unusable; asking for a new link also cancels the previous one. The hashed record of a spent link is kept with the account.</li>
-  <li><strong>Refresh tokens </strong>- 7 days from issue; revoked immediately when you sign out of that device or change your password. Resetting a forgotten password revokes them on every device, so each one has to sign in again.</li>
+  <li><strong>Refresh tokens </strong>- 7 days from issue; revoked immediately when you sign out of that device or change your password. Resetting a forgotten password revokes them on every device, so each one has to sign in again. Signing out and resetting a password also stop the short-lived access token already issued to the app from being accepted, instead of letting it run its remaining minutes.</li>
   <li><strong>Push notification tokens </strong>- until you turn notifications off, you sign out of that device, or the token goes unused for 60 days, after which it is pruned. Registering a device under a different account moves the token to that account. Resetting a forgotten password deletes them for every device, so a device somebody else had signed in on stops receiving your notifications.</li>
   <li><strong>Feeding analyses </strong>- only the two most recent per pet are kept; older ones are discarded as new ones are produced.</li>
   <li><strong>Server logs </strong>- kept short-term for fault diagnosis and security, and rotated out.</li>
@@ -226,7 +226,9 @@ footer p { margin: 0; }
 <ul>
   <li>All traffic is served over HTTPS/TLS.</li>
   <li>Passwords are stored as bcrypt hashes; refresh tokens, confirmation codes and password reset tokens as SHA-256 hashes. None of them can be read back.</li>
-  <li>Access tokens are short-lived (15 minutes), so a token that does leak is of little use. They are sent with each request as a bearer token rather than stored by the API.</li>
+  <li>Access tokens are short-lived (15 minutes), so a token that does leak is of little use. They are sent with each request as a bearer token rather than stored by the API. Signing out or resetting a password stops the tokens issued before it from being accepted at all, rather than waiting for them to expire.</li>
+  <li>A refresh token is replaced each time it is used, and one presented a second time ends the session it belongs to, on that device alone.</li>
+  <li>We email you when your password changes, so a change you did not make does not go unnoticed.</li>
   <li>Every request for a pet's data is checked against the signed-in account, so one user cannot read another's records.</li>
   <li>The database is not reachable from the public internet; the API reaches it on a private network.</li>
   <li>Backups are taken regularly, verified after each dump, and monitored by the absence of a success signal rather than by failure reports.</li>

@@ -69,7 +69,21 @@ whole row including the swap that clears one field while filling the other),
 the mapper, the repository (pet filter, `UpdatedAt` ordering, tracking
 behaviour) and the controller status mapping.
 
-Auth module tests are in `Tests/AuthModule.Tests/`. They cover the password
+Auth module tests are in `Tests/AuthModule.Tests/`. They cover sign-up and
+confirmation (that a second sign-up for an unconfirmed address leaves the stored
+password alone, that confirming the first sign-up's code keeps the first
+password and confirming the second's applies the second, that neither sign-up
+supersedes the other's live code, that confirming closes every other live code,
+that the resend repeats the newest sign-up's binding, and the guessing ceiling:
+counted on the account, not reset by a fresh code, lapsing with its window,
+cleared by a success); the session lifetime (rotation inside one family,
+`ReplacedByTokenHash`, a spent token ending its family but not another device's,
+the ten-second retry grace, a logged-out token refused outright, logout reaching
+every live token rather than ten); the middleware (a token issued before the
+account's cutoff refused, one issued after let through, a missing issue time
+failing closed only when a cutoff exists, and the cache answering twice but not
+across an invalidation); the password-changed notice (sent, carrying no
+credential, and not able to fail a reset that already happened); and the password
 reset end to end against fakes: that only the hash is stored and the raw
 url-safe token is mailed, that an unknown address and the cooldown both answer
 the same way as a sent link, that a new link supersedes the old one, that a
@@ -455,10 +469,16 @@ file is therefore a 500 `internal_error`, which is what it is -- the
 and the Web SDK's default globs cover neither a `.pdf` nor an `.html` outside
 `wwwroot`.
 
-The Terms are version 1.0 and the Privacy Policy 1.2; both describe the system
+The Terms are version 1.0 and the Privacy Policy 1.3; both describe the system
 as it actually is -- the data inventory in the Privacy Policy was written off the
 models and the infrastructure, so a feature that starts collecting something
 new, or a change of processor, needs section 3, 7 or 9 updated with it.
+
+1.3 recorded the session changes in sections 3.1, 3.7, 9 and 10: the password hash
+an unconfirmed sign-up leaves with its confirmation code, the rotation family and
+replacement hash on a refresh token, that signing out and resetting now stop the
+access token already issued from being accepted, and that a password change is
+emailed to the account.
 
 1.2 added the password reset to sections 3.1, 7, 9 and 10: a new table of hashed
 tokens with a 30-minute life, the reset link as something the service emails, and
@@ -474,11 +494,54 @@ does not exist is worse than one that claims less, so it now says what the API
 does and leaves storage to the client. A version bump and a regeneration go
 together -- the effective date is what the PDF's creation date is taken from.
 
+### Registration, and who the confirmation code belongs to
+
+A sign-up for an address that already has an **unconfirmed** account is allowed
+to claim it — the previous registrant never proved they owned the mailbox, so the
+alternative is an address locked forever by anyone who typed it once. What such a
+sign-up does *not* do is set the password on the row. The bcrypt hash rides on the
+confirmation code (`EmailConfirmationCode.PendingPasswordHash`) and is applied by
+`ConfirmEmailAsync` when that code is used, so **the party who proves the mailbox
+decides which sign-up won**.
+
+Writing the hash straight to the user row, as it used to, was an account
+takeover. Posting an address while its owner was half way through signing up
+replaced the password behind them; the code still went to the real mailbox, the
+owner confirmed, and they carried on filling an account that answered to somebody
+else's password — with nothing but a failed login to tell them, and only
+eventually.
+
+Two rules follow from the binding and are easy to break by tidying:
+
+- **A new code supersedes an earlier one only when both carry the same pending
+  password**, which means only when it is a resend of the same sign-up. If a
+  second sign-up killed the first one's code, its owner would ask for a new one —
+  and a resend inherits the newest binding, which would hand the account back to
+  the second caller. Two live codes for one unconfirmed address is the correct
+  state: two open offers, each spendable once.
+- **`resend-confirmation` repeats the newest sign-up's binding.** It is given an
+  address and nothing that identifies which sign-up the caller is waiting on, so
+  this is a choice rather than a deduction. The residual case is a user who
+  confirms with a code from an email they did not ask for; the mail each sign-up
+  sends is what distinguishes them, and nothing the server can see does.
+
+A successful confirmation closes **every** live code for the account: an open
+offer to set the password is only open while the account has no proven owner.
+
+The guessing ceiling is on the account, not on the code —
+`User.ConfirmationAttempts` with `ConfirmationAttemptsStartedAt`, ten wrong codes
+an hour. Per code it was five, which capped nothing: a sixth guess was one resend
+away and the resend arrived with a fresh counter. `EmailConfirmationCode.Attempts`
+still exists and is still written, but it is diagnostic only — a wrong guess
+cannot be attributed to one of several live codes, so it is recorded against each
+that was live at the time.
+
 ### Transactional email
 
-Two emails are sent today: the six-digit confirmation code, from
-`AuthService.SendConfirmationCodeAsync` on register and on resend, and the
-password reset link, from `AuthService.ForgotPasswordAsync`. Both go out as
+Three emails are sent today: the six-digit confirmation code, from
+`AuthService.SendConfirmationCodeAsync` on register and on resend, the password
+reset link, from `AuthService.ForgotPasswordAsync`, and the password-changed
+notice, from the end of `AuthService.ResetPasswordAsync`. All go out as
 **multipart/alternative** -- `IEmailSender.SendAsync` takes an optional
 `htmlBody`, and `BodyBuilder` puts the text part first so a client picks the
 HTML wherever it can render it. The text part is not a leftover: it is the
@@ -509,6 +572,10 @@ The HTML is **email** HTML, which is a different craft from the legal pages:
   the CSS one, and the rounded corner is what it degrades to a plain rectangle
   without. The full URL is repeated as text underneath, because a user reading
   mail on a desktop has to be able to copy it.
+- The password-changed notice has **no link and no code at all**, and a test
+  asserts it: it is the one message sent to somebody who may not have asked for
+  anything, and the action it recommends — reset again — starts in the app. A
+  credential in that email would be the one worth intercepting.
 
 The sender name in the inbox is `EmailOptions.FromName`, defaulting to `Miso`
 and overridden by `Email__FromName` / `EMAIL_FROM_NAME` in a deployed
@@ -586,10 +653,16 @@ minutes, and superseded by the next link for the same account.
 
 What a reset does beyond the password:
 
-- **Revokes every live refresh token**, through `GetAllActiveByUserAsync` rather
-  than `GetActiveByUserAsync` — the latter takes the ten newest, which is enough
-  to sign a session out but would leave an eleventh working for seven days. A
-  reset is what a user does when they believe somebody else knows the password.
+- **Revokes every live refresh token**, through `GetAllActiveByUserAsync`. There
+  used to be a second method taking the ten newest, which logout used — leaving
+  an eleventh working for seven days after the user signed out. It is gone, and
+  both paths take all of them. A reset is what a user does when they believe
+  somebody else knows the password.
+- **Ends the access tokens already issued**, by moving `User.TokensValidFrom` to
+  now. Revoking refresh tokens stops a session continuing but says nothing about
+  the token in hand: it is signed, unexpired and looked up nowhere, so it went on
+  reading and writing the account for up to another fifteen minutes. See the
+  section below.
 - **Deletes every push registration** (`IDeviceTokenService.UnregisterAllAsync`),
   which revoking the sessions does not cover: the recipient of a push is decided
   by the account a `DeviceTokens` row belongs to and by no session at all, so a
@@ -644,6 +717,48 @@ The third — **the token reaching the nginx access log** — is fixed:
 request line and the token in its query string are not written down. Any future
 route that takes a credential in a URL needs the same, because the default log
 format records the whole request line.
+
+### Sessions: rotation, reuse and revocation
+
+A sign-in issues an access token (15 minutes) and a refresh token (7 days), and
+every refresh **rotates**: the token presented is revoked, records its successor
+in `ReplacedByTokenHash`, and the new one inherits its `TokenFamilyId`. A family
+is one sign-in on one device.
+
+A token presented **after it was already spent** is refused, and the whole family
+is revoked with it. Rotation on its own cannot tell a replay from a client that
+asked twice, and the honest reading is that two parties hold the chain — so the
+chain ends, on that device only, leaving the user's other sessions alone. The
+exception is a ten-second grace from the moment it was replaced, where it reads as
+the client's own retry and is only refused: a mobile client with two requests in
+flight should not be signed out for it. The grace costs nothing, because a spent
+token is refused either way and no tokens are issued for it. A token revoked by a
+logout or a reset rather than replaced by a refresh gets no grace — there is no
+newer token for an honest client to be holding.
+
+This is a contract with the client: **refresh once at a time**. It is in
+`docs/error-codes.md` next to `auth_refresh_token_invalid`.
+
+Revoking refresh tokens, though, says nothing about the access token already in
+hand. It is signed, unexpired and looked up nowhere, so a logout or a reset left
+it reading and writing the account for the rest of its fifteen minutes.
+`User.TokensValidFrom` closes that: `JwtProvider` stamps every access token with a
+`tokenIssuedAt` claim, and `AuthMiddleware` refuses a token issued before the
+account's cutoff with `auth_session_revoked`. Both `LogoutAsync` and
+`ResetPasswordAsync` move the cutoff.
+
+Three details there are load-bearing:
+
+- The claim is **ours rather than the handler's `iat`**, which the SDK writes when
+  it feels like it. A cutoff compared against a claim that might not be there is a
+  cutoff that might not apply.
+- A token with **no issue time fails closed** once a cutoff exists. The only such
+  tokens in circulation are those signed by a build predating the claim, and they
+  age out in fifteen minutes.
+- The middleware's answer is cached per user for three minutes (`IAuthStateCache`),
+  so both paths **invalidate the entry**. Left to expire, "signed out at once"
+  would mean "within three minutes". The cache holds a missing account too, as the
+  absent state, so a token for a deleted account costs no query either.
 
 ### Errors
 
@@ -837,9 +952,9 @@ rather than a percentage.
 
 Dual auth strategy — JWT bearer tokens + Google OAuth:
 
-- **JWT:** Access tokens (15 min) and refresh tokens (7 days) are returned in the response body and sent back as `Authorization: Bearer`. The API sets no cookie anywhere, so where a token is kept is the client's decision. Refresh tokens are persisted as SHA256 hashes in the `RefreshTokens` table, and `POST /api/auth/refresh` takes the raw token in the body.
+- **JWT:** Access tokens (15 min) and refresh tokens (7 days) are returned in the response body and sent back as `Authorization: Bearer`. The API sets no cookie anywhere, so where a token is kept is the client's decision. Refresh tokens are persisted as SHA256 hashes in the `RefreshTokens` table, `POST /api/auth/refresh` takes the raw token in the body and rotates it, and a spent token coming back ends that session — see "Sessions: rotation, reuse and revocation".
 - **Google OAuth:** Web (authorization code flow) and mobile (ID token validation) flows both supported via `Google.Apis.Auth`. A token is accepted only when Google reports the account's email as verified — the email is what `LoginOrRegisterOAuthUserAsync` matches an existing row on, so an unverified one naming somebody else's address would be a way into their account.
-- `AuthMiddleware` validates that the JWT user still exists in the database; results are cached for 3 minutes to reduce DB hits.
+- `AuthMiddleware` validates that the JWT user still exists in the database **and that the token was issued after the account's `TokensValidFrom` cutoff**; results are cached for 3 minutes to reduce DB hits, and the sign-out paths invalidate the entry.
 - Protected endpoints use `[Authorize]`. Retrieve the current user ID via `ClaimsPrincipalExtensions.GetUserId()`.
 - The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password`, `reset-password` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same six routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. `forgot-password` is the same and worse, since it answers identically for an address with an account and one without — the cap is the only thing between a list of addresses and a mailing. A rejection is `auth_too_many_requests` with `Retry-After`.
 - `UseForwardedHeaders` is configured with `XForwardedFor` and an empty known-proxy list, because the limiter partitions on `Connection.RemoteIpAddress`: with the defaults (loopback only) nginx's headers were discarded and every client on earth shared the proxy's address and one partition.

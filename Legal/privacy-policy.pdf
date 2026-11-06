@@ -13,10 +13,10 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
 endobj
 5 0 obj
-<< /Title (Smart Pet Care App - Privacy Policy) /Author (Smart Pet Care App project team) /Subject (Version 1.2. Effective 30 October 2026. Published at https://smart-pet-care.duckdns.org/privacy) /Producer (scripts/generate-legal-pdfs.py) /Creator (scripts/generate-legal-pdfs.py) /CreationDate (D:20261030000000Z) /ModDate (D:20261030000000Z) >>
+<< /Title (Smart Pet Care App - Privacy Policy) /Author (Smart Pet Care App project team) /Subject (Version 1.3. Effective 6 November 2026. Published at https://smart-pet-care.duckdns.org/privacy) /Producer (scripts/generate-legal-pdfs.py) /Creator (scripts/generate-legal-pdfs.py) /CreationDate (D:20261106000000Z) /ModDate (D:20261106000000Z) >>
 endobj
 6 0 obj
-<< /Length 7513 >>
+<< /Length 7413 >>
 stream
 BT
 1 0 0 1 56.00 753.89 Tm
@@ -33,10 +33,10 @@ BT
 1 0 0 1 56.00 731.89 Tm
 /F1 9.00 Tf
 (Version) Tj
-( 1.2.) Tj
+( 1.3.) Tj
 ( Effective) Tj
-( 30) Tj
-( October) Tj
+( 6) Tj
+( November) Tj
 ( 2026.) Tj
 ( Published) Tj
 ( at) Tj
@@ -490,9 +490,82 @@ BT
 ( 15) Tj
 ( minutes) Tj
 ( later.) Tj
+( While) Tj
+( an) Tj
+( address) Tj
+( is) Tj
+( not) Tj
+( yet) Tj
+( confirmed,) Tj
+( the) Tj
+( bcrypt) Tj
+( hash) Tj
+( of) Tj
+( the) Tj
+( password) Tj
+( that) Tj
+( sign-up) Tj
 ET
 BT
-1 0 0 1 56.00 219.09 Tm
+1 0 0 1 56.00 226.09 Tm
+/F1 9.80 Tf
+(chose) Tj
+( is) Tj
+( kept) Tj
+( with) Tj
+( the) Tj
+( code) Tj
+( rather) Tj
+( than) Tj
+( on) Tj
+( the) Tj
+( account,) Tj
+( and) Tj
+( is) Tj
+( applied) Tj
+( to) Tj
+( the) Tj
+( account) Tj
+( when) Tj
+( the) Tj
+( code) Tj
+( is) Tj
+( used.) Tj
+ET
+BT
+1 0 0 1 56.00 212.49 Tm
+/F1 9.80 Tf
+(This) Tj
+( is) Tj
+( what) Tj
+( stops) Tj
+( a) Tj
+( second) Tj
+( sign-up) Tj
+( for) Tj
+( an) Tj
+( address) Tj
+( someone) Tj
+( else) Tj
+( is) Tj
+( in) Tj
+( the) Tj
+( middle) Tj
+( of) Tj
+( confirming) Tj
+( from) Tj
+( setting) Tj
+( the) Tj
+ET
+BT
+1 0 0 1 56.00 198.89 Tm
+/F1 9.80 Tf
+(password) Tj
+( on) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 56.00 178.29 Tm
 /F1 9.80 Tf
 (If) Tj
 ( you) Tj
@@ -519,7 +592,7 @@ BT
 ( link) Tj
 ET
 BT
-1 0 0 1 56.00 205.49 Tm
+1 0 0 1 56.00 164.69 Tm
 /F1 9.80 Tf
 (is) Tj
 ( used) Tj
@@ -544,7 +617,7 @@ BT
 ( send) Tj
 ET
 BT
-1 0 0 1 56.00 191.89 Tm
+1 0 0 1 56.00 151.09 Tm
 /F1 9.80 Tf
 (back) Tj
 ( is) Tj
@@ -569,7 +642,7 @@ BT
 ( watching) Tj
 ET
 BT
-1 0 0 1 56.00 178.29 Tm
+1 0 0 1 56.00 137.49 Tm
 /F1 9.80 Tf
 (closely) Tj
 ( could) Tj
@@ -579,7 +652,7 @@ BT
 ( difference.) Tj
 ET
 BT
-1 0 0 1 56.00 146.29 Tm
+1 0 0 1 56.00 105.49 Tm
 /F2 10.50 Tf
 (3.2) Tj
 ( Signing) Tj
@@ -588,7 +661,21 @@ BT
 ( Google) Tj
 ET
 BT
-1 0 0 1 56.00 129.69 Tm
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 1 of 5) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 7479 >>
+stream
+BT
+1 0 0 1 56.00 764.29 Tm
 /F1 9.80 Tf
 (If) Tj
 ( you) Tj
@@ -611,7 +698,7 @@ BT
 ( if) Tj
 ET
 BT
-1 0 0 1 56.00 116.09 Tm
+1 0 0 1 56.00 750.69 Tm
 /F1 9.80 Tf
 (you) Tj
 ( have) Tj
@@ -635,7 +722,7 @@ BT
 ( that) Tj
 ET
 BT
-1 0 0 1 56.00 102.49 Tm
+1 0 0 1 56.00 737.09 Tm
 /F1 9.80 Tf
 (Google) Tj
 ( account) Tj
@@ -658,7 +745,7 @@ BT
 ( for) Tj
 ET
 BT
-1 0 0 1 56.00 88.89 Tm
+1 0 0 1 56.00 723.49 Tm
 /F1 9.80 Tf
 (nothing) Tj
 ( beyond) Tj
@@ -668,28 +755,14 @@ BT
 ( email.) Tj
 ET
 BT
-0.45 0.45 0.45 rg
-/F1 7.8 Tf
-1 0 0 1 277.69 38.00 Tm
-(Page 1 of 5) Tj
-ET
-endstream
-endobj
-7 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
-endobj
-8 0 obj
-<< /Length 7960 >>
-stream
-BT
-1 0 0 1 56.00 763.89 Tm
+1 0 0 1 56.00 691.49 Tm
 /F2 10.50 Tf
 (3.3) Tj
 ( Pet) Tj
 ( profiles) Tj
 ET
 BT
-1 0 0 1 56.00 747.29 Tm
+1 0 0 1 56.00 674.89 Tm
 /F1 9.80 Tf
 (For) Tj
 ( each) Tj
@@ -711,7 +784,7 @@ BT
 ( about) Tj
 ET
 BT
-1 0 0 1 56.00 733.69 Tm
+1 0 0 1 56.00 661.29 Tm
 /F1 9.80 Tf
 (behaviour,) Tj
 ( allergies) Tj
@@ -723,7 +796,7 @@ BT
 ( photo.) Tj
 ET
 BT
-1 0 0 1 56.00 701.69 Tm
+1 0 0 1 56.00 629.29 Tm
 /F2 10.50 Tf
 (3.4) Tj
 ( Pet) Tj
@@ -733,7 +806,7 @@ BT
 ( records) Tj
 ET
 BT
-1 0 0 1 56.00 685.09 Tm
+1 0 0 1 56.00 612.69 Tm
 /F1 9.80 Tf
 (Everything) Tj
 ( you) Tj
@@ -754,7 +827,7 @@ BT
 ( journal) Tj
 ET
 BT
-1 0 0 1 56.00 671.49 Tm
+1 0 0 1 56.00 599.09 Tm
 /F1 9.80 Tf
 (entries) Tj
 ( \(including) Tj
@@ -772,7 +845,7 @@ BT
 ( such) Tj
 ET
 BT
-1 0 0 1 56.00 657.89 Tm
+1 0 0 1 56.00 585.49 Tm
 /F1 9.80 Tf
 (as) Tj
 ( vaccinations) Tj
@@ -793,7 +866,7 @@ BT
 ( completed,) Tj
 ET
 BT
-1 0 0 1 56.00 644.29 Tm
+1 0 0 1 56.00 571.89 Tm
 /F1 9.80 Tf
 (nutrition) Tj
 ( goals,) Tj
@@ -811,7 +884,7 @@ BT
 ( it.) Tj
 ET
 BT
-1 0 0 1 56.00 612.29 Tm
+1 0 0 1 56.00 539.89 Tm
 /F2 10.50 Tf
 (3.5) Tj
 ( Files) Tj
@@ -819,7 +892,7 @@ BT
 ( upload) Tj
 ET
 BT
-1 0 0 1 56.00 595.69 Tm
+1 0 0 1 56.00 523.29 Tm
 /F1 9.80 Tf
 (Photos) Tj
 ( and) Tj
@@ -843,14 +916,14 @@ BT
 ( add.) Tj
 ET
 BT
-1 0 0 1 56.00 563.69 Tm
+1 0 0 1 56.00 491.29 Tm
 /F2 10.50 Tf
 (3.6) Tj
 ( Assistant) Tj
 ( conversations) Tj
 ET
 BT
-1 0 0 1 56.00 547.09 Tm
+1 0 0 1 56.00 474.69 Tm
 /F1 9.80 Tf
 (Your) Tj
 ( messages) Tj
@@ -873,7 +946,7 @@ BT
 ( session) Tj
 ET
 BT
-1 0 0 1 56.00 533.49 Tm
+1 0 0 1 56.00 461.09 Tm
 /F1 9.80 Tf
 (are) Tj
 ( replayed) Tj
@@ -885,7 +958,7 @@ BT
 ( question.) Tj
 ET
 BT
-1 0 0 1 56.00 501.49 Tm
+1 0 0 1 56.00 429.09 Tm
 /F2 10.50 Tf
 (3.7) Tj
 ( Devices,) Tj
@@ -895,12 +968,12 @@ BT
 ( data) Tj
 ET
 BT
-1 0 0 1 70.00 484.89 Tm
+1 0 0 1 70.00 412.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 484.89 Tm
+1 0 0 1 81.44 412.49 Tm
 /F1 9.80 Tf
 (A) Tj
 ( push) Tj
@@ -921,7 +994,7 @@ BT
 ( or) Tj
 ET
 BT
-1 0 0 1 81.44 471.29 Tm
+1 0 0 1 81.44 398.89 Tm
 /F1 9.80 Tf
 (web\)) Tj
 ( and) Tj
@@ -945,18 +1018,18 @@ BT
 ( an) Tj
 ET
 BT
-1 0 0 1 81.44 457.69 Tm
+1 0 0 1 81.44 385.29 Tm
 /F1 9.80 Tf
 (advertising) Tj
 ( identifier.) Tj
 ET
 BT
-1 0 0 1 70.00 440.09 Tm
+1 0 0 1 70.00 367.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 440.09 Tm
+1 0 0 1 81.44 367.69 Tm
 /F1 9.80 Tf
 (Session) Tj
 ( data:) Tj
@@ -973,17 +1046,75 @@ BT
 ( clear,) Tj
 ( with) Tj
 ( their) Tj
-( expiry) Tj
-( and) Tj
+( expiry,) Tj
 ET
 BT
-1 0 0 1 81.44 426.49 Tm
+1 0 0 1 81.44 354.09 Tm
 /F1 9.80 Tf
 (whether) Tj
 ( they) Tj
 ( have) Tj
 ( been) Tj
-( revoked.) Tj
+( revoked,) Tj
+( an) Tj
+( identifier) Tj
+( for) Tj
+( the) Tj
+( sign-in) Tj
+( they) Tj
+( belong) Tj
+( to) Tj
+( and) Tj
+( the) Tj
+( hash) Tj
+( of) Tj
+( the) Tj
+( token) Tj
+( that) Tj
+ET
+BT
+1 0 0 1 81.44 340.49 Tm
+/F1 9.80 Tf
+(replaced) Tj
+( each) Tj
+( one.) Tj
+( Those) Tj
+( last) Tj
+( two) Tj
+( are) Tj
+( what) Tj
+( let) Tj
+( us) Tj
+( end) Tj
+( a) Tj
+( single) Tj
+( session) Tj
+( -) Tj
+( and) Tj
+( only) Tj
+( that) Tj
+( session) Tj
+( -) Tj
+( when) Tj
+( a) Tj
+ET
+BT
+1 0 0 1 81.44 326.89 Tm
+/F1 9.80 Tf
+(token) Tj
+( is) Tj
+( presented) Tj
+( twice,) Tj
+( which) Tj
+( is) Tj
+( what) Tj
+( the) Tj
+( theft) Tj
+( of) Tj
+( a) Tj
+( token) Tj
+( looks) Tj
+( like.) Tj
 ( The) Tj
 ( API) Tj
 ( returns) Tj
@@ -991,17 +1122,17 @@ BT
 ( tokens) Tj
 ( to) Tj
 ( the) Tj
-( app) Tj
+ET
+BT
+1 0 0 1 81.44 313.29 Tm
+/F1 9.80 Tf
+(app) Tj
 ( in) Tj
 ( the) Tj
 ( response) Tj
 ( body;) Tj
 ( where) Tj
-ET
-BT
-1 0 0 1 81.44 412.89 Tm
-/F1 9.80 Tf
-(they) Tj
+( they) Tj
 ( are) Tj
 ( then) Tj
 ( kept) Tj
@@ -1016,24 +1147,24 @@ BT
 ( that) Tj
 ( is) Tj
 ( the) Tj
-( platform's) Tj
+ET
+BT
+1 0 0 1 81.44 299.69 Tm
+/F1 9.80 Tf
+(platform's) Tj
 ( protected) Tj
 ( storage) Tj
 ( for) Tj
-ET
-BT
-1 0 0 1 81.44 399.29 Tm
-/F1 9.80 Tf
-(the) Tj
+( the) Tj
 ( app.) Tj
 ET
 BT
-1 0 0 1 70.00 381.69 Tm
+1 0 0 1 70.00 282.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 381.69 Tm
+1 0 0 1 81.44 282.09 Tm
 /F1 9.80 Tf
 (Server) Tj
 ( logs) Tj
@@ -1051,7 +1182,7 @@ BT
 ( route,) Tj
 ET
 BT
-1 0 0 1 81.44 368.09 Tm
+1 0 0 1 81.44 268.49 Tm
 /F1 9.80 Tf
 (timestamps,) Tj
 ( response) Tj
@@ -1071,7 +1202,7 @@ BT
 ( find) Tj
 ET
 BT
-1 0 0 1 81.44 354.49 Tm
+1 0 0 1 81.44 254.89 Tm
 /F1 9.80 Tf
 (faults) Tj
 ( and) Tj
@@ -1079,7 +1210,7 @@ BT
 ( abuse.) Tj
 ET
 BT
-1 0 0 1 56.00 325.49 Tm
+1 0 0 1 56.00 225.89 Tm
 /F2 10.50 Tf
 (3.8) Tj
 ( What) Tj
@@ -1089,7 +1220,7 @@ BT
 ( collect) Tj
 ET
 BT
-1 0 0 1 56.00 308.89 Tm
+1 0 0 1 56.00 209.29 Tm
 /F1 9.80 Tf
 (We) Tj
 ( do) Tj
@@ -1111,7 +1242,7 @@ BT
 ( third-party) Tj
 ET
 BT
-1 0 0 1 56.00 295.29 Tm
+1 0 0 1 56.00 195.69 Tm
 /F1 9.80 Tf
 (analytics) Tj
 ( or) Tj
@@ -1130,7 +1261,7 @@ BT
 ( marketing.) Tj
 ET
 BT
-1 0 0 1 56.00 255.29 Tm
+1 0 0 1 56.00 155.69 Tm
 /F2 12.50 Tf
 (4.) Tj
 ( A) Tj
@@ -1144,7 +1275,7 @@ BT
 ( text) Tj
 ET
 BT
-1 0 0 1 56.00 236.69 Tm
+1 0 0 1 56.00 137.09 Tm
 /F1 9.80 Tf
 (Information) Tj
 ( about) Tj
@@ -1167,7 +1298,7 @@ BT
 ( "data) Tj
 ET
 BT
-1 0 0 1 56.00 223.09 Tm
+1 0 0 1 56.00 123.49 Tm
 /F1 9.80 Tf
 (concerning) Tj
 ( health") Tj
@@ -1189,7 +1320,21 @@ BT
 ( it.) Tj
 ET
 BT
-1 0 0 1 56.00 202.49 Tm
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 2 of 5) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 9405 >>
+stream
+BT
+1 0 0 1 56.00 764.29 Tm
 /F1 9.80 Tf
 (But) Tj
 ( the) Tj
@@ -1215,7 +1360,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 188.89 Tm
+1 0 0 1 56.00 750.69 Tm
 /F1 9.80 Tf
 (note) Tj
 ( or) Tj
@@ -1240,7 +1385,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 175.29 Tm
+1 0 0 1 56.00 737.09 Tm
 /F1 9.80 Tf
 (household) Tj
 ( detail,) Tj
@@ -1260,7 +1405,7 @@ BT
 ( information) Tj
 ET
 BT
-1 0 0 1 56.00 161.69 Tm
+1 0 0 1 56.00 723.49 Tm
 /F1 9.80 Tf
 (about) Tj
 ( anyone) Tj
@@ -1283,7 +1428,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 56.00 148.09 Tm
+1 0 0 1 56.00 709.89 Tm
 /F1 9.80 Tf
 (AI) Tj
 ( features) Tj
@@ -1298,7 +1443,7 @@ BT
 ( 7.) Tj
 ET
 BT
-1 0 0 1 56.00 108.09 Tm
+1 0 0 1 56.00 669.89 Tm
 /F2 12.50 Tf
 (5.) Tj
 ( Why) Tj
@@ -1312,12 +1457,12 @@ BT
 ( basis) Tj
 ET
 BT
-1 0 0 1 70.00 89.49 Tm
+1 0 0 1 70.00 651.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 89.49 Tm
+1 0 0 1 81.44 651.29 Tm
 /F2 9.80 Tf
 (To) Tj
 ( provide) Tj
@@ -1337,7 +1482,7 @@ BT
 ( calculating) Tj
 ET
 BT
-1 0 0 1 81.44 75.89 Tm
+1 0 0 1 81.44 637.69 Tm
 /F1 9.80 Tf
 (reminder) Tj
 ( schedules,) Tj
@@ -1352,7 +1497,7 @@ BT
 ( of) Tj
 ET
 BT
-1 0 0 1 81.44 62.29 Tm
+1 0 0 1 81.44 624.09 Tm
 /F1 9.80 Tf
 (a) Tj
 ( contract) Tj
@@ -1363,26 +1508,12 @@ BT
 ( GDPR\).) Tj
 ET
 BT
-0.45 0.45 0.45 rg
-/F1 7.8 Tf
-1 0 0 1 277.69 38.00 Tm
-(Page 2 of 5) Tj
-ET
-endstream
-endobj
-9 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
-endobj
-10 0 obj
-<< /Length 9019 >>
-stream
-BT
-1 0 0 1 70.00 764.29 Tm
+1 0 0 1 70.00 606.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 764.29 Tm
+1 0 0 1 81.44 606.49 Tm
 /F2 9.80 Tf
 (To) Tj
 ( verify) Tj
@@ -1406,18 +1537,18 @@ BT
 ( contract) Tj
 ET
 BT
-1 0 0 1 81.44 750.69 Tm
+1 0 0 1 81.44 592.89 Tm
 /F1 9.80 Tf
 (\(Art.) Tj
 ( 6\(1\)\(b\)\).) Tj
 ET
 BT
-1 0 0 1 70.00 733.09 Tm
+1 0 0 1 70.00 575.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 733.09 Tm
+1 0 0 1 81.44 575.29 Tm
 /F2 9.80 Tf
 (To) Tj
 ( send) Tj
@@ -1437,7 +1568,7 @@ BT
 ( notice) Tj
 ET
 BT
-1 0 0 1 81.44 719.49 Tm
+1 0 0 1 81.44 561.69 Tm
 /F1 9.80 Tf
 (of) Tj
 ( changes) Tj
@@ -1454,12 +1585,12 @@ BT
 ( 6\(1\)\(b\)\).) Tj
 ET
 BT
-1 0 0 1 70.00 701.89 Tm
+1 0 0 1 70.00 544.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 701.89 Tm
+1 0 0 1 81.44 544.09 Tm
 /F2 9.80 Tf
 (To) Tj
 ( keep) Tj
@@ -1479,7 +1610,7 @@ BT
 ( pets) Tj
 ET
 BT
-1 0 0 1 81.44 688.29 Tm
+1 0 0 1 81.44 530.49 Tm
 /F1 9.80 Tf
 (visible) Tj
 ( only) Tj
@@ -1501,7 +1632,7 @@ BT
 ( does) Tj
 ET
 BT
-1 0 0 1 81.44 674.69 Tm
+1 0 0 1 81.44 516.89 Tm
 /F1 9.80 Tf
 (not) Tj
 ( lose) Tj
@@ -1522,12 +1653,12 @@ BT
 ( 6\(1\)\(f\)\).) Tj
 ET
 BT
-1 0 0 1 70.00 657.09 Tm
+1 0 0 1 70.00 499.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 657.09 Tm
+1 0 0 1 81.44 499.29 Tm
 /F2 9.80 Tf
 (To) Tj
 ( send) Tj
@@ -1547,7 +1678,7 @@ BT
 ( device's) Tj
 ET
 BT
-1 0 0 1 81.44 643.49 Tm
+1 0 0 1 81.44 485.69 Tm
 /F1 9.80 Tf
 (notification) Tj
 ( permission) Tj
@@ -1565,17 +1696,17 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 629.89 Tm
+1 0 0 1 81.44 472.09 Tm
 /F1 9.80 Tf
 (device.) Tj
 ET
 BT
-1 0 0 1 70.00 612.29 Tm
+1 0 0 1 70.00 454.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 612.29 Tm
+1 0 0 1 81.44 454.49 Tm
 /F2 9.80 Tf
 (To) Tj
 ( comply) Tj
@@ -1597,7 +1728,7 @@ BT
 ( 6\(1\)\(c\)\).) Tj
 ET
 BT
-1 0 0 1 56.00 575.29 Tm
+1 0 0 1 56.00 417.49 Tm
 /F2 12.50 Tf
 (6.) Tj
 ( Automated) Tj
@@ -1608,7 +1739,7 @@ BT
 ( decisions) Tj
 ET
 BT
-1 0 0 1 56.00 556.69 Tm
+1 0 0 1 56.00 398.89 Tm
 /F1 9.80 Tf
 (Wellness) Tj
 ( scores,) Tj
@@ -1626,7 +1757,7 @@ BT
 ( They) Tj
 ET
 BT
-1 0 0 1 56.00 543.09 Tm
+1 0 0 1 56.00 385.29 Tm
 /F1 9.80 Tf
 (are) Tj
 ( informational) Tj
@@ -1647,7 +1778,7 @@ BT
 ( decided) Tj
 ET
 BT
-1 0 0 1 56.00 529.49 Tm
+1 0 0 1 56.00 371.69 Tm
 /F1 9.80 Tf
 (about) Tj
 ( you) Tj
@@ -1670,7 +1801,7 @@ BT
 ( 22) Tj
 ET
 BT
-1 0 0 1 56.00 515.89 Tm
+1 0 0 1 56.00 358.09 Tm
 /F1 9.80 Tf
 (GDPR.) Tj
 ( They) Tj
@@ -1688,7 +1819,7 @@ BT
 ( Terms.) Tj
 ET
 BT
-1 0 0 1 56.00 475.89 Tm
+1 0 0 1 56.00 318.09 Tm
 /F2 12.50 Tf
 (7.) Tj
 ( Who) Tj
@@ -1697,7 +1828,7 @@ BT
 ( it) Tj
 ET
 BT
-1 0 0 1 56.00 457.29 Tm
+1 0 0 1 56.00 299.49 Tm
 /F1 9.80 Tf
 (We) Tj
 ( use) Tj
@@ -1716,12 +1847,12 @@ BT
 ( requires.) Tj
 ET
 BT
-1 0 0 1 70.00 436.69 Tm
+1 0 0 1 70.00 278.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 436.69 Tm
+1 0 0 1 81.44 278.89 Tm
 /F2 9.80 Tf
 (The) Tj
 ( project's) Tj
@@ -1741,7 +1872,7 @@ BT
 ( for) Tj
 ET
 BT
-1 0 0 1 81.44 423.09 Tm
+1 0 0 1 81.44 265.29 Tm
 /F1 9.80 Tf
 (the) Tj
 ( wellness) Tj
@@ -1761,7 +1892,7 @@ BT
 ( computed) Tj
 ET
 BT
-1 0 0 1 81.44 409.49 Tm
+1 0 0 1 81.44 251.69 Tm
 /F1 9.80 Tf
 (from.) Tj
 ( It) Tj
@@ -1774,12 +1905,12 @@ BT
 ( project.) Tj
 ET
 BT
-1 0 0 1 70.00 391.89 Tm
+1 0 0 1 70.00 234.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 391.89 Tm
+1 0 0 1 81.44 234.09 Tm
 /F2 9.80 Tf
 (Cloudinary) Tj
 /F1 9.80 Tf
@@ -1800,12 +1931,12 @@ BT
 ( App.) Tj
 ET
 BT
-1 0 0 1 70.00 374.29 Tm
+1 0 0 1 70.00 216.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 374.29 Tm
+1 0 0 1 81.44 216.49 Tm
 /F2 9.80 Tf
 (Google) Tj
 /F1 9.80 Tf
@@ -1828,7 +1959,7 @@ BT
 ( Cloud) Tj
 ET
 BT
-1 0 0 1 81.44 360.69 Tm
+1 0 0 1 81.44 202.89 Tm
 /F1 9.80 Tf
 (Messaging,) Tj
 ( which) Tj
@@ -1847,7 +1978,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 347.09 Tm
+1 0 0 1 81.44 189.29 Tm
 /F1 9.80 Tf
 (notification,) Tj
 ( which) Tj
@@ -1861,12 +1992,12 @@ BT
 ( description.) Tj
 ET
 BT
-1 0 0 1 70.00 329.49 Tm
+1 0 0 1 70.00 171.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 329.49 Tm
+1 0 0 1 81.44 171.69 Tm
 /F2 9.80 Tf
 (Our) Tj
 ( email) Tj
@@ -1889,7 +2020,7 @@ BT
 ( deliver) Tj
 ET
 BT
-1 0 0 1 81.44 315.89 Tm
+1 0 0 1 81.44 158.09 Tm
 /F1 9.80 Tf
 (confirmation) Tj
 ( codes) Tj
@@ -1898,12 +2029,12 @@ BT
 ( email.) Tj
 ET
 BT
-1 0 0 1 70.00 298.29 Tm
+1 0 0 1 70.00 140.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 298.29 Tm
+1 0 0 1 81.44 140.49 Tm
 /F2 9.80 Tf
 (Amazon) Tj
 ( Web) Tj
@@ -1923,7 +2054,7 @@ BT
 ( us-east-1) Tj
 ET
 BT
-1 0 0 1 81.44 284.69 Tm
+1 0 0 1 81.44 126.89 Tm
 /F1 9.80 Tf
 (region.) Tj
 ( These) Tj
@@ -1937,12 +2068,12 @@ BT
 ( records.) Tj
 ET
 BT
-1 0 0 1 70.00 267.09 Tm
+1 0 0 1 70.00 109.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 267.09 Tm
+1 0 0 1 81.44 109.29 Tm
 /F2 9.80 Tf
 (Our) Tj
 ( hosting) Tj
@@ -1961,7 +2092,7 @@ BT
 ( on.) Tj
 ET
 BT
-1 0 0 1 56.00 249.49 Tm
+1 0 0 1 56.00 91.69 Tm
 /F1 9.80 Tf
 (We) Tj
 ( do) Tj
@@ -1987,7 +2118,7 @@ BT
 ( to,) Tj
 ET
 BT
-1 0 0 1 56.00 235.89 Tm
+1 0 0 1 56.00 78.09 Tm
 /F1 9.80 Tf
 (or) Tj
 ( where) Tj
@@ -2003,14 +2134,28 @@ BT
 ( claim.) Tj
 ET
 BT
-1 0 0 1 56.00 195.89 Tm
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 3 of 5) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 9627 >>
+stream
+BT
+1 0 0 1 56.00 761.89 Tm
 /F2 12.50 Tf
 (8.) Tj
 ( International) Tj
 ( transfers) Tj
 ET
 BT
-1 0 0 1 56.00 177.29 Tm
+1 0 0 1 56.00 743.29 Tm
 /F1 9.80 Tf
 (Cloudinary,) Tj
 ( Google) Tj
@@ -2028,7 +2173,7 @@ BT
 ( Area,) Tj
 ET
 BT
-1 0 0 1 56.00 163.69 Tm
+1 0 0 1 56.00 729.69 Tm
 /F1 9.80 Tf
 (including) Tj
 ( in) Tj
@@ -2048,7 +2193,7 @@ BT
 ( providers) Tj
 ET
 BT
-1 0 0 1 56.00 150.09 Tm
+1 0 0 1 56.00 716.09 Tm
 /F1 9.80 Tf
 (make) Tj
 ( available) Tj
@@ -2069,7 +2214,7 @@ BT
 ( Privacy) Tj
 ET
 BT
-1 0 0 1 56.00 136.49 Tm
+1 0 0 1 56.00 702.49 Tm
 /F1 9.80 Tf
 (Framework.) Tj
 ( You) Tj
@@ -2089,7 +2234,7 @@ BT
 ( provider.) Tj
 ET
 BT
-1 0 0 1 56.00 96.49 Tm
+1 0 0 1 56.00 662.49 Tm
 /F2 12.50 Tf
 (9.) Tj
 ( How) Tj
@@ -2099,12 +2244,12 @@ BT
 ( it) Tj
 ET
 BT
-1 0 0 1 70.00 77.89 Tm
+1 0 0 1 70.00 643.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 77.89 Tm
+1 0 0 1 81.44 643.89 Tm
 /F2 9.80 Tf
 (Account) Tj
 ( and) Tj
@@ -2128,7 +2273,7 @@ BT
 ( Deleting) Tj
 ET
 BT
-1 0 0 1 81.44 64.29 Tm
+1 0 0 1 81.44 630.29 Tm
 /F1 9.80 Tf
 (an) Tj
 ( account) Tj
@@ -2145,26 +2290,12 @@ BT
 ( it.) Tj
 ET
 BT
-0.45 0.45 0.45 rg
-/F1 7.8 Tf
-1 0 0 1 277.69 38.00 Tm
-(Page 3 of 5) Tj
-ET
-endstream
-endobj
-11 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
-endobj
-12 0 obj
-<< /Length 9259 >>
-stream
-BT
-1 0 0 1 70.00 764.29 Tm
+1 0 0 1 70.00 612.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 764.29 Tm
+1 0 0 1 81.44 612.69 Tm
 /F2 9.80 Tf
 (Email) Tj
 ( confirmation) Tj
@@ -2179,14 +2310,30 @@ BT
 ( expired) Tj
 ( and) Tj
 ( unusable.) Tj
+( The) Tj
+( password) Tj
+( hash) Tj
+( held) Tj
 ET
 BT
-1 0 0 1 70.00 746.69 Tm
+1 0 0 1 81.44 599.09 Tm
+/F1 9.80 Tf
+(with) Tj
+( an) Tj
+( unconfirmed) Tj
+( sign-up's) Tj
+( code) Tj
+( expires) Tj
+( with) Tj
+( it.) Tj
+ET
+BT
+1 0 0 1 70.00 581.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 746.69 Tm
+1 0 0 1 81.44 581.49 Tm
 /F2 9.80 Tf
 (Password) Tj
 ( reset) Tj
@@ -2209,7 +2356,7 @@ BT
 ( unusable;) Tj
 ET
 BT
-1 0 0 1 81.44 733.09 Tm
+1 0 0 1 81.44 567.89 Tm
 /F1 9.80 Tf
 (asking) Tj
 ( for) Tj
@@ -2234,17 +2381,17 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 719.49 Tm
+1 0 0 1 81.44 554.29 Tm
 /F1 9.80 Tf
 (account.) Tj
 ET
 BT
-1 0 0 1 70.00 701.89 Tm
+1 0 0 1 70.00 536.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 701.89 Tm
+1 0 0 1 81.44 536.69 Tm
 /F2 9.80 Tf
 (Refresh) Tj
 ( tokens) Tj
@@ -2267,7 +2414,7 @@ BT
 ( change) Tj
 ET
 BT
-1 0 0 1 81.44 688.29 Tm
+1 0 0 1 81.44 523.09 Tm
 /F1 9.80 Tf
 (your) Tj
 ( password.) Tj
@@ -2289,17 +2436,49 @@ BT
 ( in) Tj
 ET
 BT
-1 0 0 1 81.44 674.69 Tm
+1 0 0 1 81.44 509.49 Tm
 /F1 9.80 Tf
 (again.) Tj
+( Signing) Tj
+( out) Tj
+( and) Tj
+( resetting) Tj
+( a) Tj
+( password) Tj
+( also) Tj
+( stop) Tj
+( the) Tj
+( short-lived) Tj
+( access) Tj
+( token) Tj
+( already) Tj
+( issued) Tj
+( to) Tj
+( the) Tj
 ET
 BT
-1 0 0 1 70.00 657.09 Tm
+1 0 0 1 81.44 495.89 Tm
+/F1 9.80 Tf
+(app) Tj
+( from) Tj
+( being) Tj
+( accepted,) Tj
+( instead) Tj
+( of) Tj
+( letting) Tj
+( it) Tj
+( run) Tj
+( its) Tj
+( remaining) Tj
+( minutes.) Tj
+ET
+BT
+1 0 0 1 70.00 478.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 657.09 Tm
+1 0 0 1 81.44 478.29 Tm
 /F2 9.80 Tf
 (Push) Tj
 ( notification) Tj
@@ -2323,7 +2502,7 @@ BT
 ( goes) Tj
 ET
 BT
-1 0 0 1 81.44 643.49 Tm
+1 0 0 1 81.44 464.69 Tm
 /F1 9.80 Tf
 (unused) Tj
 ( for) Tj
@@ -2345,7 +2524,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 629.89 Tm
+1 0 0 1 81.44 451.09 Tm
 /F1 9.80 Tf
 (token) Tj
 ( to) Tj
@@ -2365,7 +2544,7 @@ BT
 ( device) Tj
 ET
 BT
-1 0 0 1 81.44 616.29 Tm
+1 0 0 1 81.44 437.49 Tm
 /F1 9.80 Tf
 (somebody) Tj
 ( else) Tj
@@ -2379,12 +2558,12 @@ BT
 ( notifications.) Tj
 ET
 BT
-1 0 0 1 70.00 598.69 Tm
+1 0 0 1 70.00 419.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 598.69 Tm
+1 0 0 1 81.44 419.89 Tm
 /F2 9.80 Tf
 (Feeding) Tj
 ( analyses) Tj
@@ -2409,17 +2588,17 @@ BT
 ( are) Tj
 ET
 BT
-1 0 0 1 81.44 585.09 Tm
+1 0 0 1 81.44 406.29 Tm
 /F1 9.80 Tf
 (produced.) Tj
 ET
 BT
-1 0 0 1 70.00 567.49 Tm
+1 0 0 1 70.00 388.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 567.49 Tm
+1 0 0 1 81.44 388.69 Tm
 /F2 9.80 Tf
 (Server) Tj
 ( logs) Tj
@@ -2437,12 +2616,12 @@ BT
 ( out.) Tj
 ET
 BT
-1 0 0 1 70.00 549.89 Tm
+1 0 0 1 70.00 371.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 549.89 Tm
+1 0 0 1 81.44 371.09 Tm
 /F2 9.80 Tf
 (Backups) Tj
 /F1 9.80 Tf
@@ -2466,7 +2645,7 @@ BT
 ( the) Tj
 ET
 BT
-1 0 0 1 81.44 536.29 Tm
+1 0 0 1 81.44 357.49 Tm
 /F1 9.80 Tf
 (copies) Tj
 ( held) Tj
@@ -2489,7 +2668,7 @@ BT
 ( its) Tj
 ET
 BT
-1 0 0 1 81.44 522.69 Tm
+1 0 0 1 81.44 343.89 Tm
 /F1 9.80 Tf
 (retention) Tj
 ( lapses.) Tj
@@ -2512,7 +2691,7 @@ BT
 ( not) Tj
 ET
 BT
-1 0 0 1 81.44 509.09 Tm
+1 0 0 1 81.44 330.29 Tm
 /F1 9.80 Tf
 (browsed,) Tj
 ( and) Tj
@@ -2524,18 +2703,18 @@ BT
 ( them.) Tj
 ET
 BT
-1 0 0 1 56.00 472.09 Tm
+1 0 0 1 56.00 293.29 Tm
 /F2 12.50 Tf
 (10.) Tj
 ( Security) Tj
 ET
 BT
-1 0 0 1 70.00 453.49 Tm
+1 0 0 1 70.00 274.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 453.49 Tm
+1 0 0 1 81.44 274.69 Tm
 /F1 9.80 Tf
 (All) Tj
 ( traffic) Tj
@@ -2545,12 +2724,12 @@ BT
 ( HTTPS/TLS.) Tj
 ET
 BT
-1 0 0 1 70.00 435.89 Tm
+1 0 0 1 70.00 257.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 435.89 Tm
+1 0 0 1 81.44 257.09 Tm
 /F1 9.80 Tf
 (Passwords) Tj
 ( are) Tj
@@ -2568,7 +2747,7 @@ BT
 ( tokens) Tj
 ET
 BT
-1 0 0 1 81.44 422.29 Tm
+1 0 0 1 81.44 243.49 Tm
 /F1 9.80 Tf
 (as) Tj
 ( SHA-256) Tj
@@ -2582,12 +2761,12 @@ BT
 ( back.) Tj
 ET
 BT
-1 0 0 1 70.00 404.69 Tm
+1 0 0 1 70.00 225.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 404.69 Tm
+1 0 0 1 81.44 225.89 Tm
 /F1 9.80 Tf
 (Access) Tj
 ( tokens) Tj
@@ -2611,7 +2790,7 @@ BT
 ( with) Tj
 ET
 BT
-1 0 0 1 81.44 391.09 Tm
+1 0 0 1 81.44 212.29 Tm
 /F1 9.80 Tf
 (each) Tj
 ( request) Tj
@@ -2625,14 +2804,108 @@ BT
 ( by) Tj
 ( the) Tj
 ( API.) Tj
+( Signing) Tj
+( out) Tj
+( or) Tj
+( resetting) Tj
+( a) Tj
+( password) Tj
+( stops) Tj
 ET
 BT
-1 0 0 1 70.00 373.49 Tm
+1 0 0 1 81.44 198.69 Tm
+/F1 9.80 Tf
+(the) Tj
+( tokens) Tj
+( issued) Tj
+( before) Tj
+( it) Tj
+( from) Tj
+( being) Tj
+( accepted) Tj
+( at) Tj
+( all,) Tj
+( rather) Tj
+( than) Tj
+( waiting) Tj
+( for) Tj
+( them) Tj
+( to) Tj
+( expire.) Tj
+ET
+BT
+1 0 0 1 70.00 181.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 373.49 Tm
+1 0 0 1 81.44 181.09 Tm
+/F1 9.80 Tf
+(A) Tj
+( refresh) Tj
+( token) Tj
+( is) Tj
+( replaced) Tj
+( each) Tj
+( time) Tj
+( it) Tj
+( is) Tj
+( used,) Tj
+( and) Tj
+( one) Tj
+( presented) Tj
+( a) Tj
+( second) Tj
+( time) Tj
+( ends) Tj
+( the) Tj
+( session) Tj
+( it) Tj
+ET
+BT
+1 0 0 1 81.44 167.49 Tm
+/F1 9.80 Tf
+(belongs) Tj
+( to,) Tj
+( on) Tj
+( that) Tj
+( device) Tj
+( alone.) Tj
+ET
+BT
+1 0 0 1 70.00 149.89 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 149.89 Tm
+/F1 9.80 Tf
+(We) Tj
+( email) Tj
+( you) Tj
+( when) Tj
+( your) Tj
+( password) Tj
+( changes,) Tj
+( so) Tj
+( a) Tj
+( change) Tj
+( you) Tj
+( did) Tj
+( not) Tj
+( make) Tj
+( does) Tj
+( not) Tj
+( go) Tj
+( unnoticed.) Tj
+ET
+BT
+1 0 0 1 70.00 132.29 Tm
+/F1 9.80 Tf
+(-) Tj
+ET
+BT
+1 0 0 1 81.44 132.29 Tm
 /F1 9.80 Tf
 (Every) Tj
 ( request) Tj
@@ -2653,18 +2926,18 @@ BT
 ( read) Tj
 ET
 BT
-1 0 0 1 81.44 359.89 Tm
+1 0 0 1 81.44 118.69 Tm
 /F1 9.80 Tf
 (another's) Tj
 ( records.) Tj
 ET
 BT
-1 0 0 1 70.00 342.29 Tm
+1 0 0 1 70.00 101.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 342.29 Tm
+1 0 0 1 81.44 101.09 Tm
 /F1 9.80 Tf
 (The) Tj
 ( database) Tj
@@ -2685,12 +2958,12 @@ BT
 ( network.) Tj
 ET
 BT
-1 0 0 1 70.00 324.69 Tm
+1 0 0 1 70.00 83.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 324.69 Tm
+1 0 0 1 81.44 83.49 Tm
 /F1 9.80 Tf
 (Backups) Tj
 ( are) Tj
@@ -2711,7 +2984,7 @@ BT
 ( signal) Tj
 ET
 BT
-1 0 0 1 81.44 311.09 Tm
+1 0 0 1 81.44 69.89 Tm
 /F1 9.80 Tf
 (rather) Tj
 ( than) Tj
@@ -2720,12 +2993,26 @@ BT
 ( reports.) Tj
 ET
 BT
-1 0 0 1 70.00 293.49 Tm
+0.45 0.45 0.45 rg
+/F1 7.8 Tf
+1 0 0 1 277.69 38.00 Tm
+(Page 4 of 5) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 6380 >>
+stream
+BT
+1 0 0 1 70.00 764.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 293.49 Tm
+1 0 0 1 81.44 764.29 Tm
 /F1 9.80 Tf
 (Administrative) Tj
 ( access) Tj
@@ -2743,7 +3030,7 @@ BT
 ( maintainers.) Tj
 ET
 BT
-1 0 0 1 56.00 275.89 Tm
+1 0 0 1 56.00 746.69 Tm
 /F1 9.80 Tf
 (No) Tj
 ( service) Tj
@@ -2768,7 +3055,7 @@ BT
 ( will) Tj
 ET
 BT
-1 0 0 1 56.00 262.29 Tm
+1 0 0 1 56.00 733.09 Tm
 /F1 9.80 Tf
 (notify) Tj
 ( the) Tj
@@ -2781,14 +3068,14 @@ BT
 ( you.) Tj
 ET
 BT
-1 0 0 1 56.00 222.29 Tm
+1 0 0 1 56.00 693.09 Tm
 /F2 12.50 Tf
 (11.) Tj
 ( Your) Tj
 ( rights) Tj
 ET
 BT
-1 0 0 1 56.00 203.69 Tm
+1 0 0 1 56.00 674.49 Tm
 /F1 9.80 Tf
 (Under) Tj
 ( the) Tj
@@ -2800,12 +3087,12 @@ BT
 ( to:) Tj
 ET
 BT
-1 0 0 1 70.00 183.09 Tm
+1 0 0 1 70.00 653.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 183.09 Tm
+1 0 0 1 81.44 653.89 Tm
 /F2 9.80 Tf
 (access) Tj
 /F1 9.80 Tf
@@ -2824,12 +3111,12 @@ BT
 ( it;) Tj
 ET
 BT
-1 0 0 1 70.00 165.49 Tm
+1 0 0 1 70.00 636.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 165.49 Tm
+1 0 0 1 81.44 636.29 Tm
 /F2 9.80 Tf
 (rectification) Tj
 /F1 9.80 Tf
@@ -2853,12 +3140,12 @@ BT
 ( directly;) Tj
 ET
 BT
-1 0 0 1 70.00 147.89 Tm
+1 0 0 1 70.00 618.69 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 147.89 Tm
+1 0 0 1 81.44 618.69 Tm
 /F2 9.80 Tf
 (erasure) Tj
 /F1 9.80 Tf
@@ -2880,12 +3167,12 @@ BT
 ( account;) Tj
 ET
 BT
-1 0 0 1 70.00 130.29 Tm
+1 0 0 1 70.00 601.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 130.29 Tm
+1 0 0 1 81.44 601.09 Tm
 /F2 9.80 Tf
 (restriction) Tj
 /F1 9.80 Tf
@@ -2896,12 +3183,12 @@ BT
 ( circumstances;) Tj
 ET
 BT
-1 0 0 1 70.00 112.69 Tm
+1 0 0 1 70.00 583.49 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 112.69 Tm
+1 0 0 1 81.44 583.49 Tm
 /F2 9.80 Tf
 (data) Tj
 ( portability) Tj
@@ -2922,12 +3209,12 @@ BT
 ( format;) Tj
 ET
 BT
-1 0 0 1 70.00 95.09 Tm
+1 0 0 1 70.00 565.89 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 95.09 Tm
+1 0 0 1 81.44 565.89 Tm
 /F2 9.80 Tf
 (object) Tj
 /F1 9.80 Tf
@@ -2940,12 +3227,12 @@ BT
 ( interests;) Tj
 ET
 BT
-1 0 0 1 70.00 77.49 Tm
+1 0 0 1 70.00 548.29 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 77.49 Tm
+1 0 0 1 81.44 548.29 Tm
 /F2 9.80 Tf
 (withdraw) Tj
 ( consent) Tj
@@ -2966,7 +3253,7 @@ BT
 ( affecting) Tj
 ET
 BT
-1 0 0 1 81.44 63.89 Tm
+1 0 0 1 81.44 534.69 Tm
 /F1 9.80 Tf
 (processing) Tj
 ( that) Tj
@@ -2974,26 +3261,12 @@ BT
 ( happened;) Tj
 ET
 BT
-0.45 0.45 0.45 rg
-/F1 7.8 Tf
-1 0 0 1 277.69 38.00 Tm
-(Page 4 of 5) Tj
-ET
-endstream
-endobj
-13 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
-endobj
-14 0 obj
-<< /Length 3496 >>
-stream
-BT
-1 0 0 1 70.00 764.29 Tm
+1 0 0 1 70.00 517.09 Tm
 /F1 9.80 Tf
 (-) Tj
 ET
 BT
-1 0 0 1 81.44 764.29 Tm
+1 0 0 1 81.44 517.09 Tm
 /F2 9.80 Tf
 (not) Tj
 ( be) Tj
@@ -3015,7 +3288,7 @@ BT
 ( why) Tj
 ET
 BT
-1 0 0 1 81.44 750.69 Tm
+1 0 0 1 81.44 503.49 Tm
 /F1 9.80 Tf
 (none) Tj
 ( are) Tj
@@ -3023,7 +3296,7 @@ BT
 ( here.) Tj
 ET
 BT
-1 0 0 1 56.00 733.09 Tm
+1 0 0 1 56.00 485.89 Tm
 /F1 9.80 Tf
 (To) Tj
 ( exercise) Tj
@@ -3039,7 +3312,7 @@ BT
 ( at) Tj
 ET
 BT
-1 0 0 1 56.00 719.49 Tm
+1 0 0 1 56.00 472.29 Tm
 /F1 9.80 Tf
 (https://github.com/Gmust/smart-pet-care-app.) Tj
 ( We) Tj
@@ -3056,7 +3329,7 @@ BT
 ( confirm) Tj
 ET
 BT
-1 0 0 1 56.00 705.89 Tm
+1 0 0 1 56.00 458.69 Tm
 /F1 9.80 Tf
 (you) Tj
 ( control) Tj
@@ -3078,7 +3351,7 @@ BT
 ( person.) Tj
 ET
 BT
-1 0 0 1 56.00 685.29 Tm
+1 0 0 1 56.00 438.09 Tm
 /F1 9.80 Tf
 (You) Tj
 ( also) Tj
@@ -3103,7 +3376,7 @@ BT
 ( for) Tj
 ET
 BT
-1 0 0 1 56.00 671.69 Tm
+1 0 0 1 56.00 424.49 Tm
 /F1 9.80 Tf
 (your) Tj
 ( country) Tj
@@ -3111,13 +3384,13 @@ BT
 ( residence.) Tj
 ET
 BT
-1 0 0 1 56.00 631.69 Tm
+1 0 0 1 56.00 384.49 Tm
 /F2 12.50 Tf
 (12.) Tj
 ( Children) Tj
 ET
 BT
-1 0 0 1 56.00 613.09 Tm
+1 0 0 1 56.00 365.89 Tm
 /F1 9.80 Tf
 (The) Tj
 ( Service) Tj
@@ -3144,7 +3417,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 599.49 Tm
+1 0 0 1 56.00 352.29 Tm
 /F1 9.80 Tf
 (higher) Tj
 ( age) Tj
@@ -3167,7 +3440,7 @@ BT
 ( believe) Tj
 ET
 BT
-1 0 0 1 56.00 585.89 Tm
+1 0 0 1 56.00 338.69 Tm
 /F1 9.80 Tf
 (we) Tj
 ( have,) Tj
@@ -3180,7 +3453,7 @@ BT
 ( it.) Tj
 ET
 BT
-1 0 0 1 56.00 545.89 Tm
+1 0 0 1 56.00 298.69 Tm
 /F2 12.50 Tf
 (13.) Tj
 ( Changes) Tj
@@ -3189,7 +3462,7 @@ BT
 ( policy) Tj
 ET
 BT
-1 0 0 1 56.00 527.29 Tm
+1 0 0 1 56.00 280.09 Tm
 /F1 9.80 Tf
 (We) Tj
 ( may) Tj
@@ -3208,7 +3481,7 @@ BT
 ( at) Tj
 ET
 BT
-1 0 0 1 56.00 513.69 Tm
+1 0 0 1 56.00 266.49 Tm
 /F1 9.80 Tf
 (https://smart-pet-care.duckdns.org/privacy,) Tj
 ( with) Tj
@@ -3226,7 +3499,7 @@ BT
 ( a) Tj
 ET
 BT
-1 0 0 1 56.00 500.09 Tm
+1 0 0 1 56.00 252.89 Tm
 /F1 9.80 Tf
 (change) Tj
 ( that) Tj
@@ -3252,18 +3525,18 @@ BT
 ( takes) Tj
 ET
 BT
-1 0 0 1 56.00 486.49 Tm
+1 0 0 1 56.00 239.29 Tm
 /F1 9.80 Tf
 (effect.) Tj
 ET
 BT
-1 0 0 1 56.00 446.49 Tm
+1 0 0 1 56.00 199.29 Tm
 /F2 12.50 Tf
 (14.) Tj
 ( Contact) Tj
 ET
 BT
-1 0 0 1 56.00 427.89 Tm
+1 0 0 1 56.00 180.69 Tm
 /F1 9.80 Tf
 (Smart) Tj
 ( Pet) Tj
@@ -3278,7 +3551,7 @@ BT
 ( at) Tj
 ET
 BT
-1 0 0 1 56.00 414.29 Tm
+1 0 0 1 56.00 167.09 Tm
 /F1 9.80 Tf
 (https://github.com/Gmust/smart-pet-care-app.) Tj
 ET
@@ -3302,17 +3575,17 @@ xref
 0000000247 00000 n 
 0000000349 00000 n 
 0000000712 00000 n 
-0000008277 00000 n 
-0000008419 00000 n 
-0000016431 00000 n 
-0000016573 00000 n 
-0000025645 00000 n 
-0000025789 00000 n 
-0000035101 00000 n 
-0000035245 00000 n 
-0000038794 00000 n 
+0000008177 00000 n 
+0000008319 00000 n 
+0000015850 00000 n 
+0000015992 00000 n 
+0000025450 00000 n 
+0000025594 00000 n 
+0000035274 00000 n 
+0000035418 00000 n 
+0000041851 00000 n 
 trailer
-<< /Size 16 /Root 1 0 R /Info 5 0 R /ID [<A2B9830EE58AE87D4CD6C3B1ACAEB597> <A2B9830EE58AE87D4CD6C3B1ACAEB597>] >>
+<< /Size 16 /Root 1 0 R /Info 5 0 R /ID [<7F57352625A516C04281D0E1DDA516BC> <7F57352625A516C04281D0E1DDA516BC>] >>
 startxref
-38938
+41995
 %%EOF

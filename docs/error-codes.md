@@ -83,7 +83,7 @@ reaction. This is the whole decision table:
 | `500` | A bug | Show a generic apology, log the `traceId`. Do not retry — it will fail identically. |
 | `502` / `503` | A dependency failed | `retryable` says whether a retry can help. |
 
-## Authentication: the three 401s
+## Authentication: the 401s
 
 These are not synonyms, and telling them apart is the one place where getting it
 wrong produces an infinite loop rather than a wrong message:
@@ -93,6 +93,7 @@ wrong produces an infinite loop rather than a wrong message:
 | `auth_authentication_required` | No token, expired, or failed validation | **Refresh**, then replay the request once |
 | `auth_refresh_token_invalid` | The refresh token is unknown, expired or spent | **Do not refresh.** Clear the session, go to login |
 | `auth_account_no_longer_exists` | The token is valid, the account is gone | **Do not refresh.** Clear the session, go to login |
+| `auth_session_revoked` | The token is valid, the session behind it was ended | **Do not refresh.** Clear the session, go to login |
 | `authentication_token_invalid` | The token parses but carries no usable user id | **Do not refresh.** Clear the session, go to login |
 | `auth_invalid_credentials` | Wrong email or password at login | Show the message. Not a session problem |
 | `auth_google_failed` | Google rejected the token or the exchange failed | Show the message, offer the flow again |
@@ -394,7 +395,8 @@ record a weight, the other means correct the one that is there.
 |---|---|---|
 | `auth_authentication_required` | 401 | No token, an expired one, or one that fails validation. Refresh, then retry. |
 | `auth_account_no_longer_exists` | 401 | The token is valid but its account is gone. Refreshing will not help — clear the session and send the user to login. |
-| `auth_refresh_token_invalid` | 401 | The refresh token is unknown, expired or already used. Same: start a new session. |
+| `auth_session_revoked` | 401 | The access token is signed, unexpired and names a live account, but the session ended: the user signed out, or a password reset cut every session off. The refresh token is gone too, so refreshing only fails a second time — clear the session and send the user to login. |
+| `auth_refresh_token_invalid` | 401 | The refresh token is unknown, expired, already used or belonged to a session that was ended. Same: start a new session. |
 | `auth_forbidden` | 403 | Authenticated, but not allowed to do this. |
 | `auth_email_already_taken` | 409 | Registering an address that already has an account. |
 | `auth_account_not_found` | 404 | No account for the address. |
@@ -404,6 +406,17 @@ record a weight, the other means correct the one that is there.
 | `auth_reset_token_invalid` | 400 | The reset token is unknown or already spent — including a link superseded by a newer one. Send the user back to **Forgot password**. |
 | `auth_reset_token_expired` | 410 | The reset link is past its lifetime. Same screen, but the message can say the link simply aged out. |
 | `auth_too_many_requests` | 429 | Too many attempts from this address against `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password` or `reset-password`. `Retry-After` carries the seconds left in the window. |
+
+`POST /api/auth/refresh` **rotates**: the token presented is spent and a new one
+comes back, and a spent token presented again is both refused and taken as a sign
+that two parties hold the session — which ends it, on that device only. A client
+should therefore refresh **once at a time**: if several requests meet a 401 at the
+same moment, one refresh runs and the others wait for its answer. Two refreshes
+racing with the same token end with one of them getting
+`auth_refresh_token_invalid`, which is survivable — retry with the token the
+winner stored — but repeating the mistake with a token that was spent more than ten
+seconds ago signs that device out. The ten seconds are a grace for exactly this
+race; past it, a spent token coming back is read as a replay.
 
 `POST /api/auth/forgot-password` has **no failure code for an unknown address**.
 It answers `202` whether the address has an account or not, and whether a link
@@ -634,6 +647,7 @@ for your own translations.
   "auth_reset_token_expired": "",
   "auth_authentication_required": "",
   "auth_account_no_longer_exists": "",
+  "auth_session_revoked": "",
   "auth_forbidden": "",
   "auth_too_many_requests": "",
 

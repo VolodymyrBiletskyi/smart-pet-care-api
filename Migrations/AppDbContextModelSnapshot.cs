@@ -280,6 +280,9 @@ namespace smart_pet_care_api.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PendingPasswordHash")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("UsedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1082,6 +1085,9 @@ namespace smart_pet_care_api.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("TokenFamilyId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1092,6 +1098,8 @@ namespace smart_pet_care_api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("TokenFamilyId");
 
                     b.HasIndex("TokenHash")
                         .IsUnique();
@@ -1319,6 +1327,12 @@ namespace smart_pet_care_api.Migrations
                     b.Property<string>("AvatarUrl")
                         .HasColumnType("text");
 
+                    b.Property<int>("ConfirmationAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ConfirmationAttemptsStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1347,6 +1361,9 @@ namespace smart_pet_care_api.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("TermsAcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("TokensValidFrom")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdatedAt")

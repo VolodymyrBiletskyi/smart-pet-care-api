@@ -10,14 +10,20 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
     {
         Task<RefreshToken?> GetByHashAsync(string tokenHash);
         Task AddAsync(RefreshToken token);
-        Task<List<RefreshToken>> GetActiveByUserAsync(Guid userId);
 
         /// <summary>
-        /// Every live refresh token, uncapped. <see cref="GetActiveByUserAsync"/> takes
-        /// the ten newest, which is enough to sign a session out; a password reset has to
-        /// end all of them or the eleventh keeps working.
+        /// Every live refresh token, uncapped. There used to be a second method taking
+        /// the ten newest, which logout used — leaving an eleventh working for its full
+        /// seven days after the user had signed out.
         /// </summary>
         Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId);
+
+        /// <summary>
+        /// Revokes every live token in one rotation family, for a token presented after
+        /// it was already spent. One statement, because the caller is about to refuse
+        /// the request and has nothing to save.
+        /// </summary>
+        Task<int> RevokeFamilyAsync(Guid tokenFamilyId, DateTime revokedAt);
 
         Task AddConfirmationCodeAsync(EmailConfirmationCode code);
         Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId);

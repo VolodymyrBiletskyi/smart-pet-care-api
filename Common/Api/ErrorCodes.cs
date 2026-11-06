@@ -213,6 +213,15 @@ public static class ErrorCodes
         /// </summary>
         public const string AccountNoLongerExists = "auth_account_no_longer_exists";
 
+        /// <summary>
+        /// The access token is signed, unexpired and names a live account, but the
+        /// session behind it has ended — the user signed out, or a password reset cut
+        /// every session off. Distinct from <see cref="AuthenticationRequired"/> for the
+        /// same reason as above: the refresh token is gone too, so a client that tries to
+        /// refresh will only fail a second time.
+        /// </summary>
+        public const string SessionRevoked = "auth_session_revoked";
+
         public const string Forbidden = "auth_forbidden";
 
         /// <summary>

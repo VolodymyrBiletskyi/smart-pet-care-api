@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Domain;
@@ -80,7 +81,25 @@ public class AuthServiceLogoutTests
         await Service(authRepo, deviceTokens).LogoutAsync(_userId, Token);
 
         Assert.Equal((_userId, Token), Assert.Single(deviceTokens.Unregistered));
-        Assert.Equal(0, authRepo.SaveChangesCalls);
+    }
+
+    /// <summary>
+    /// Signing out also ends the access token in hand, which revoking refresh tokens
+    /// does not reach -- it is signed, unexpired and looked up nowhere. The cached
+    /// cutoff is dropped with it, or "signed out" would mean "within three minutes".
+    /// </summary>
+    [Fact]
+    public async Task LogoutAsync_MovesTheAccessTokenCutoffAndDropsTheCachedState()
+    {
+        var authRepo = new FakeAuthRepository();
+        var userRepo = new UnusedUserRepository();
+        var authState = new FakeAuthStateCache();
+
+        await Service(authRepo, new FakeDeviceTokenService(), userRepo, authState)
+            .LogoutAsync(_userId, Token);
+
+        Assert.Equal(_userId, Assert.Single(userRepo.TokenCutoffs).UserId);
+        Assert.Equal(_userId, Assert.Single(authState.Invalidated));
     }
 
     /// <summary>
@@ -105,13 +124,22 @@ public class AuthServiceLogoutTests
 
     private static AuthService Service(
         FakeAuthRepository authRepo, FakeDeviceTokenService deviceTokens) =>
+        Service(authRepo, deviceTokens, new UnusedUserRepository(), new FakeAuthStateCache());
+
+    private static AuthService Service(
+        FakeAuthRepository authRepo,
+        FakeDeviceTokenService deviceTokens,
+        UnusedUserRepository userRepo,
+        FakeAuthStateCache authState) =>
         new(new UnusedJwtProvider(),
-            new UnusedUserRepository(),
+            userRepo,
             authRepo,
             new UnusedGoogleOAuth(),
             new UnusedEmailSender(),
             new UnusedEmailTemplates(),
             deviceTokens,
             new UnusedPasswordResetLinkBuilder(),
-            Options.Create(new PasswordResetOptions()));
+            Options.Create(new PasswordResetOptions()),
+            authState,
+            NullLogger<AuthService>.Instance);
 }

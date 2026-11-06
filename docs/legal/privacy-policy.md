@@ -1,6 +1,6 @@
 # Smart Pet Care App - Privacy Policy
 
-Version 1.2. Effective 30 October 2026. Published at https://smart-pet-care.duckdns.org/privacy
+Version 1.3. Effective 6 November 2026. Published at https://smart-pet-care.duckdns.org/privacy
 
 ## 1. Who is responsible, and what this covers
 
@@ -41,7 +41,11 @@ whether and when you confirmed your email; and the dates your account was
 created and last changed.
 
 If you sign up with a password we send a confirmation code to your email and
-store it, hashed, until it is used or expires 15 minutes later.
+store it, hashed, until it is used or expires 15 minutes later. While an address
+is not yet confirmed, the bcrypt hash of the password that sign-up chose is kept
+with the code rather than on the account, and is applied to the account when the
+code is used. This is what stops a second sign-up for an address someone else is
+in the middle of confirming from setting the password on it.
 
 If you ask to reset a forgotten password we email you a link and store the token
 it carries, hashed, until the link is used or expires 30 minutes later. We do not
@@ -89,10 +93,13 @@ Recent messages in a session are replayed as context for the next question.
   identifies a device to Google's messaging service; it is not an advertising
   identifier.
 - Session data: refresh tokens, stored as SHA-256 hashes rather than in the
-  clear, with their expiry and whether they have been revoked. The API returns
-  both tokens to the app in the response body; where they are then kept is the
-  app's responsibility, and on a phone that is the platform's protected storage
-  for the app.
+  clear, with their expiry, whether they have been revoked, an identifier for
+  the sign-in they belong to and the hash of the token that replaced each one.
+  Those last two are what let us end a single session - and only that session -
+  when a token is presented twice, which is what the theft of a token looks
+  like. The API returns both tokens to the app in the response body; where they
+  are then kept is the app's responsibility, and on a phone that is the
+  platform's protected storage for the app.
 - Server logs produced by handling your requests, which contain IP addresses,
   the requested route, timestamps, response status, user agent and a trace
   identifier. These are operational records used to find faults and detect
@@ -190,12 +197,15 @@ can ask us for details of the safeguards that apply to a specific provider.
   individual pet or record. Deleting an account deletes the account and the
   pets and records belonging to it.
 - **Email confirmation codes** - 15 minutes, then they are expired and unusable.
+  The password hash held with an unconfirmed sign-up's code expires with it.
 - **Password reset tokens** - usable for 30 minutes and for one reset, then they
   are expired and unusable; asking for a new link also cancels the previous one.
   The hashed record of a spent link is kept with the account.
 - **Refresh tokens** - 7 days from issue; revoked immediately when you sign out
   of that device or change your password. Resetting a forgotten password revokes
-  them on every device, so each one has to sign in again.
+  them on every device, so each one has to sign in again. Signing out and
+  resetting a password also stop the short-lived access token already issued to
+  the app from being accepted, instead of letting it run its remaining minutes.
 - **Push notification tokens** - until you turn notifications off, you sign out
   of that device, or the token goes unused for 60 days, after which it is
   pruned. Registering a device under a different account moves the token to that
@@ -218,7 +228,12 @@ can ask us for details of the safeguards that apply to a specific provider.
   password reset tokens as SHA-256 hashes. None of them can be read back.
 - Access tokens are short-lived (15 minutes), so a token that does leak is of
   little use. They are sent with each request as a bearer token rather than
-  stored by the API.
+  stored by the API. Signing out or resetting a password stops the tokens issued
+  before it from being accepted at all, rather than waiting for them to expire.
+- A refresh token is replaced each time it is used, and one presented a second
+  time ends the session it belongs to, on that device alone.
+- We email you when your password changes, so a change you did not make does not
+  go unnoticed.
 - Every request for a pet's data is checked against the signed-in account, so
   one user cannot read another's records.
 - The database is not reachable from the public internet; the API reaches it on
