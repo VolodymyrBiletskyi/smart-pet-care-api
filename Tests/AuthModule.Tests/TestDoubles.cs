@@ -1,9 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Domain;
+using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.AuthModule.OAuth;
 using smart_pet_care_api.Modules.AuthModule.Repository;
@@ -32,11 +34,20 @@ internal sealed class FakeAuthRepository : IAuthRepository
         return Task.CompletedTask;
     }
 
-    public Task<List<RefreshToken>> GetActiveByUserAsync(Guid userId) =>
-        Task.FromResult(Active(userId).Take(10).ToList());
-
     public Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId) =>
         Task.FromResult(Active(userId).ToList());
+
+    public Task<int> RevokeFamilyAsync(Guid tokenFamilyId, DateTime revokedAt)
+    {
+        var revoked = RefreshTokens
+            .Where(t => t.TokenFamilyId == tokenFamilyId && t.RevokedAt == null)
+            .ToList();
+
+        foreach (var token in revoked)
+            token.RevokedAt = revokedAt;
+
+        return Task.FromResult(revoked.Count);
+    }
 
     private IEnumerable<RefreshToken> Active(Guid userId) =>
         RefreshTokens.Where(t =>
@@ -126,6 +137,24 @@ internal sealed class FakeUserRepository : IUserRepository
     public Task<bool> ExistsAsync(Guid userId) =>
         Task.FromResult(Users.Any(u => u.Id == userId));
 
+    public Task<UserAuthState?> GetAuthStateAsync(Guid userId) =>
+        Task.FromResult(Users
+            .Where(u => u.Id == userId)
+            .Select(u => new UserAuthState(u.TokensValidFrom))
+            .FirstOrDefault());
+
+    public Task SetTokensValidFromAsync(Guid userId, DateTime validFrom)
+    {
+        var user = Users.FirstOrDefault(u => u.Id == userId);
+        if (user is not null)
+        {
+            user.TokensValidFrom = validFrom;
+            user.UpdatedAt = validFrom;
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task<ExternalLogin?> GetExternalLoginAsync(AuthProvider provider, string providerUserId) =>
         Task.FromResult<ExternalLogin?>(null);
 
@@ -138,8 +167,14 @@ internal sealed class FakeEmailSender : IEmailSender
 {
     public List<SentEmail> Sent { get; } = [];
 
+    /// <summary>A subject this sender refuses, standing in for a dead SMTP server.</summary>
+    public string? FailOnSubject { get; init; }
+
     public Task SendAsync(string toAddress, string subject, string textBody, string? htmlBody = null)
     {
+        if (FailOnSubject is not null && subject.Contains(FailOnSubject, StringComparison.Ordinal))
+            throw new InvalidOperationException("SMTP is down");
+
         Sent.Add(new SentEmail(toAddress, subject, textBody, htmlBody));
         return Task.CompletedTask;
     }
@@ -152,6 +187,22 @@ internal sealed class FakeEmailTemplateProvider : IEmailTemplateProvider
 
     public EmailBody PasswordReset(string link, int expiresInMinutes) =>
         new($"text {link} {expiresInMinutes}", $"html {link} {expiresInMinutes}");
+
+    public EmailBody PasswordChanged() =>
+        new("text password changed", "html password changed");
+}
+
+/// <summary>
+/// Caches nothing and records what was dropped: the point under test is that the
+/// sign-out paths invalidate, not that a memory cache can hold a value.
+/// </summary>
+internal sealed class FakeAuthStateCache : IAuthStateCache
+{
+    public List<Guid> Invalidated { get; } = [];
+
+    public Task<UserAuthState?> GetAsync(Guid userId, Func<Task<UserAuthState?>> load) => load();
+
+    public void Invalidate(Guid userId) => Invalidated.Add(userId);
 }
 
 /// <summary>Real SHA256, so a hash stored by one call is found by the next.</summary>
@@ -211,15 +262,19 @@ internal static class AuthServiceFactory
         FakeEmailSender? emailSender = null,
         IPasswordResetLinkBuilder? links = null,
         PasswordResetOptions? resetOptions = null,
-        FakeDeviceTokenService? deviceTokens = null) =>
+        FakeDeviceTokenService? deviceTokens = null,
+        IAuthStateCache? authState = null,
+        IEmailTemplateProvider? templates = null) =>
         new(
             new FakeJwtProvider(),
             userRepo,
             authRepo,
             new FakeGoogleOAuth(),
             emailSender ?? new FakeEmailSender(),
-            new FakeEmailTemplateProvider(),
+            templates ?? new FakeEmailTemplateProvider(),
             deviceTokens ?? new FakeDeviceTokenService(),
             links ?? new StubResetLinkBuilder(),
-            Options.Create(resetOptions ?? new PasswordResetOptions()));
+            Options.Create(resetOptions ?? new PasswordResetOptions()),
+            authState ?? new FakeAuthStateCache(),
+            NullLogger<AuthService>.Instance);
 }

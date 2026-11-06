@@ -29,4 +29,11 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
 
     /// <summary>The avatar itself, for the one route that serves the bytes.</summary>
     public sealed record UserAvatar(byte[]? Data, string? ContentType);
+
+    /// <summary>
+    /// What <c>AuthMiddleware</c> asks about the account behind a valid token: that it
+    /// still exists (a null answer means it does not) and the instant before which its
+    /// access tokens are no longer accepted.
+    /// </summary>
+    public sealed record UserAuthState(DateTime? TokensValidFrom);
 }

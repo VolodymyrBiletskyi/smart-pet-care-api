@@ -47,6 +47,9 @@ namespace smart_pet_care_api.Modules.AuthModule
             services.AddSingleton<IEmailTemplateProvider, EmailTemplateProvider>();
             services.AddSingleton<IPasswordResetPageProvider, PasswordResetPageProvider>();
             services.AddMemoryCache();
+            // Singleton over the shared memory cache: the middleware reads it on every
+            // authenticated request and the sign-out paths drop the entry they invalidate.
+            services.AddSingleton<IAuthStateCache, AuthStateCache>();
 
             // ApiPublicUrl as the fallback rather than a second variable to keep in step:
             // it is already the one place a deployment states where it answers from.

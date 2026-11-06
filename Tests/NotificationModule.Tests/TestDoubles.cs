@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using smart_pet_care_api.Infrastructure.Email;
 using smart_pet_care_api.Models;
 using smart_pet_care_api.Modules.AuthModule.Domain;
+using smart_pet_care_api.Modules.AuthModule.Infrastructure;
 using smart_pet_care_api.Modules.AuthModule.Jwt;
 using smart_pet_care_api.Modules.AuthModule.OAuth;
 using smart_pet_care_api.Modules.AuthModule.Repository;
@@ -125,7 +126,7 @@ internal sealed class FakeAuthRepository : IAuthRepository
     public List<RefreshToken> ActiveTokens { get; } = new();
     public int SaveChangesCalls { get; private set; }
 
-    public Task<List<RefreshToken>> GetActiveByUserAsync(Guid userId) =>
+    public Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId) =>
         Task.FromResult(ActiveTokens.Where(t => t.UserId == userId).ToList());
 
     public Task<int> SaveChangesAsync()
@@ -134,7 +135,7 @@ internal sealed class FakeAuthRepository : IAuthRepository
         return Task.FromResult(0);
     }
 
-    public Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId) => throw new NotSupportedException();
+    public Task<int> RevokeFamilyAsync(Guid tokenFamilyId, DateTime revokedAt) => throw new NotSupportedException();
     public Task<RefreshToken?> GetByHashAsync(string tokenHash) => throw new NotSupportedException();
     public Task AddAsync(RefreshToken token) => throw new NotSupportedException();
     public Task AddConfirmationCodeAsync(EmailConfirmationCode code) => throw new NotSupportedException();
@@ -147,12 +148,23 @@ internal sealed class FakeAuthRepository : IAuthRepository
 }
 
 /// <summary>
-/// Logout touches neither of these, but AuthService takes them in its constructor.
-/// They throw rather than return defaults so a test that starts depending on one fails
-/// loudly instead of silently exercising a stub.
+/// Logout touches almost none of this, but AuthService takes it in its constructor.
+/// The members throw rather than return defaults so a test that starts depending on one
+/// fails loudly instead of silently exercising a stub — except the access-token cutoff,
+/// which logout does move, and which is recorded here.
 /// </summary>
 internal sealed class UnusedUserRepository : IUserRepository
 {
+    public List<(Guid UserId, DateTime ValidFrom)> TokenCutoffs { get; } = new();
+
+    public Task SetTokensValidFromAsync(Guid userId, DateTime validFrom)
+    {
+        TokenCutoffs.Add((userId, validFrom));
+        return Task.CompletedTask;
+    }
+
+    public Task<UserAuthState?> GetAuthStateAsync(Guid userId) => throw new NotSupportedException();
+
     public Task<UserCredentials?> GetCredentialsByEmailAsync(string email) => throw new NotSupportedException();
     public Task<UserCredentials?> GetCredentialsByIdAsync(Guid id) => throw new NotSupportedException();
     public Task<UserProfileRow?> GetProfileByIdAsync(Guid id) => throw new NotSupportedException();
@@ -200,4 +212,16 @@ internal sealed class UnusedEmailTemplates : IEmailTemplateProvider
 
     public EmailBody PasswordReset(string link, int expiresInMinutes) =>
         throw new NotSupportedException();
+
+    public EmailBody PasswordChanged() => throw new NotSupportedException();
+}
+
+/// <summary>Records the invalidations logout makes; caches nothing.</summary>
+internal sealed class FakeAuthStateCache : IAuthStateCache
+{
+    public List<Guid> Invalidated { get; } = new();
+
+    public Task<UserAuthState?> GetAsync(Guid userId, Func<Task<UserAuthState?>> load) => load();
+
+    public void Invalidate(Guid userId) => Invalidated.Add(userId);
 }

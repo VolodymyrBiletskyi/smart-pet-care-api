@@ -42,6 +42,26 @@ public class PasswordResetTemplateTests
     }
 
     /// <summary>
+    /// The notice goes to a mailbox whose owner may not have asked for anything, so it
+    /// carries no credential of any kind — no link, no code, nothing that acts.
+    /// </summary>
+    [Fact]
+    public void PasswordChangedEmail_CarriesNoCredential()
+    {
+        var body = new EmailTemplateProvider(Environment()).PasswordChanged();
+
+        foreach (var rendering in new[] { body.Text, body.Html })
+        {
+            Assert.DoesNotContain("{{", rendering);
+            Assert.DoesNotContain("token", rendering, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("miso://", rendering);
+            Assert.DoesNotContain("reset-password", rendering);
+        }
+
+        Assert.DoesNotContain("<a ", body.Html);
+    }
+
+    /// <summary>
     /// The page is only reached where the reset cannot be finished anyway, so it hands
     /// over nothing. It used to open <c>miso://reset-password?token=…</c>; a custom
     /// scheme has no owner, so any installed app could claim it and take the token out

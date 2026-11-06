@@ -17,20 +17,6 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
             await _dbContext.RefreshTokens.AddAsync(token);
         }
 
-        public async Task<List<RefreshToken>> GetActiveByUserAsync(Guid userId)
-        {
-            var now = DateTime.UtcNow;
-
-            return await _dbContext.RefreshTokens
-                .Where(t =>
-                    t.UserId == userId &&
-                    t.RevokedAt == null &&
-                    t.ExpiresAt > now)
-                .OrderByDescending(t => t.ExpiresAt)
-                .Take(10)
-                .ToListAsync();
-        }
-
         public async Task<List<RefreshToken>> GetAllActiveByUserAsync(Guid userId)
         {
             var now = DateTime.UtcNow;
@@ -46,6 +32,13 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
         public async Task<RefreshToken?> GetByHashAsync(string tokenHash)
         {
             return await _dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+        }
+
+        public async Task<int> RevokeFamilyAsync(Guid tokenFamilyId, DateTime revokedAt)
+        {
+            return await _dbContext.RefreshTokens
+                .Where(t => t.TokenFamilyId == tokenFamilyId && t.RevokedAt == null)
+                .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, revokedAt));
         }
 
         public async Task AddConfirmationCodeAsync(EmailConfirmationCode code)

@@ -19,6 +19,10 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(t => t.UserId);
         builder.HasIndex(t => t.ExpiresAt);
 
+        // Reuse detection revokes a whole family in one statement, and it runs on the
+        // path that answers a refresh.
+        builder.HasIndex(t => t.TokenFamilyId);
+
         builder.HasOne<User>()
             .WithMany(u => u.RefreshTokens)
             .HasForeignKey(t => t.UserId)

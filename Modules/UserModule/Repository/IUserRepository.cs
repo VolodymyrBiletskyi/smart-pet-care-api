@@ -24,6 +24,19 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
         Task<int> SaveChangesAsync();
         Task DeleteAsync(Guid id);
         Task<bool> ExistsAsync(Guid userId);
+
+        /// <summary>
+        /// Existence and the access-token cutoff in one read, for every authenticated
+        /// request. Null when the account is gone.
+        /// </summary>
+        Task<UserAuthState?> GetAuthStateAsync(Guid userId);
+
+        /// <summary>
+        /// Moves the access-token cutoff, which is what makes a sign-out take effect
+        /// before the token in hand expires. One statement rather than a tracked load:
+        /// the row carries the avatar bytes, and the caller has nothing else to write.
+        /// </summary>
+        Task SetTokensValidFromAsync(Guid userId, DateTime validFrom);
         Task<ExternalLogin?> GetExternalLoginAsync(AuthProvider provider, string providerUserId);
         Task AddExternalLoginAsync(ExternalLogin login);
 

@@ -101,6 +101,24 @@ namespace smart_pet_care_api.Modules.UserModule.Repository
         {
             return await _dbContext.Users.AnyAsync(u => u.Id == userId);
         }
+
+        public async Task<UserAuthState?> GetAuthStateAsync(Guid userId)
+        {
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new UserAuthState(u.TokensValidFrom))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task SetTokensValidFromAsync(Guid userId, DateTime validFrom)
+        {
+            await _dbContext.Users
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(set => set
+                    .SetProperty(u => u.TokensValidFrom, validFrom)
+                    .SetProperty(u => u.UpdatedAt, validFrom));
+        }
         public async Task<ExternalLogin?> GetExternalLoginAsync(AuthProvider provider, string providerUserId)
         {
             return await _dbContext.ExternalLogins

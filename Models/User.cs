@@ -24,6 +24,25 @@ namespace smart_pet_care_api.Models
         public bool EmailConfirmed { get; set; } = false;
         public DateTime? EmailConfirmedAt { get; set; }
 
+        /// <summary>
+        /// Failed confirmation-code guesses, and when the window holding them started.
+        /// On the account rather than on the code: per code the ceiling was five guesses
+        /// and a fresh code with a fresh counter was sixty seconds away, so the budget it
+        /// was meant to cap was in fact unbounded.
+        /// </summary>
+        public int ConfirmationAttempts { get; set; }
+        public DateTime? ConfirmationAttemptsStartedAt { get; set; }
+
+        /// <summary>
+        /// Access tokens issued before this instant are refused by <c>AuthMiddleware</c>.
+        /// Revoking refresh tokens ends a session's ability to continue, but the access
+        /// token already in hand stays signed and valid for up to its full fifteen
+        /// minutes and nothing about a JWT is looked up when it is used. Signing out and
+        /// resetting a password both move this forward, which is what makes either take
+        /// effect at once.
+        /// </summary>
+        public DateTime? TokensValidFrom { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

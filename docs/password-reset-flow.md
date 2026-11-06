@@ -122,13 +122,19 @@ digit and a symbol), `auth_passwords_do_not_match`.
 so it buys one password change and not a signed-in client — call
 `POST /api/auth/login` with the new password afterwards.
 
-Three things happen alongside the password:
+Five things happen alongside the password:
 
 - **Every refresh token for the account is revoked.** A reset is what a user does
   when they think somebody else knows their password, so other devices are
   signed out and have to log in again. Expect this in the UI: a second device
   will get `auth_refresh_token_invalid` on its next refresh and must clear its
   session rather than retry.
+- **Every access token issued before the reset stops being accepted.** Revoking
+  refresh tokens only stops a session continuing; the access token already in a
+  client's hand is signed, unexpired and looked up nowhere, so it went on reading
+  and writing the account for up to another fifteen minutes. A request with one now
+  gets `401 auth_session_revoked` — the same handling as
+  `auth_account_no_longer_exists`: clear the session, go to login, do not refresh.
 - **Every push registration for the account is deleted.** Sessions do not decide
   who receives a notification — the account a device token belongs to does — so a
   device that registered while somebody else held the password would keep getting
@@ -140,6 +146,11 @@ Three things happen alongside the password:
   of the mailbox, which is exactly what the six-digit code proves. Without this
   a user who never confirmed could reset their password and still be unable to
   log in.
+- **A notice is mailed to the address**, saying the password changed and every
+  device was signed out. It carries no link and no code: it goes to a mailbox
+  whose owner may not have asked for anything. Best effort and sent after the
+  password is already stored, so a dead SMTP server cannot turn a completed reset
+  into a failure the client reports.
 
 A Google-only account — one that has never had a password — can use this flow,
 and it gains one. It is not a new way in: anyone holding the mailbox can already
@@ -176,9 +187,9 @@ spends someone else's inbox, and `reset-password` with the credentials policy
 
 ## Known limitations
 
-Three things this flow does not do. All three were found in review and left in
-deliberately, so they are recorded here rather than rediscovered: an absent
-section would read as "nobody looked".
+Three things found in review. Two are fixed and kept here struck through, because
+what was wrong and why it was wrong is worth more than a shorter section; the one
+that is still open is first.
 
 ### Account enumeration is detectable by timing
 
@@ -223,18 +234,19 @@ Everything else about that URL is already handled: the route answers with
 `X-Robots-Tag: noindex, nofollow`, so the token does not reach a shared cache, a
 `Referer` header or a search index.
 
-### A completed reset sends no notification
+### ~~A completed reset sends no notification~~ — fixed
 
-Nothing tells the account holder that their password changed — no email, no
-push. The symptom they are left with is a login that stops working, which they
-will read as their own mistake before they read it as an intrusion.
+`ResetPasswordAsync` now mails a "your password was changed" notice
+(`Emails/password-changed.*`) after the reset lands. Until it did, nothing told
+the account holder their password had changed: the symptom they were left with was
+a login that stopped working, which reads as your own mistake long before it reads
+as an intrusion. It was worst on a **Google-only account**, where there was no
+symptom at all — the owner signs in with Google and never meets a password prompt,
+so a password set by somebody with brief access to their mailbox stayed invisible
+indefinitely.
 
-This is worst for a **Google-only account**, where there is no symptom at all:
-the owner always signs in with Google and never meets a password prompt, so a
-password set by someone who had brief access to their mailbox stays invisible
-indefinitely. Sessions and push registrations are revoked by the reset, so that
-person holds no live access — but they do hold a working password.
-
-A "your password was changed, and it wasn't you?" email at the end of
-`ResetPasswordAsync` closes this. It is a second template and a second send, not
-a design change.
+Two properties of the notice are deliberate. It carries **no link and no code**,
+because it is the one email sent to someone who may not have asked for anything.
+And it is **best effort, after the save**: the password has already changed by then,
+so a refused send is logged rather than raised — answering the client that the
+reset failed would leave the user holding a password they believe was rejected.
