@@ -841,11 +841,34 @@ adherence is a ratio rather than a perfect score) and routine-care reminders
 with a deliberate spread, including one never done and a grooming rule older
 than the grooming event that has to override it.
 
-Every row carries the marker `[wellness-e2e-seed:v1]` in a free-text column and a
-deterministic ID derived from the pet, which is what makes a re-run replace the
-previous fixture and leave user-created rows alone.
-`scripts/cleanup-wellness-test.sql` removes it again, and takes an optional
-`-v assessment_id=<uuid>` to drop the assessment a recalculation stored.
+Activity runs on a five-day rotation rather than thirty identical sessions, and
+it is weighted so the average lands near an hour of active minutes a day: the
+two High days are short, the Moderate ones long. The swim carries no steps,
+which is both true of a collar and the row that exercises the aggregator's
+null-steps branch.
+
+Every row has a deterministic ID derived from the pet and a key, and that ID is
+the *only* thing identifying the fixture: it is what makes a re-run replace the
+previous one, leave user-created rows alone, and still reach a row whose text the
+user has since edited. `scripts/cleanup-wellness-test.sql` removes it again, by
+the same IDs, and takes an optional `-v assessment_id=<uuid>` to drop a stored
+assessment.
+
+The text in those rows therefore reads like a real pet's history rather than
+carrying a marker, which is not cosmetic: a free-text marker was shown wherever
+the app shows a note, it was the **body of the push** a seeded reminder sends
+(`NotificationService.BuildContent` uses `Reminder.Description`), and the
+condition and medication names go to the classifier and come back quoted inside
+the narrative. The reminder descriptions in particular are written to be read on
+a lock screen.
+
+Two things to know before reading a score off it. The seeded reminders are
+`Active` with a `NextTriggerAt` of tomorrow, so the scheduler will fire them and
+push to the owner's devices — clean up the same day, or set `Status` off
+`Active`. And `WellnessService` reuses an assessment younger than three days, so
+an evaluation taken before the seed is returned as it stands and the new fixture
+is never read; delete the pet's rows in `PetWellnessAssessments` first. That also
+means the `PreviousScore`/trend branch cannot be exercised in one sitting.
 
 `-v fill_pet_profile=1` is the one thing that writes to the pet itself, and only
 where a field is empty: species, breed, birth date, sex, weight and behavioural
