@@ -69,8 +69,15 @@ whole row including the swap that clears one field while filling the other),
 the mapper, the repository (pet filter, `UpdatedAt` ordering, tracking
 behaviour) and the controller status mapping.
 
-Auth module tests are in `Tests/AuthModule.Tests/`. They cover sign-up and
-confirmation (that a second sign-up for an unconfirmed address leaves the stored
+Auth module tests are in `Tests/AuthModule.Tests/`. They cover the sign-up
+address screen (a domain with no MX refused, a disposable domain refused without
+the DNS being asked at all, an unanswered lookup letting the address through, the
+domain parsed out of what DataAnnotations let past, and the shipped list itself —
+that it loads, that it names the throwaway providers and that it names no
+forwarding relay or real provider); the letters-per-address ceiling and that a
+resend is not screened a second time; that an unconfirmed account is issued no
+token at all; sign-up and confirmation (that a second sign-up for an unconfirmed
+address leaves the stored
 password alone, that confirming the first sign-up's code keeps the first
 password and confirming the second's applies the second, that neither sign-up
 supersedes the other's live code, that confirming closes every other live code,
@@ -536,6 +543,78 @@ still exists and is still written, but it is diagnostic only — a wrong guess
 cannot be attributed to one of several live codes, so it is recorded against each
 that was live at the time.
 
+### Screening the address before the letter
+
+`IEmailDomainScreen` runs at the top of `RegisterAsync`, before the user row, the
+BCrypt hash and the SMTP call. Two checks, cheapest first:
+
+- **`Emails/disposable-domains.txt`** — the throwaway-mailbox providers, a copy of
+  the `disposable-email-domains` blocklist with a header, read once into a
+  `HashSet` and matched up the labels, so `anything.mailinator.com` is caught by
+  `mailinator.com`'s own entry. A refusal is `auth_email_domain_disposable`.
+- **An MX lookup** over DnsClient, memoised per domain (6 hours for a domain with
+  mail exchangers, 15 minutes for one without, a failed lookup not cached at all),
+  2-second timeout, no retries. No MX or no domain is
+  `auth_email_domain_invalid`.
+
+Four things there are deliberate and worth not undoing:
+
+- **A lookup that fails or times out lets the address through.** A resolver having
+  a bad minute must not be registration being closed, and the cost of being wrong
+  is one letter to a domain nobody checked. `MailExchangers.Unknown` is therefore
+  never cached either — it says nothing about the domain, and holding it would turn
+  a blip into a window where the check does not run.
+- **No SMTP `RCPT TO` probe.** Neither Gmail nor any catch-all domain answers it
+  honestly, and this server's address ends up on blocklists for asking. Whether the
+  *mailbox* exists is what the confirmation code proves; the screen is about the
+  domain only.
+- **Register only, not resend.** A resend presupposes an account that already
+  passed the screen and already received a letter, so a second check protects
+  nothing — while a provider whose MX is briefly unreachable would stop a real user
+  from getting their code.
+- **Forwarding relays are never refused.** `DisposableEmailDomains.KnownRelays`
+  subtracts duck.com, SimpleLogin, addy.io, Firefox Relay, Apple's private relay
+  and friends from whatever the file says. They are deliverable addresses — they do
+  not bounce and cost no sending reputation, which is the entire case for this
+  check — and they are what a privacy-minded user signs up with. Today's list names
+  none of them; the subtraction is what keeps a refreshed copy from quietly locking
+  those users out, and it logs a warning when it fires.
+
+A missing or unreadable list **fails open** with a logged error, for the same
+reason the DNS check does: a file left out of the publish output is a packaging
+slip, and it must not be able to stop people from signing up. The file is in the
+publish output through the `Emails\*.txt` half of the `Content Include` the email
+templates need.
+
+Refreshing the list is a copy of
+`disposable_email_blocklist.conf` from
+[disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains)
+with the header put back, plus a look for relays that have appeared in it.
+
+#### Letters per address, not per caller
+
+The 60-second cooldown caps the *rate* at which one account is mailed; five codes
+an hour (`MaxConfirmationSendsPerWindow`) caps the *total*. Without the second,
+a caller willing to wait a minute between calls mails sixty letters an hour to an
+address its owner never typed.
+
+It is counted in the service rather than by the rate limiter because the limiter
+cannot see the address: a partition is chosen before model binding, where no field
+of the request body exists yet. The count is per account, across `register` and
+`resend-confirmation` together — it is the mailbox being protected, and which
+endpoint asked for the letter makes no difference to whoever owns it. Both
+ceilings answer `CONFIRMATION_RESEND_TOO_SOON`.
+
+#### What an unconfirmed account can reach
+
+Nothing external, and by construction rather than by a check per module:
+`LoginAsync` refuses an unconfirmed address *after* verifying the password and
+issues no tokens, so no `[Authorize]` route — the classifier, Cloudinary uploads,
+push registration — is reachable at all. The other two ways to a token cannot
+produce one either: Google sign-in is refused unless Google reports the address as
+verified (and a verified one confirms the account on the way through), and
+`/api/auth/refresh` needs a refresh token that only `IssueTokensAsync` mints.
+
 ### Transactional email
 
 Three emails are sent today: the six-digit confirmation code, from
@@ -979,7 +1058,7 @@ Dual auth strategy — JWT bearer tokens + Google OAuth:
 - **Google OAuth:** Web (authorization code flow) and mobile (ID token validation) flows both supported via `Google.Apis.Auth`. A token is accepted only when Google reports the account's email as verified — the email is what `LoginOrRegisterOAuthUserAsync` matches an existing row on, so an unverified one naming somebody else's address would be a way into their account.
 - `AuthMiddleware` validates that the JWT user still exists in the database **and that the token was issued after the account's `TokensValidFrom` cutoff**; results are cached for 3 minutes to reduce DB hits, and the sign-out paths invalidate the entry.
 - Protected endpoints use `[Authorize]`. Retrieve the current user ID via `ClaimsPrincipalExtensions.GetUserId()`.
-- The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password`, `reset-password` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same six routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. `forgot-password` is the same and worse, since it answers identically for an address with an account and one without — the cap is the only thing between a list of addresses and a mailing. A rejection is `auth_too_many_requests` with `Retry-After`.
+- The anonymous endpoints — `login`, `register`, `confirm-email`, `resend-confirmation`, `forgot-password`, `reset-password` — are rate limited per client address (`AuthRateLimitPolicies`), and nginx limits the same six routes as a second layer. Each of them either burns an enhanced BCrypt hash or sends mail: without a cap `login` is a free guessing oracle and `register` reaches the SMTP sender once per request, since the 60-second resend cooldown is per account and a caller posting fresh addresses never meets it. `forgot-password` is the same and worse, since it answers identically for an address with an account and one without — the cap is the only thing between a list of addresses and a mailing. A rejection is `auth_too_many_requests` with `Retry-After`. The limiter partitions on the client address and nothing else — it is chosen before model binding, so no field of the request body is available to it, which is why the ceilings on how many letters one *address* can be sent live in `AuthService` instead.
 - `UseForwardedHeaders` is configured with `XForwardedFor` and an empty known-proxy list, because the limiter partitions on `Connection.RemoteIpAddress`: with the defaults (loopback only) nginx's headers were discarded and every client on earth shared the proxy's address and one partition.
 
 JWT and OAuth settings are loaded from `appsettings.json` (`JwtOptions`, `GoogleOAuthOptions`) and can be overridden with env vars (see `.env`).
@@ -989,6 +1068,7 @@ JWT and OAuth settings are loaded from `appsettings.json` (`JwtOptions`, `Google
 | Package | Purpose |
 |---|---|
 | `BCrypt.Net-Next` | Password hashing |
+| `DnsClient` | MX lookup screening a sign-up address |
 | `Google.Apis.Auth` | Google OAuth token validation |
 | `Microsoft.AspNetCore.Authentication.JwtBearer` | JWT bearer scheme |
 | `Npgsql.EntityFrameworkCore.PostgreSQL` | EF Core PostgreSQL provider |

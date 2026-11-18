@@ -29,6 +29,13 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
         Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId);
         Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId);
 
+        /// <summary>
+        /// How many codes this account has been sent since <paramref name="since"/>,
+        /// spent and expired ones included: the count is of letters that went out, not
+        /// of offers still open.
+        /// </summary>
+        Task<int> CountConfirmationCodesSinceAsync(Guid userId, DateTime since);
+
         Task AddPasswordResetTokenAsync(PasswordResetToken token);
 
         /// <summary>Tracked: the caller spends the token it finds.</summary>

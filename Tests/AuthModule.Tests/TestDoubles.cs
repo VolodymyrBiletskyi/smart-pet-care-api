@@ -71,6 +71,9 @@ internal sealed class FakeAuthRepository : IAuthRepository
     public Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId) =>
         Task.FromResult(ConfirmationCodes.Where(c => c.UserId == userId && c.IsActive).ToList());
 
+    public Task<int> CountConfirmationCodesSinceAsync(Guid userId, DateTime since) =>
+        Task.FromResult(ConfirmationCodes.Count(c => c.UserId == userId && c.CreatedAt >= since));
+
     public Task AddPasswordResetTokenAsync(PasswordResetToken token)
     {
         ResetTokens.Add(token);
@@ -180,6 +183,26 @@ internal sealed class FakeEmailSender : IEmailSender
     }
 }
 
+/// <summary>
+/// Lets everything through unless <see cref="RejectWith"/> names an alias, and records
+/// what it was asked about — the point under test in the service is the order the
+/// screen runs in, not the screen itself.
+/// </summary>
+internal sealed class FakeEmailDomainScreen : IEmailDomainScreen
+{
+    public List<string> Screened { get; } = [];
+    public string? RejectWith { get; init; }
+
+    public Task ScreenAsync(string email, CancellationToken cancellationToken = default)
+    {
+        Screened.Add(email);
+
+        return RejectWith is null
+            ? Task.CompletedTask
+            : throw new Common.Api.ValidationException(RejectWith, "domain refused");
+    }
+}
+
 internal sealed class FakeEmailTemplateProvider : IEmailTemplateProvider
 {
     public EmailBody ConfirmationCode(string code, int expiresInMinutes) =>
@@ -264,7 +287,8 @@ internal static class AuthServiceFactory
         PasswordResetOptions? resetOptions = null,
         FakeDeviceTokenService? deviceTokens = null,
         IAuthStateCache? authState = null,
-        IEmailTemplateProvider? templates = null) =>
+        IEmailTemplateProvider? templates = null,
+        IEmailDomainScreen? emailDomains = null) =>
         new(
             new FakeJwtProvider(),
             userRepo,
@@ -272,6 +296,7 @@ internal static class AuthServiceFactory
             new FakeGoogleOAuth(),
             emailSender ?? new FakeEmailSender(),
             templates ?? new FakeEmailTemplateProvider(),
+            emailDomains ?? new FakeEmailDomainScreen(),
             deviceTokens ?? new FakeDeviceTokenService(),
             links ?? new StubResetLinkBuilder(),
             Options.Create(resetOptions ?? new PasswordResetOptions()),

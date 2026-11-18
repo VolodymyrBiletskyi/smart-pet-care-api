@@ -128,7 +128,7 @@ the exact strings and renaming them means shipping a client release first:
 | `CONFIRMATION_CODE_EXPIRED` | 410 | The code is past its lifetime; request a new one. |
 | `EMAIL_ALREADY_CONFIRMED` | 409 | Confirming an address that is already confirmed. |
 | `CONFIRMATION_TOO_MANY_ATTEMPTS` | 429 | Too many wrong codes; request a new one. |
-| `CONFIRMATION_RESEND_TOO_SOON` | 429 | A code was sent recently. |
+| `CONFIRMATION_RESEND_TOO_SOON` | 429 | A code was sent recently — within the last 60 seconds, or five of them within the last hour. Both ceilings are per account and count sign-up and resend together, so they also answer a client that is retrying `register` for the same address. |
 | `EMAIL_NOT_CONFIRMED` | 403 | Login before the address was confirmed. |
 
 These strings stay as they are until the client can ship a release that accepts
@@ -399,6 +399,8 @@ record a weight, the other means correct the one that is there.
 | `auth_refresh_token_invalid` | 401 | The refresh token is unknown, expired, already used or belonged to a session that was ended. Same: start a new session. |
 | `auth_forbidden` | 403 | Authenticated, but not allowed to do this. |
 | `auth_email_already_taken` | 409 | Registering an address that already has an account. |
+| `auth_email_domain_invalid` | 400 | `register` only. The address's domain does not exist, publishes no MX record, or is not a domain at all — nothing was mailed. The user's fix is the address itself, so show it on the email field. Never means "we could not check": a lookup that fails or times out lets the address through. |
+| `auth_email_domain_disposable` | 400 | `register` only. The address is on a throwaway-mailbox provider. Separate from the alias above because the address is real and "that domain does not exist" is the wrong thing to show — ask for a permanent address. |
 | `auth_account_not_found` | 404 | No account for the address. |
 | `auth_invalid_credentials` | 401 | Wrong email or password. |
 | `auth_google_failed` | 401 | Google rejected the token or the exchange failed, or the account's email is not verified. |
@@ -638,6 +640,8 @@ for your own translations.
   "reminder_note_too_long": "",
 
   "auth_email_already_taken": "",
+  "auth_email_domain_invalid": "",
+  "auth_email_domain_disposable": "",
   "auth_account_not_found": "",
   "auth_invalid_credentials": "",
   "auth_google_failed": "",
