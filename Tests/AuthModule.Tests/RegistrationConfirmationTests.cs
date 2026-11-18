@@ -275,6 +275,154 @@ public class RegistrationConfirmationTests
             () => service.RegisterAsync(Request(AttackerPassword)));
     }
 
+    // ---- what an unconfirmed account can do -------------------------------
+
+    /// <summary>
+    /// Nothing, and that is where the ticket's fourth item is answered: an unconfirmed
+    /// account is issued no token, so every <c>[Authorize]</c> route — the classifier,
+    /// Cloudinary uploads, push registration — is out of reach without a per-module
+    /// check. The password is verified first, so this is not a way to learn whether an
+    /// address is registered either.
+    /// </summary>
+    [Fact]
+    public async Task Login_BeforeConfirming_IssuesNoTokens()
+    {
+        var (authRepo, userRepo, service) = Fixture();
+
+        await service.RegisterAsync(Request(OwnerPassword));
+
+        var failure = await Assert.ThrowsAsync<EmailConfirmationException>(
+            () => service.LoginAsync(new LoginRequest { Email = Email, Password = OwnerPassword }));
+
+        Assert.Equal(EmailConfirmationError.EmailNotConfirmed, failure.Error);
+        Assert.Equal(ErrorCodes.EmailConfirmation.NotConfirmed, failure.Code);
+        Assert.Empty(authRepo.RefreshTokens);
+    }
+
+    [Fact]
+    public async Task Login_AfterConfirming_IssuesTokens()
+    {
+        var (authRepo, userRepo, service) = Fixture();
+        var mail = new FakeEmailSender();
+        service = AuthServiceFactory.Create(authRepo, userRepo, mail);
+
+        await service.RegisterAsync(Request(OwnerPassword));
+        await service.ConfirmEmailAsync(
+            new ConfirmEmailRequest { Email = Email, Code = CodeFrom(mail, index: 0) });
+
+        var tokens = await service.LoginAsync(
+            new LoginRequest { Email = Email, Password = OwnerPassword });
+
+        Assert.NotNull(tokens.Auth.AccessToken);
+        Assert.Single(authRepo.RefreshTokens);
+    }
+
+    // ---- what is screened before a letter goes out ------------------------
+
+    /// <summary>
+    /// The screen runs before the row, the hash and the SMTP call, so a refused domain
+    /// leaves nothing at all behind — no account for its owner to meet later, and no
+    /// bounce against this domain's sending reputation.
+    /// </summary>
+    [Fact]
+    public async Task Register_WithARefusedDomain_CreatesNothingAndMailsNobody()
+    {
+        var authRepo = new FakeAuthRepository();
+        var userRepo = new FakeUserRepository();
+        var mail = new FakeEmailSender();
+        var service = AuthServiceFactory.Create(
+            authRepo, userRepo, mail,
+            emailDomains: new FakeEmailDomainScreen { RejectWith = ErrorCodes.Auth.EmailDomainInvalid });
+
+        var failure = await Assert.ThrowsAsync<ValidationException>(
+            () => service.RegisterAsync(Request(OwnerPassword)));
+
+        Assert.Equal(ErrorCodes.Auth.EmailDomainInvalid, failure.Code);
+        Assert.Empty(mail.Sent);
+        Assert.Empty(userRepo.Users);
+        Assert.Empty(authRepo.ConfirmationCodes);
+    }
+
+    /// <summary>
+    /// A resend is not screened: it presupposes an account that already passed the
+    /// check and already received a letter, so the only thing a second check could do
+    /// is keep a real user from their code while their provider's DNS is unreachable.
+    /// </summary>
+    [Fact]
+    public async Task Resend_DoesNotScreenTheDomainAgain()
+    {
+        var authRepo = new FakeAuthRepository();
+        var userRepo = new FakeUserRepository();
+        var screen = new FakeEmailDomainScreen();
+        var service = AuthServiceFactory.Create(authRepo, userRepo, emailDomains: screen);
+
+        await service.RegisterAsync(Request(OwnerPassword));
+        Backdate(authRepo);
+        await service.ResendConfirmationAsync(Email);
+
+        Assert.Equal([Email], screen.Screened);
+    }
+
+    /// <summary>
+    /// The sixty-second cooldown caps the rate and nothing else: a caller willing to
+    /// wait a minute between calls can mail sixty letters an hour to an address its
+    /// owner never typed. The rate limiter cannot see that address — it partitions on
+    /// the client's IP, before any field of the body is bound.
+    /// </summary>
+    [Fact]
+    public async Task Resend_PastTheHourlyCeiling_IsRefused()
+    {
+        var authRepo = new FakeAuthRepository();
+        var userRepo = new FakeUserRepository();
+        var mail = new FakeEmailSender();
+        var service = AuthServiceFactory.Create(authRepo, userRepo, mail);
+
+        await service.RegisterAsync(Request(OwnerPassword));
+
+        for (var sent = 1; sent < 5; sent++)
+        {
+            Backdate(authRepo);
+            await service.ResendConfirmationAsync(Email);
+        }
+
+        Assert.Equal(5, mail.Sent.Count);
+
+        Backdate(authRepo);
+        var failure = await Assert.ThrowsAsync<EmailConfirmationException>(
+            () => service.ResendConfirmationAsync(Email));
+
+        Assert.Equal(EmailConfirmationError.ResendTooSoon, failure.Error);
+        Assert.Equal(5, mail.Sent.Count);
+    }
+
+    /// <summary>
+    /// The ceiling is a window, not a total: the five letters aging out past the hour
+    /// leaves the address askable again.
+    /// </summary>
+    [Fact]
+    public async Task Resend_OnceTheWindowHasPassed_IsAllowedAgain()
+    {
+        var authRepo = new FakeAuthRepository();
+        var userRepo = new FakeUserRepository();
+        var mail = new FakeEmailSender();
+        var service = AuthServiceFactory.Create(authRepo, userRepo, mail);
+
+        await service.RegisterAsync(Request(OwnerPassword));
+
+        for (var sent = 1; sent < 5; sent++)
+        {
+            Backdate(authRepo);
+            await service.ResendConfirmationAsync(Email);
+        }
+
+        foreach (var code in authRepo.ConfirmationCodes)
+            code.CreatedAt = code.CreatedAt.AddHours(-2);
+
+        await service.ResendConfirmationAsync(Email);
+
+        Assert.Equal(6, mail.Sent.Count);
+    }
+
     // ---- helpers ---------------------------------------------------------
 
     private static (FakeAuthRepository, FakeUserRepository, AuthService) Fixture()

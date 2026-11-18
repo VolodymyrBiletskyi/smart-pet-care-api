@@ -141,6 +141,7 @@ internal sealed class FakeAuthRepository : IAuthRepository
     public Task AddConfirmationCodeAsync(EmailConfirmationCode code) => throw new NotSupportedException();
     public Task<EmailConfirmationCode?> GetLatestConfirmationCodeAsync(Guid userId) => throw new NotSupportedException();
     public Task<List<EmailConfirmationCode>> GetActiveConfirmationCodesAsync(Guid userId) => throw new NotSupportedException();
+    public Task<int> CountConfirmationCodesSinceAsync(Guid userId, DateTime since) => throw new NotSupportedException();
     public Task AddPasswordResetTokenAsync(PasswordResetToken token) => throw new NotSupportedException();
     public Task<PasswordResetToken?> GetPasswordResetTokenAsync(string tokenHash) => throw new NotSupportedException();
     public Task<PasswordResetToken?> GetLatestPasswordResetTokenAsync(Guid userId) => throw new NotSupportedException();
@@ -202,6 +203,12 @@ internal sealed class UnusedPasswordResetLinkBuilder : IPasswordResetLinkBuilder
 internal sealed class UnusedEmailSender : IEmailSender
 {
     public Task SendAsync(string toAddress, string subject, string textBody, string? htmlBody = null) =>
+        throw new NotSupportedException();
+}
+
+internal sealed class UnusedEmailDomainScreen : IEmailDomainScreen
+{
+    public Task ScreenAsync(string email, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 }
 

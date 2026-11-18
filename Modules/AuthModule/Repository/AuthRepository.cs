@@ -63,6 +63,12 @@ namespace smart_pet_care_api.Modules.AuthModule.Repository
                 .ToListAsync();
         }
 
+        public async Task<int> CountConfirmationCodesSinceAsync(Guid userId, DateTime since)
+        {
+            return await _dbContext.EmailConfirmationCodes
+                .CountAsync(c => c.UserId == userId && c.CreatedAt >= since);
+        }
+
         public async Task AddPasswordResetTokenAsync(PasswordResetToken token)
         {
             await _dbContext.PasswordResetTokens.AddAsync(token);

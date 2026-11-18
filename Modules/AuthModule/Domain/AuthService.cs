@@ -24,6 +24,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         private readonly IGoogleOAuth _googleOAuth;
         private readonly IEmailSender _emailSender;
         private readonly IEmailTemplateProvider _emailTemplates;
+        private readonly IEmailDomainScreen _emailDomains;
         private readonly IDeviceTokenService _deviceTokenService;
         private readonly IPasswordResetLinkBuilder _resetLinks;
         private readonly PasswordResetOptions _resetOptions;
@@ -32,6 +33,15 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
 
         private const int ConfirmationCodeMinutes = 15;
         private const int ResendCooldownSeconds = 60;
+
+        /// <summary>
+        /// Confirmation codes one address may be sent in <see cref="ConfirmationSendWindow"/>,
+        /// counted across sign-up and resend together: it is the mailbox being protected,
+        /// and which endpoint asked for the letter makes no difference to whoever owns it.
+        /// Five is well past what a person who mistyped their address once needs.
+        /// </summary>
+        private const int MaxConfirmationSendsPerWindow = 5;
+        private static readonly TimeSpan ConfirmationSendWindow = TimeSpan.FromHours(1);
 
         /// <summary>
         /// Wrong confirmation codes one account may be sent in
@@ -51,7 +61,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         /// </summary>
         private static readonly TimeSpan RefreshRetryGrace = TimeSpan.FromSeconds(10);
 
-        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IEmailTemplateProvider emailTemplates, IDeviceTokenService deviceTokenService, IPasswordResetLinkBuilder resetLinks, IOptions<PasswordResetOptions> resetOptions, IAuthStateCache authState, ILogger<AuthService> logger)
+        public AuthService(IJwtProvider jwt, IUserRepository userRepo, IAuthRepository authRepo, IGoogleOAuth googleOAuth, IEmailSender emailSender, IEmailTemplateProvider emailTemplates, IEmailDomainScreen emailDomains, IDeviceTokenService deviceTokenService, IPasswordResetLinkBuilder resetLinks, IOptions<PasswordResetOptions> resetOptions, IAuthStateCache authState, ILogger<AuthService> logger)
         {
             _jwt = jwt;
             _userRepo = userRepo;
@@ -59,6 +69,7 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             _googleOAuth = googleOAuth;
             _emailSender = emailSender;
             _emailTemplates = emailTemplates;
+            _emailDomains = emailDomains;
             _deviceTokenService = deviceTokenService;
             _resetLinks = resetLinks;
             _resetOptions = resetOptions.Value;
@@ -74,6 +85,17 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         public async Task RegisterAsync(RegisterRequest request)
         {
             var email = NormalizeEmail(request.Email);
+
+            // Before the row, the hash and the letter. Sign-up is public and every
+            // request that gets past here spends someone's inbox: a typo'd or made-up
+            // domain bounces, and a sending account over the provider's bounce threshold
+            // is throttled or suspended.
+            //
+            // Register only, not resend. A resend presupposes an account that already
+            // passed this check and already received a letter, so the check protects
+            // nothing there -- while a domain whose MX is briefly unreachable would stop
+            // a real user from getting their code.
+            await _emailDomains.ScreenAsync(email);
 
             // The four columns this needs, not the row: a tracked load drags the avatar
             // bytes along, and nothing here writes to the user any more.
@@ -219,6 +241,18 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
         {
             var latest = await _authRepo.GetLatestConfirmationCodeAsync(userId);
             if (latest is not null && latest.CreatedAt > DateTime.UtcNow.AddSeconds(-ResendCooldownSeconds))
+                throw new EmailConfirmationException(EmailConfirmationError.ResendTooSoon);
+
+            // The cooldown caps the rate; this caps the total. Sixty seconds apart is
+            // sixty letters an hour to one address, which is a mailing, and the rate
+            // limiter cannot stop it: it partitions on the client address, and the
+            // address being mailed is in the request body — chosen before model binding,
+            // where no field of it is available yet. So the ceiling lives here, where the
+            // account is already known.
+            var sentThisHour = await _authRepo.CountConfirmationCodesSinceAsync(
+                userId, DateTime.UtcNow - ConfirmationSendWindow);
+
+            if (sentThisHour >= MaxConfirmationSendsPerWindow)
                 throw new EmailConfirmationException(EmailConfirmationError.ResendTooSoon);
 
             // A new code supersedes an earlier one only when the two carry the same
@@ -440,6 +474,14 @@ namespace smart_pet_care_api.Modules.AuthModule.Domain
             if (!isValid)
                 throw new UnauthorizedException(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password");
 
+            // No tokens for an unconfirmed address, which is also what keeps an
+            // unconfirmed account away from everything that reaches an external service —
+            // the classifier, Cloudinary uploads, push registration. Every one of those
+            // routes is [Authorize], and the only way to a bearer token for a password
+            // account is this method, so the guarantee is structural rather than a check
+            // repeated per module. The two other ways in cannot produce one either: Google
+            // sign-in is refused unless Google reports the address as verified, and
+            // /api/auth/refresh needs a refresh token that only IssueTokensAsync mints.
             if (!user.EmailConfirmed)
                 throw new EmailConfirmationException(EmailConfirmationError.EmailNotConfirmed);
 

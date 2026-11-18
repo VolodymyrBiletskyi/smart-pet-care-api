@@ -137,6 +137,7 @@ public class AuthServiceLogoutTests
             new UnusedGoogleOAuth(),
             new UnusedEmailSender(),
             new UnusedEmailTemplates(),
+            new UnusedEmailDomainScreen(),
             deviceTokens,
             new UnusedPasswordResetLinkBuilder(),
             Options.Create(new PasswordResetOptions()),

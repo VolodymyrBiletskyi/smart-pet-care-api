@@ -1,4 +1,5 @@
 using smart_pet_care_api.Common.Api;
+using DnsClient;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -45,6 +46,22 @@ namespace smart_pet_care_api.Modules.AuthModule
             services.AddScoped<IEmailSender, SmtpEmailSender>();
             // Singleton: the templates are read from disk once and held.
             services.AddSingleton<IEmailTemplateProvider, EmailTemplateProvider>();
+
+            // The sign-up screen. The domain list is a file read once, and DnsClient's
+            // LookupClient is built to be shared — it holds the resolver addresses and a
+            // response cache, both of which a per-request instance would throw away.
+            services.AddSingleton<ILookupClient>(_ => new LookupClient(new LookupClientOptions
+            {
+                // One attempt: the caller treats an unanswered question as a pass, so a
+                // retry only spends the sign-up's time to reach the same conclusion.
+                Retries = 0,
+                Timeout = TimeSpan.FromSeconds(2),
+                UseCache = true,
+                ThrowDnsErrors = false
+            }));
+            services.AddSingleton<IMxRecordLookup, DnsMxRecordLookup>();
+            services.AddSingleton<IDisposableEmailDomains, DisposableEmailDomains>();
+            services.AddSingleton<IEmailDomainScreen, EmailDomainScreen>();
             services.AddSingleton<IPasswordResetPageProvider, PasswordResetPageProvider>();
             services.AddMemoryCache();
             // Singleton over the shared memory cache: the middleware reads it on every

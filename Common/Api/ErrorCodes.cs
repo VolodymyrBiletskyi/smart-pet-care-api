@@ -184,6 +184,22 @@ public static class ErrorCodes
     {
         public const string EmailAlreadyTaken = "auth_email_already_taken";
         public const string AccountNotFound = "auth_account_not_found";
+
+        /// <summary>
+        /// The address's domain does not exist, publishes no MX record, or is not a
+        /// domain at all. Raised before anything is mailed, so a typo costs no bounce.
+        /// A domain the DNS could not be asked about is <em>accepted</em> — this alias
+        /// never means "we could not check".
+        /// </summary>
+        public const string EmailDomainInvalid = "auth_email_domain_invalid";
+
+        /// <summary>
+        /// The address is on a throwaway-mailbox provider. Distinct from
+        /// <see cref="EmailDomainInvalid"/> because the address is perfectly real and
+        /// the client's message has to say something else entirely.
+        /// </summary>
+        public const string EmailDomainDisposable = "auth_email_domain_disposable";
+
         public const string InvalidCredentials = "auth_invalid_credentials";
         public const string GoogleAuthFailed = "auth_google_failed";
         public const string RefreshTokenInvalid = "auth_refresh_token_invalid";
